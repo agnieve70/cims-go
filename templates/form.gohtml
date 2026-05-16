@@ -1,0 +1,140 @@
+{{template "head" .}}
+{{template "topbar" .}}
+<main class="page form-page">
+  <form method="post" action="{{.Action}}" class="form-shell modal-form">
+    <div class="modal-titlebar">
+      <div class="modal-title">
+        <span class="modal-icon">▱</span>
+        <strong>{{.Form.Title}}</strong>
+      </div>
+      <a class="modal-close" href="{{.Form.RouteBase}}/" aria-label="Close">×</a>
+    </div>
+    <div class="modal-body">
+      {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+      <section class="form-grid modal-fields">
+        {{range .Form.Fields}}
+          <label class="field {{if eq .Type "textarea"}}wide{{end}} {{if eq .Type "bool"}}check-field{{end}}">
+            <span>{{.Label}}{{if .Required}} *{{end}}</span>
+            {{if eq .Type "textarea"}}
+              <textarea name="{{.Key}}" rows="2">{{fieldValue $.Record .Key}}</textarea>
+            {{else if eq .Type "bool"}}
+              <input type="checkbox" name="{{.Key}}" {{if eq (fieldValue $.Record .Key) "true"}}checked{{end}}>
+            {{else if eq .Type "readonly"}}
+              <input name="{{.Key}}" value="{{fieldValue $.Record .Key}}" readonly>
+            {{else if eq .Type "select"}}
+              <select name="{{.Key}}" {{if .Required}}required{{end}} {{if and (eq .Key "dr_document_id") (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions"))}}onchange="window.location='{{$.Form.RouteBase}}/new' + (this.value ? '?dr_document_id=' + this.value : '')"{{end}}>
+                <option value="">Select</option>
+                {{$current := fieldValue $.Record .Key}}
+                {{range index $.Options .Source}}
+                  <option value="{{.Value}}" {{if eq .Value $current}}selected{{end}}>{{.Label}}</option>
+                {{end}}
+              </select>
+            {{else if eq .Type "combo"}}
+              <input name="{{.Key}}" list="list-{{.Key}}" value="{{fieldValue $.Record .Key}}" {{if .Required}}required{{end}}>
+              <datalist id="list-{{.Key}}">
+                {{range index $.Options .Source}}
+                  <option value="{{.Value}}">{{.Label}}</option>
+                {{end}}
+              </datalist>
+            {{else}}
+              <input name="{{.Key}}" type="{{if eq .Type "date"}}date{{else if eq .Type "money"}}number{{else if eq .Type "number"}}number{{else}}text{{end}}" step="{{if eq .Type "money"}}0.01{{else}}1{{end}}" value="{{fieldValue $.Record .Key}}" {{if .Required}}required{{end}}>
+            {{end}}
+          </label>
+        {{end}}
+      </section>
+
+      {{range .Form.LineGroups}}
+      {{$group := .}}
+      <section class="line-section modal-line-section">
+        <div class="section-head">
+          <h2>{{.Label}}</h2>
+          {{if and (eq $.Form.Kind "sales") (eq .Key "details")}}
+            {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+          {{else if and (eq $.Form.Kind "stock-transactions") (eq .Key "details")}}
+            {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+          {{else}}
+            <button type="button" hx-get="/line-row/{{.Key}}" hx-target="#rows-{{.Key}}" hx-swap="beforeend">Add Row</button>
+          {{end}}
+        </div>
+        <div class="table-wrap modal-table">
+          <table>
+            <thead>
+              <tr>{{range .Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr>
+            </thead>
+            <tbody id="rows-{{.Key}}">
+              {{$rows := index $.LineRows .Key}}
+              {{if $rows}}
+                {{range $rows}}
+                  {{template "line_row.gohtml" dictRow $group $.Options .}}
+                {{end}}
+              {{else if and (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions")) (eq .Key "details")}}
+                <tr><td colspan="20" class="empty">Select a DR file to load detail quantities.</td></tr>
+              {{else}}
+                {{template "line_row.gohtml" dictLine $group $.Options}}
+                {{template "line_row.gohtml" dictLine $group $.Options}}
+                {{template "line_row.gohtml" dictLine $group $.Options}}
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{end}}
+    </div>
+
+    <div class="modal-footer actions">
+      <button type="submit">Save</button>
+      <a class="button secondary" href="{{.Form.RouteBase}}/">Cancel</a>
+    </div>
+  </form>
+
+  <div class="form-backdrop-table table-wrap">
+    <div class="form-backdrop-title">
+      <h1>{{.Form.Title}}</h1>
+    </div>
+    <table>
+      {{if .Form.Table}}
+      <thead>
+        <tr>
+          <th>ID</th>
+          {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
+          <th>Encoder</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Records}}
+        <tr>
+          <td>{{index . "id"}}</td>
+          {{$record := .}}
+          {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}
+          <td>{{index . "encoder"}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="20" class="empty">No records yet.</td></tr>
+        {{end}}
+      </tbody>
+      {{else}}
+      <thead>
+        <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
+      </thead>
+      <tbody>
+        {{range .Documents}}
+        <tr>
+          <td>{{.EntryID}}</td>
+          <td>{{.EntryDate.Format "2006-01-02"}}</td>
+          <td>{{.Party}}</td>
+          <td>{{.Reference}}</td>
+          <td>{{.DRRef}}</td>
+          <td>{{.Status}}</td>
+          <td>{{.Branch}}</td>
+          <td>{{.Net}}</td>
+          <td>{{.Encoder}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="9" class="empty">No entries yet.</td></tr>
+        {{end}}
+      </tbody>
+      {{end}}
+    </table>
+  </div>
+</main>
+{{template "foot" .}}

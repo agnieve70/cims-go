@@ -1,0 +1,48 @@
+{{template "head" .}}
+{{template "topbar" .}}
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>{{.Form.Title}}</h1>
+      <p>Master file records with audit tracking.</p>
+    </div>
+  </div>
+  {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+  <div id="records-table"
+       class="table-wrap"
+       hx-get="{{.Form.RouteBase}}/"
+       hx-trigger="every 10s"
+       hx-select="#records-table"
+       hx-swap="outerHTML">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
+          <th>Encoder</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{if .User.CanWrite}}
+        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+          <td>Add new ...</td>
+          <td colspan="20"></td>
+        </tr>
+        {{end}}
+        {{range .Records}}
+        <tr>
+          <td>{{index . "id"}}</td>
+          {{$record := .}}
+          {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}
+          <td>{{index . "encoder"}}</td>
+          <td>{{if $.User.CanWrite}}<a href="{{$.Form.RouteBase}}/{{index . "id"}}/edit">Edit</a>{{end}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="20" class="empty">No records yet.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</main>
+{{template "foot" .}}

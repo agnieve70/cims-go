@@ -1,0 +1,80 @@
+{{define "head"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · CIMS</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+{{end}}
+
+{{define "topbar"}}
+<header class="topbar">
+  <a class="brand" href="/dashboard">DIGOS | CUSTOMIZED INFORMATION MANAGEMENT SYSTEM</a>
+  {{if .User.ID}}
+  <span class="user-icon">⌕</span>
+  <span class="user">{{.User.DisplayName}}</span>
+  <form method="post" action="/logout" class="logout-form"><button type="submit">Logout</button></form>
+  {{end}}
+</header>
+{{if .User.ID}}
+<nav class="navrail" aria-label="Primary">
+  <a class="navitem active" href="/dashboard"><span class="navicon">▣</span>Main Menu</a>
+  <div class="navitem has-menu" tabindex="0"><span class="navicon">▰</span>Utility Files
+    <div class="dropdown-menu wide-menu">
+      <h3>Utility Files</h3>
+      <a href="/masters/stocks/"><span>▤</span>Stocks</a>
+      <a href="/masters/branches/"><span>⌂</span>Branches</a>
+      <a href="/masters/suppliers/"><span>▱</span>Suppliers</a>
+      <a href="/masters/customers/"><span>♙</span>Customers</a>
+      <a href="/masters/expense-chart/"><span>▥</span>Expenses Chart</a>
+      <a href="/masters/stock-categories/"><span>◇</span>Stock Categories</a>
+    </div>
+  </div>
+  <div class="navitem has-menu" tabindex="0"><span class="navicon">◰</span>Other Files
+    <div class="dropdown-menu">
+      <h3>Other Files</h3>
+      <a href="/transactions/stock-in/"><span>↓</span>Stock In</a>
+      <a href="/transactions/stock-out/"><span>↑</span>Stock Out</a>
+      <a href="/transactions/checks-in/"><span>▭</span>Checks In</a>
+      <a href="/transactions/other-income/"><span>▧</span>Other Income File</a>
+      <a href="/masters/other-income-chart/"><span>♧</span>Other Income</a>
+    </div>
+  </div>
+  <a class="navitem" href="/masters/stocks/"><span class="navicon">▥</span>Stock Summary</a>
+  <a class="navitem" href="/transactions/purchases/"><span class="navicon">▣</span>Stock Purchases</a>
+  <a class="navitem" href="/transactions/dr/"><span class="navicon">▤</span>DR File</a>
+  <a class="navitem" href="/transactions/sales/"><span class="navicon">▤</span>Stock Sales</a>
+  <a class="navitem" href="/transactions/stock-transactions/"><span class="navicon">↔</span>Stock Transfers</a>
+</nav>
+<aside class="sidebar" aria-label="Files">
+  <section class="side-section expanded">
+    <h2>Files <span>⌄</span></h2>
+    <a class="side-link" href="/transactions/purchases/"><span>⌑</span>Purchases File</a>
+    <a class="side-link" href="/transactions/dr/"><span>▤</span>DR File</a>
+    <a class="side-link" href="/transactions/sales/"><span>▣</span>Sales File</a>
+    <a class="side-link" href="/transactions/stock-transactions/"><span>↔</span>Stock Transaction File</a>
+    <a class="side-link" href="/transactions/ap-credit/"><span>♧</span>AP Credit File</a>
+    <a class="side-link" href="/transactions/ap-debit/"><span>♧</span>AP Debit File</a>
+    <a class="side-link" href="/transactions/ar-credit/"><span>♧</span>AR Credit File</a>
+    <a class="side-link" href="/transactions/ar-debit/"><span>♧</span>AR Debit File</a>
+    <a class="side-link" href="/transactions/rebates/"><span>▧</span>Rebates Entry File</a>
+    <a class="side-link" href="/transactions/expenses/"><span>▥</span>Expenses File</a>
+  </section>
+  <section class="side-section collapsed"><h2>Reports <span>›</span></h2></section>
+  <section class="side-section collapsed"><h2>Special Reports <span>›</span></h2></section>
+  <section class="side-section expanded">
+    <h2>Settings <span>⌄</span></h2>
+    <a class="side-link" href="/dashboard"><span>♙</span>User Settings</a>
+  </section>
+</aside>
+{{end}}
+{{end}}
+
+{{define "foot"}}
+</body>
+</html>
+{{end}}

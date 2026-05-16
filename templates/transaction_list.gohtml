@@ -1,0 +1,46 @@
+{{template "head" .}}
+{{template "topbar" .}}
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>{{.Form.Title}}</h1>
+      <p>Posted documents. Inventory and balance effects post on save.</p>
+    </div>
+  </div>
+  <div id="documents-table"
+       class="table-wrap"
+       hx-get="{{.Form.RouteBase}}/"
+       hx-trigger="every 10s"
+       hx-select="#documents-table"
+       hx-swap="outerHTML">
+    <table>
+      <thead>
+        <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
+      </thead>
+      <tbody>
+        {{if .User.CanWrite}}
+        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+          <td>Add new ...</td>
+          <td colspan="8"></td>
+        </tr>
+        {{end}}
+        {{range .Documents}}
+        <tr>
+          <td>{{.EntryID}}</td>
+          <td>{{.EntryDate.Format "2006-01-02"}}</td>
+          <td>{{.Party}}</td>
+          <td>{{.Reference}}</td>
+          <td>{{.DRRef}}</td>
+          <td>{{.Status}}</td>
+          <td>{{.Branch}}</td>
+          <td>{{.Net}}</td>
+          <td>{{.Encoder}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="9" class="empty">No entries yet.</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</main>
+{{template "foot" .}}

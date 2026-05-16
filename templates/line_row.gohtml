@@ -1,0 +1,28 @@
+{{define "line_row.gohtml"}}
+<tr>
+  {{range .LineGroup.Columns}}
+  <td {{if .Hidden}}class="hidden-col"{{end}}>
+    {{$value := fieldValue $.Record .Key}}
+    {{if eq .Type "hidden"}}
+      <input type="hidden" name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}">
+    {{else if eq .Type "select"}}
+      <select name="{{lineName $.LineGroup.Key .Key}}" {{if .ReadOnly}}disabled{{end}}>
+        <option value="">Select</option>
+        {{range index $.Options .Source}}<option value="{{.Value}}" {{if eq .Value $value}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+      {{if .ReadOnly}}<input type="hidden" name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}">{{end}}
+    {{else if eq .Type "date"}}
+      <input type="date" name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}" {{if .ReadOnly}}readonly{{end}}>
+    {{else if eq .Type "money"}}
+      <input type="number" step="0.01" name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}" {{if .ReadOnly}}readonly{{end}}>
+    {{else if eq .Type "number"}}
+      <input type="number" step="1" name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}" {{if .ReadOnly}}readonly{{end}}>
+    {{else if eq .Type "readonly"}}
+      <input name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}" readonly>
+    {{else}}
+      <input name="{{lineName $.LineGroup.Key .Key}}" value="{{$value}}" {{if .ReadOnly}}readonly{{end}}>
+    {{end}}
+  </td>
+  {{end}}
+</tr>
+{{end}}
