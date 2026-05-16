@@ -2,7 +2,7 @@
 .env
 
 # Binaries
-cims
+/cims
 *.exe
 *.dll
 *.so
