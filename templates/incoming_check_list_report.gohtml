@@ -1,0 +1,249 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .IncomingCheckReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/incoming-check-list" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/report-incoming-check.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset>
+      <legend>Select Report Type</legend>
+      <div class="report-choice-row">
+        <label class="report-choice"><input type="radio" name="report_type" value="detailed" {{if eq .IncomingCheckReport.ReportType "detailed"}}checked{{end}}> <span>Detailed</span></label>
+        <label class="report-choice"><input type="radio" name="report_type" value="summary-postdated" {{if eq .IncomingCheckReport.ReportType "summary-postdated"}}checked{{end}}> <span>Summary (Postdated)</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Cut-off Date</legend>
+      <label class="report-option-line">
+        <span>Cut-off:</span>
+        <input type="date" name="cutoff_date" value="{{.IncomingCheckReport.CutoffDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{if eq .IncomingCheckReport.ReportType "detailed"}}
+          {{range $index, $group := .IncomingCheckReport.Groups}}
+          <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.Payee}}</button></li>
+          {{else}}<li><span class="report-tree-empty">No incoming checks</span></li>{{end}}
+        {{else}}
+          {{range $index, $row := .IncomingCheckReport.SummaryRows}}
+          <li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Payee}}</button></li>
+          {{else}}<li><span class="report-tree-empty">No incoming checks</span></li>{{end}}
+        {{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/incoming-check-list" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="report_type" value="{{.IncomingCheckReport.ReportType}}">
+          <input type="hidden" name="cutoff_date" value="{{.IncomingCheckReport.CutoffDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .IncomingCheckReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .IncomingCheckReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .IncomingCheckReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .IncomingCheckReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.IncomingCheckReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.IncomingCheckReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.IncomingCheckReport.PaperClass}}">
+          <header class="report-paper-header">
+            <h1>{{.IncomingCheckReport.Title}}</h1>
+            {{if eq .IncomingCheckReport.ReportType "summary-postdated"}}
+            <h2>INCOMING CHECK ACCOUNT SUMMARY (Postdated)</h2>
+            <p>{{.IncomingCheckReport.CutoffLabel}}</p>
+            {{else}}
+            <h2>INCOMING CHECK LIST</h2>
+            {{end}}
+          </header>
+          {{if eq .IncomingCheckReport.ReportType "summary-postdated"}}
+          <table class="report-table report-summary-table">
+            <thead><tr><th>Record Number</th><th>Payee</th><th>Total Check Amount</th></tr></thead>
+            <tbody>
+              {{range $index, $row := .IncomingCheckReport.SummaryRows}}
+              <tr data-report-summary-row="{{add $index 1}}"><td class="num">{{$row.RecordNumber}}</td><td>{{$row.Payee}}</td><td class="num">{{$row.Total}}</td></tr>
+              {{else}}
+              <tr><td colspan="3" class="empty">No postdated incoming checks after the cut-off date.</td></tr>
+              {{end}}
+            </tbody>
+            <tfoot><tr><td colspan="2">GRAND TOTAL:</td><td class="num">{{.IncomingCheckReport.GrandTotal}}</td></tr></tfoot>
+          </table>
+          {{else}}
+          {{range $index, $group := .IncomingCheckReport.Groups}}
+          <section class="report-detail-group" data-report-page="{{add $index 1}}">
+            <div class="report-supplier-label">Payee: <strong>{{$group.Payee}}</strong></div>
+            {{range $month := $group.Months}}
+            <div class="report-month-label">{{$month.Month}}</div>
+            <table class="report-table report-detail-table">
+              <thead><tr><th>Reference</th><th>Date</th><th>Number</th><th>Bank Name</th><th>Amount</th></tr></thead>
+              <tbody>
+                {{range $month.Rows}}
+                <tr><td>{{.Reference}}</td><td>{{.Date}}</td><td>{{.Number}}</td><td>{{.BankName}}</td><td class="num">{{.Amount}}</td></tr>
+                {{end}}
+              </tbody>
+              <tfoot><tr><td colspan="4">MONTH TOTAL</td><td class="num">{{$month.Total}}</td></tr></tfoot>
+            </table>
+            {{end}}
+          </section>
+          {{else}}
+          <p class="report-empty">No incoming checks for the selected cut-off date.</p>
+          {{end}}
+          {{end}}
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !paper) return;
+
+    var pageInput = document.querySelector("[data-report-page-input]");
+    var treeNodes = Array.prototype.slice.call(document.querySelectorAll("[data-report-tree-page]"));
+    var summaryTreeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+    var summaryRows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-report-summary-row]"));
+    var pages = Array.prototype.slice.call(document.querySelectorAll("[data-report-page]")).filter(function (el) {
+      return el.classList.contains("report-detail-group");
+    });
+    var totalPages = Math.max(1, pages.length || 1);
+    var currentPage = 1;
+
+    var setPage = function (page) {
+      currentPage = Math.min(totalPages, Math.max(1, page || 1));
+      if (pageInput) pageInput.value = currentPage;
+      treeNodes.forEach(function (node) {
+        node.classList.toggle("active", Number(node.getAttribute("data-report-tree-page")) === currentPage);
+      });
+      if (pages.length === 0) return;
+      pages.forEach(function (section) {
+        section.hidden = Number(section.getAttribute("data-report-page")) !== currentPage;
+      });
+    };
+
+    setPage(1);
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      if (button.classList.contains("report-detail-group")) return;
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-page")) {
+        case "first": setPage(1); break;
+        case "previous": setPage(currentPage - 1); break;
+        case "next": setPage(currentPage + 1); break;
+        case "last": setPage(totalPages); break;
+        }
+      });
+    });
+
+    if (pageInput) {
+      pageInput.addEventListener("change", function () {
+        setPage(Number(pageInput.value));
+      });
+    }
+
+    treeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        setPage(Number(node.getAttribute("data-report-tree-page")));
+        var paperScroll = document.querySelector(".report-paper-scroll");
+        if (paperScroll) paperScroll.scrollTop = 0;
+      });
+    });
+
+    summaryTreeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        var rowIndex = node.getAttribute("data-report-summary-row");
+        summaryTreeNodes.forEach(function (treeNode) {
+          treeNode.classList.toggle("active", treeNode === node);
+        });
+        summaryRows.forEach(function (row) {
+          row.classList.toggle("report-row-highlight", row.getAttribute("data-report-summary-row") === rowIndex);
+        });
+        var row = summaryRows.find(function (candidate) {
+          return candidate.getAttribute("data-report-summary-row") === rowIndex;
+        });
+        if (row) row.scrollIntoView({block: "center", inline: "nearest"});
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transform = "scale(" + zoom.value + ")";
+        paper.style.transformOrigin = "top center";
+        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+      });
+    }
+
+    var exportCSV = function () {
+      var lines = [];
+      paper.querySelectorAll("table").forEach(function (table) {
+        table.querySelectorAll("tr").forEach(function (row) {
+          var cells = Array.prototype.map.call(row.children, function (cell) {
+            return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+          });
+          lines.push(cells.join(","));
+        });
+        lines.push("");
+      });
+      var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "incoming-check-list.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print": window.print(); break;
+        case "export": exportCSV(); break;
+        case "refresh": window.location.reload(); break;
+        case "tree": shell.classList.toggle("report-tree-hidden"); break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (term) window.find(term);
+          break;
+        }
+      });
+    });
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

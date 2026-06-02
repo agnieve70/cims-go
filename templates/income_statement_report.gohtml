@@ -1,0 +1,278 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .IncomeStatementReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/income-statement" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/report-income-statement.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Report Coverage</legend>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="month" {{if eq .IncomeStatementReport.Coverage "month"}}checked{{end}}>
+        <span>Month of</span>
+        <select name="month">
+          <option value="1" {{if eq .IncomeStatementReport.Month 1}}selected{{end}}>1 - January</option>
+          <option value="2" {{if eq .IncomeStatementReport.Month 2}}selected{{end}}>2 - February</option>
+          <option value="3" {{if eq .IncomeStatementReport.Month 3}}selected{{end}}>3 - March</option>
+          <option value="4" {{if eq .IncomeStatementReport.Month 4}}selected{{end}}>4 - April</option>
+          <option value="5" {{if eq .IncomeStatementReport.Month 5}}selected{{end}}>5 - May</option>
+          <option value="6" {{if eq .IncomeStatementReport.Month 6}}selected{{end}}>6 - June</option>
+          <option value="7" {{if eq .IncomeStatementReport.Month 7}}selected{{end}}>7 - July</option>
+          <option value="8" {{if eq .IncomeStatementReport.Month 8}}selected{{end}}>8 - August</option>
+          <option value="9" {{if eq .IncomeStatementReport.Month 9}}selected{{end}}>9 - September</option>
+          <option value="10" {{if eq .IncomeStatementReport.Month 10}}selected{{end}}>10 - October</option>
+          <option value="11" {{if eq .IncomeStatementReport.Month 11}}selected{{end}}>11 - November</option>
+          <option value="12" {{if eq .IncomeStatementReport.Month 12}}selected{{end}}>12 - December</option>
+        </select>
+        <input type="number" name="year" value="{{.IncomeStatementReport.Year}}" min="2000" max="2100" class="report-year-input">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="range" {{if eq .IncomeStatementReport.Coverage "range"}}checked{{end}}>
+        <span>Date to Date</span>
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>From:</span>
+        <input type="date" name="from_date" value="{{.IncomeStatementReport.FromDate}}">
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>To:</span>
+        <input type="date" name="range_to_date" value="{{.IncomeStatementReport.ToDate}}">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="to-date" {{if eq .IncomeStatementReport.Coverage "to-date"}}checked{{end}}>
+        <span>To Date</span>
+        <input type="date" name="to_date" value="{{.IncomeStatementReport.ToDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        <li><button type="button" class="report-tree-node" data-report-summary-row="1">Sales</button></li>
+        <li><button type="button" class="report-tree-node" data-report-summary-row="2">Cost of Sales</button></li>
+        <li><button type="button" class="report-tree-node" data-report-summary-row="3">Operating Expenses</button></li>
+        <li><button type="button" class="report-tree-node" data-report-summary-row="4">Other Income</button></li>
+        <li><button type="button" class="report-tree-node" data-report-summary-row="5">Net Income</button></li>
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/income-statement" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="coverage" value="{{.IncomeStatementReport.Coverage}}">
+          <input type="hidden" name="month" value="{{.IncomeStatementReport.Month}}">
+          <input type="hidden" name="year" value="{{.IncomeStatementReport.Year}}">
+          <input type="hidden" name="from_date" value="{{.IncomeStatementReport.FromDate}}">
+          <input type="hidden" name="range_to_date" value="{{.IncomeStatementReport.ToDate}}">
+          <input type="hidden" name="to_date" value="{{.IncomeStatementReport.ToDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .IncomeStatementReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .IncomeStatementReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .IncomeStatementReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .IncomeStatementReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.IncomeStatementReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.IncomeStatementReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.IncomeStatementReport.PaperClass}} income-statement-paper">
+          <header class="report-paper-header">
+            <h1>{{.IncomeStatementReport.Title}}</h1>
+            <h2>Income Statement</h2>
+            <p>{{.IncomeStatementReport.RangeLabel}}</p>
+          </header>
+
+          <section class="income-statement-section" data-report-summary-row="1">
+            <h3>SALES</h3>
+            <table class="income-statement-table">
+              <tbody>
+                <tr><td>Cash Sales</td><td class="num">{{.IncomeStatementReport.CashSales}}</td><td></td></tr>
+                <tr><td>Charge Sales</td><td class="num">{{.IncomeStatementReport.ChargeSales}}</td><td></td></tr>
+                <tr class="income-statement-total"><td>Total Sales</td><td></td><td class="num">{{.IncomeStatementReport.TotalSales}}</td></tr>
+                <tr class="income-statement-total"><td>LESS: Sales Return</td><td></td><td class="num">{{.IncomeStatementReport.SalesReturn}}</td></tr>
+                <tr class="income-statement-grand"><td>NET SALES</td><td></td><td class="num">{{.IncomeStatementReport.NetSales}}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="income-statement-section" data-report-summary-row="2">
+            <h3>COST OF SALES</h3>
+            <table class="income-statement-table">
+              <tbody>
+                <tr><td>Stock Inventory, Beginning</td><td></td><td class="num">{{.IncomeStatementReport.BeginningInventory}}</td></tr>
+                <tr class="income-statement-subhead"><td>Purchases</td><td></td><td></td></tr>
+                {{range .IncomeStatementReport.Purchases}}<tr><td class="income-statement-indent">{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{end}}
+                <tr class="income-statement-total"><td>Total Purchases</td><td></td><td class="num">{{.IncomeStatementReport.TotalPurchases}}</td></tr>
+                <tr class="income-statement-subhead"><td>LESS: Stock Withdrawals and Stock Returns</td><td></td><td></td></tr>
+                {{range .IncomeStatementReport.Withdrawals}}<tr><td class="income-statement-indent">{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{end}}
+                <tr class="income-statement-total"><td>Total Stock Withdrawals and Stock Returns</td><td></td><td class="num">{{.IncomeStatementReport.TotalWithdrawals}}</td></tr>
+                <tr><td>Net Purchases</td><td></td><td class="num">{{.IncomeStatementReport.NetPurchases}}</td></tr>
+                <tr><td>Total Goods Available for Sale</td><td></td><td class="num">{{.IncomeStatementReport.GoodsAvailable}}</td></tr>
+                <tr><td>Stock Inventory, End</td><td></td><td class="num">{{.IncomeStatementReport.EndingInventory}}</td></tr>
+                <tr class="income-statement-grand"><td>Total Cost of Sales</td><td></td><td class="num">{{.IncomeStatementReport.TotalCostOfSales}}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="income-statement-section">
+            <table class="income-statement-table">
+              <tbody>
+                <tr class="income-statement-grand income-statement-spaced"><td>G R O S S&nbsp;&nbsp;P R O F I T</td><td></td><td class="num">{{.IncomeStatementReport.GrossProfit}}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="income-statement-section" data-report-summary-row="3">
+            <h3>OPERATING EXPENSES</h3>
+            <table class="income-statement-table">
+              <tbody>
+                {{range .IncomeStatementReport.OperatingExpenses}}<tr><td>{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{else}}<tr><td>No operating expenses</td><td></td><td class="num">0.00</td></tr>{{end}}
+                <tr class="income-statement-total"><td>Total Operating Expenses</td><td></td><td class="num">{{.IncomeStatementReport.TotalExpenses}}</td></tr>
+                <tr class="income-statement-grand"><td>INCOME before other income</td><td></td><td class="num">{{.IncomeStatementReport.IncomeBeforeOther}}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="income-statement-section" data-report-summary-row="4">
+            <h3>OTHER INCOME</h3>
+            <table class="income-statement-table">
+              <tbody>
+                {{range .IncomeStatementReport.OtherIncome}}<tr><td>{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{else}}<tr><td>No other income</td><td></td><td class="num">0.00</td></tr>{{end}}
+                <tr class="income-statement-total"><td>Total Other Income</td><td></td><td class="num">{{.IncomeStatementReport.TotalOtherIncome}}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="income-statement-section" data-report-summary-row="5">
+            <table class="income-statement-table">
+              <tbody>
+                <tr class="income-statement-grand income-statement-net"><td>NET INCOME</td><td></td><td class="num">{{.IncomeStatementReport.NetIncome}}</td></tr>
+              </tbody>
+            </table>
+            <div class="report-page-label">Page 1 of {{.IncomeStatementReport.TotalPages}}</div>
+          </section>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !paper) return;
+
+    var pageInput = document.querySelector("[data-report-page-input]");
+    if (pageInput) pageInput.value = "1";
+
+    var summaryTreeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+    var sections = Array.prototype.slice.call(document.querySelectorAll(".income-statement-section[data-report-summary-row]"));
+
+    summaryTreeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        var rowIndex = node.getAttribute("data-report-summary-row");
+        summaryTreeNodes.forEach(function (treeNode) {
+          treeNode.classList.toggle("active", treeNode === node);
+        });
+        sections.forEach(function (section) {
+          section.classList.toggle("report-row-highlight", section.getAttribute("data-report-summary-row") === rowIndex);
+        });
+        var section = sections.find(function (candidate) {
+          return candidate.getAttribute("data-report-summary-row") === rowIndex;
+        });
+        if (section) section.scrollIntoView({block: "center", inline: "nearest"});
+      });
+    });
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (pageInput) pageInput.value = "1";
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transform = "scale(" + zoom.value + ")";
+        paper.style.transformOrigin = "top center";
+        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+      });
+    }
+
+    var exportCSV = function () {
+      var lines = [];
+      paper.querySelectorAll("h3, tr").forEach(function (row) {
+        if (row.tagName.toLowerCase() === "h3") {
+          lines.push('"' + row.innerText.replaceAll('"', '""').trim() + '"');
+          return;
+        }
+        var cells = Array.prototype.map.call(row.children, function (cell) {
+          return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+        });
+        lines.push(cells.join(","));
+      });
+      var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "income-statement.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print":
+          window.print();
+          break;
+        case "export":
+          exportCSV();
+          break;
+        case "refresh":
+          window.location.reload();
+          break;
+        case "tree":
+          shell.classList.toggle("report-tree-hidden");
+          break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (term) window.find(term);
+          break;
+        }
+      });
+    });
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

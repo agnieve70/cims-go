@@ -56,6 +56,7 @@ func MasterForms() []FormDefinition {
 			Fields: []Field{
 				{Key: "name", Label: "Name", Column: "name", Type: FieldText, Required: true},
 				{Key: "group_name", Label: "Group", Column: "group_name", Type: FieldCombo, Required: true, Source: "stock_category_groups"},
+				{Key: "aps_monitor", Label: "APS Monitor", Column: "aps_monitor", Type: FieldBool},
 			},
 		},
 		{

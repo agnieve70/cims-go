@@ -1,16 +1,28 @@
 {{template "head" .}}
 {{template "topbar" .}}
 <main class="page">
-  <div class="page-head">
-    <div>
-      <h1>{{.Form.Title}}</h1>
-      <p>Posted documents. Inventory and balance effects post on save.</p>
+  <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
+    <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
+    <div class="legacy-strip-controls">
+      <label class="legacy-inline-field">
+        <span>Year:</span>
+        <select name="year">
+          <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
+          <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
+          <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
+        </select>
+      </label>
+      <label class="legacy-inline-field legacy-strip-search">
+        <span>Search:</span>
+        <input type="text" name="q" value="{{.Search}}" placeholder="Search records">
+      </label>
     </div>
-  </div>
+  </form>
   <div id="documents-table"
        class="table-wrap"
        hx-get="{{.Form.RouteBase}}/"
-       hx-trigger="every 10s"
+       hx-include="#page-query-form"
+       hx-trigger="every 60s"
        hx-select="#documents-table"
        hx-swap="outerHTML">
     <table>
@@ -25,7 +37,7 @@
         </tr>
         {{end}}
         {{range .Documents}}
-        <tr>
+        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
           <td>{{.EntryID}}</td>
           <td>{{.EntryDate.Format "2006-01-02"}}</td>
           <td>{{.Party}}</td>

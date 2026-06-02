@@ -1,0 +1,106 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .StockTransferSummaryByItemReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/transfers-summary-by-item" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/dropdown-transfers-summary-by-item.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Report Coverage</legend>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="month" {{if eq .StockTransferSummaryByItemReport.Coverage "month"}}checked{{end}}>
+        <span>Month of</span>
+        <select name="month">
+          <option value="1" {{if eq .StockTransferSummaryByItemReport.Month 1}}selected{{end}}>1 - January</option>
+          <option value="2" {{if eq .StockTransferSummaryByItemReport.Month 2}}selected{{end}}>2 - February</option>
+          <option value="3" {{if eq .StockTransferSummaryByItemReport.Month 3}}selected{{end}}>3 - March</option>
+          <option value="4" {{if eq .StockTransferSummaryByItemReport.Month 4}}selected{{end}}>4 - April</option>
+          <option value="5" {{if eq .StockTransferSummaryByItemReport.Month 5}}selected{{end}}>5 - May</option>
+          <option value="6" {{if eq .StockTransferSummaryByItemReport.Month 6}}selected{{end}}>6 - June</option>
+          <option value="7" {{if eq .StockTransferSummaryByItemReport.Month 7}}selected{{end}}>7 - July</option>
+          <option value="8" {{if eq .StockTransferSummaryByItemReport.Month 8}}selected{{end}}>8 - August</option>
+          <option value="9" {{if eq .StockTransferSummaryByItemReport.Month 9}}selected{{end}}>9 - September</option>
+          <option value="10" {{if eq .StockTransferSummaryByItemReport.Month 10}}selected{{end}}>10 - October</option>
+          <option value="11" {{if eq .StockTransferSummaryByItemReport.Month 11}}selected{{end}}>11 - November</option>
+          <option value="12" {{if eq .StockTransferSummaryByItemReport.Month 12}}selected{{end}}>12 - December</option>
+        </select>
+        <input type="number" name="year" value="{{.StockTransferSummaryByItemReport.Year}}" min="2000" max="2100" class="report-year-input">
+      </label>
+      <label class="report-option-line"><input type="radio" name="coverage" value="range" {{if eq .StockTransferSummaryByItemReport.Coverage "range"}}checked{{end}}><span>Date to Date</span></label>
+      <label class="report-option-line report-date-offset"><span>From:</span><input type="date" name="from_date" value="{{.StockTransferSummaryByItemReport.FromDate}}"></label>
+      <label class="report-option-line report-date-offset"><span>To:</span><input type="date" name="range_to_date" value="{{.StockTransferSummaryByItemReport.ToDate}}"></label>
+      <label class="report-option-line"><input type="radio" name="coverage" value="to-date" {{if eq .StockTransferSummaryByItemReport.Coverage "to-date"}}checked{{end}}><span>To Date</span><input type="date" name="to_date" value="{{.StockTransferSummaryByItemReport.ToDate}}"></label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{range $index, $category := .StockTransferSummaryByItemReport.Categories}}
+        <li class="report-tree-branch collapsed">
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button>
+          <ul>
+            {{range $rowIndex, $row := $category.Rows}}
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="stock-transfer-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="stock-transfer-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
+            {{end}}
+          </ul>
+        </li>
+        {{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
+        <form method="get" action="/reports/transfers-summary-by-item" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1"><input type="hidden" name="coverage" value="{{.StockTransferSummaryByItemReport.Coverage}}"><input type="hidden" name="month" value="{{.StockTransferSummaryByItemReport.Month}}"><input type="hidden" name="year" value="{{.StockTransferSummaryByItemReport.Year}}"><input type="hidden" name="from_date" value="{{.StockTransferSummaryByItemReport.FromDate}}"><input type="hidden" name="range_to_date" value="{{.StockTransferSummaryByItemReport.ToDate}}"><input type="hidden" name="to_date" value="{{.StockTransferSummaryByItemReport.ToDate}}">
+          <label>Paper:<select name="paper_size" onchange="this.form.submit()"><option value="letter" {{if eq .StockTransferSummaryByItemReport.PaperSize "letter"}}selected{{end}}>Letter</option><option value="a4" {{if eq .StockTransferSummaryByItemReport.PaperSize "a4"}}selected{{end}}>A4</option><option value="legal" {{if eq .StockTransferSummaryByItemReport.PaperSize "legal"}}selected{{end}}>Legal</option></select></label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.StockTransferSummaryByItemReport.CurrentPage}}" aria-label="Page number" data-report-page-input><span>of {{.StockTransferSummaryByItemReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.StockTransferSummaryByItemReport.PaperClass}} stock-transfer-summary-paper">
+          <header class="report-paper-header">
+            <h1>{{.StockTransferSummaryByItemReport.Title}}</h1>
+            <h2>STOCK TRANSFER SUMMARY BY ITEM</h2>
+            <p>{{.StockTransferSummaryByItemReport.RangeLabel}}</p>
+          </header>
+          {{range $index, $category := .StockTransferSummaryByItemReport.Categories}}
+          <section class="report-detail-group stock-transfer-summary-item-category" data-report-page="{{add $index 1}}">
+            <div class="stock-transfer-summary-mode">BY PRODUCT <span>Total : <strong>{{$category.TotalQuantity}}</strong> <strong>{{$category.TotalAmount}}</strong></span></div>
+            <table class="report-table stock-transfer-summary-item-table">
+              <thead><tr><th>Code</th><th>StockName</th><th>Quantity</th><th>Amount</th></tr></thead>
+              <tbody>{{range $rowIndex, $row := $category.Rows}}<tr id="stock-transfer-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Code}}</td><td>{{$row.StockName}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}</tbody>
+            </table>
+          </section>
+          {{else}}<p class="report-empty">No stock transfers for the selected coverage.</p>{{end}}
+          {{if .StockTransferSummaryByItemReport.Categories}}<table class="report-table stock-transfer-summary-item-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.StockTransferSummaryByItemReport.TotalQuantity}}</td><td class="num">{{.StockTransferSummaryByItemReport.TotalAmount}}</td></tr></tfoot></table>{{end}}
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>{{template "stock-report-script" "stock-transfer-summary-by-item.csv"}}</script>
+{{end}}
+{{template "foot" .}}

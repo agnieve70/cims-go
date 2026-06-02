@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#dbe8ff"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#4f7fe8"/>
+      <stop offset="1" stop-color="#274fb8"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="54" fill="url(#bg)"/>
+  <rect x="42" y="54" width="154" height="34" rx="12" fill="#d9e0ea" stroke="#3f4652" stroke-width="8"/>
+  <rect x="42" y="92" width="92" height="108" rx="14" fill="#ffffff" stroke="#3f4652" stroke-width="8"/>
+  <rect x="52" y="104" width="72" height="24" rx="8" fill="url(#panel)"/>
+  <rect x="142" y="102" width="62" height="28" rx="8" fill="#ffffff" stroke="#3f4652" stroke-width="8"/>
+  <rect x="150" y="148" width="62" height="40" rx="10" fill="#ffffff" stroke="#3f4652" stroke-width="8"/>
+  <path d="M58 142h60M58 160h60M58 178h44" stroke="#526073" stroke-width="8" stroke-linecap="round"/>
+</svg>

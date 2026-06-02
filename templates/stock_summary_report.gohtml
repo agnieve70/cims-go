@@ -1,0 +1,98 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .StockSummaryReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/stock-summary" class="report-options-dialog stock-summary-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/dropdown-stock-summary.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset>
+      <legend>Specify Cut-off Date</legend>
+      <label class="report-option-line">
+        <input type="date" name="cutoff_date" value="{{.StockSummaryReport.CutoffDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{range $index, $category := .StockSummaryReport.Categories}}
+        <li class="report-tree-branch collapsed">
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button>
+          <ul>
+            {{range $rowIndex, $row := $category.Rows}}
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
+            {{end}}
+          </ul>
+        </li>
+        {{else}}<li><span class="report-tree-empty">No stock balances</span></li>{{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
+        <form method="get" action="/reports/stock-summary" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="cutoff_date" value="{{.StockSummaryReport.CutoffDate}}">
+          <label>Paper:<select name="paper_size" onchange="this.form.submit()"><option value="letter" {{if eq .StockSummaryReport.PaperSize "letter"}}selected{{end}}>Letter</option><option value="a4" {{if eq .StockSummaryReport.PaperSize "a4"}}selected{{end}}>A4</option><option value="legal" {{if eq .StockSummaryReport.PaperSize "legal"}}selected{{end}}>Legal</option></select></label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.StockSummaryReport.CurrentPage}}" aria-label="Page number" data-report-page-input><span>of {{.StockSummaryReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.StockSummaryReport.PaperClass}} stock-summary-paper">
+          <header class="report-paper-header">
+            <h1>{{.StockSummaryReport.Title}}</h1>
+            <h2>STOCK SUMMARY</h2>
+            <p>{{.StockSummaryReport.CutoffLabel}}</p>
+          </header>
+          {{range $index, $category := .StockSummaryReport.Categories}}
+          <section class="report-detail-group" data-report-page="{{add $index 1}}">
+            <p class="stock-summary-category-label">Category Name: <strong>{{$category.Name}}</strong></p>
+            <table class="report-table stock-summary-table">
+              <thead>
+                <tr><th>Code</th><th>Name</th><th>SOH</th><th>Unit Cost</th><th>Amount</th></tr>
+              </thead>
+              <tbody>
+                {{range $rowIndex, $row := $category.Rows}}
+                <tr id="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.StockCode}}</td><td>{{$row.StockName}}</td><td class="num">{{$row.SOH}}</td><td class="num">{{$row.UnitCost}}</td><td class="num">{{$row.Amount}}</td></tr>
+                {{end}}
+              </tbody>
+              <tfoot>
+                <tr><td colspan="2">Category Totals:</td><td class="num">{{$category.TotalSOH}}</td><td></td><td class="num">{{$category.Amount}}</td></tr>
+              </tfoot>
+            </table>
+          </section>
+          {{else}}<p class="report-empty">No stock balances for the selected cut-off date.</p>{{end}}
+          {{if .StockSummaryReport.Categories}}
+          <table class="report-table stock-summary-grand-total"><tfoot><tr><td>Grand Totals:</td><td class="num">{{.StockSummaryReport.GrandSOH}}</td><td class="num">{{.StockSummaryReport.GrandAmount}}</td></tr></tfoot></table>
+          {{end}}
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>{{template "stock-report-script" "stock-summary.csv"}}</script>
+{{end}}
+{{template "foot" .}}

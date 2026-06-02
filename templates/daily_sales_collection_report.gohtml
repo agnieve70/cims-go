@@ -1,0 +1,172 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .DailySalesReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/daily-sales-collection" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/special-daily-sales-collection.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Select Date of Report</legend>
+      <label class="report-option-line report-single-date-line">
+        <span>Date:</span>
+        <input type="date" name="report_date" value="{{.DailySalesReport.ReportDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{range $index, $section := .DailySalesReport.Sections}}
+        <li><button type="button" class="report-tree-node" data-report-section="{{$section.Key}}">{{$section.Title}}</button></li>
+        {{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/daily-sales-collection" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="report_date" value="{{.DailySalesReport.ReportDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .DailySalesReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .DailySalesReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .DailySalesReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .DailySalesReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.DailySalesReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.DailySalesReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper report-daily-sales-paper {{.DailySalesReport.PaperClass}}">
+          <header class="report-paper-header">
+            <h1>{{.DailySalesReport.Title}}</h1>
+            <p>San Agustin, Digos City</p>
+            <h2>DAILY SALES AND COLLECTION REPORT</h2>
+            <p>{{.DailySalesReport.DateLabel}}</p>
+          </header>
+          <table class="report-table report-daily-sales-table">
+            <tbody>
+              {{range .DailySalesReport.Sections}}
+              <tr class="report-section-row" data-report-section-target="{{.Key}}"><th colspan="3">{{.Title}}</th></tr>
+              {{range .Rows}}
+              <tr><td>{{.Name}}</td><td>{{.Reference}}</td><td class="num">{{.Amount}}</td></tr>
+              {{end}}
+              <tr class="report-section-total"><td colspan="2">TOTAL {{.Title}}</td><td class="num">{{.Total}}</td></tr>
+              {{end}}
+              <tr class="report-section-row"><th colspan="3">TOTAL CASH REMITTANCE</th></tr>
+              <tr class="report-grand-total"><td colspan="2">TOTAL CASH REMITTANCE</td><td class="num">{{.DailySalesReport.TotalCashRemit}}</td></tr>
+              <tr class="report-grand-total"><td colspan="2">TOTAL REMITTANCE</td><td class="num">{{.DailySalesReport.TotalRemit}}</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !paper) return;
+
+    var pageInput = document.querySelector("[data-report-page-input]");
+    if (pageInput) pageInput.value = "1";
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (pageInput) pageInput.value = "1";
+      });
+    });
+
+    document.querySelectorAll("[data-report-section]").forEach(function (node) {
+      node.addEventListener("click", function () {
+        var key = node.getAttribute("data-report-section");
+        document.querySelectorAll("[data-report-section]").forEach(function (treeNode) {
+          treeNode.classList.toggle("active", treeNode === node);
+        });
+        var target = document.querySelector("[data-report-section-target='" + key + "']");
+        if (target) target.scrollIntoView({block: "center", inline: "nearest"});
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transform = "scale(" + zoom.value + ")";
+        paper.style.transformOrigin = "top center";
+        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+      });
+    }
+
+    var exportCSV = function () {
+      var lines = [];
+      paper.querySelectorAll("tr").forEach(function (row) {
+        var cells = Array.prototype.map.call(row.children, function (cell) {
+          return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+        });
+        lines.push(cells.join(","));
+      });
+      var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "daily-sales-collection.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print":
+          window.print();
+          break;
+        case "export":
+          exportCSV();
+          break;
+        case "refresh":
+          window.location.reload();
+          break;
+        case "tree":
+          shell.classList.toggle("report-tree-hidden");
+          break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (term) window.find(term);
+          break;
+        }
+      });
+    });
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

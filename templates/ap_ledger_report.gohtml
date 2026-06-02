@@ -1,0 +1,293 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .APLedgerReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/ap-ledger" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/report-ap-ledger.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset>
+      <legend>Select Report Type</legend>
+      <div class="report-choice-row report-choice-row-three">
+        <label class="report-choice"><input type="radio" name="report_type" value="detailed" {{if eq .APLedgerReport.ReportType "detailed"}}checked{{end}}> <span>Detailed</span></label>
+        <label class="report-choice"><input type="radio" name="report_type" value="summary" {{if eq .APLedgerReport.ReportType "summary"}}checked{{end}}> <span>Summary</span></label>
+        <label class="report-choice"><input type="radio" name="report_type" value="aging" {{if eq .APLedgerReport.ReportType "aging"}}checked{{end}}> <span>Aging</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Report Coverage</legend>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="month" {{if eq .APLedgerReport.Coverage "month"}}checked{{end}}>
+        <span>Month of</span>
+        <select name="month">
+          <option value="1" {{if eq .APLedgerReport.Month 1}}selected{{end}}>1 - January</option>
+          <option value="2" {{if eq .APLedgerReport.Month 2}}selected{{end}}>2 - February</option>
+          <option value="3" {{if eq .APLedgerReport.Month 3}}selected{{end}}>3 - March</option>
+          <option value="4" {{if eq .APLedgerReport.Month 4}}selected{{end}}>4 - April</option>
+          <option value="5" {{if eq .APLedgerReport.Month 5}}selected{{end}}>5 - May</option>
+          <option value="6" {{if eq .APLedgerReport.Month 6}}selected{{end}}>6 - June</option>
+          <option value="7" {{if eq .APLedgerReport.Month 7}}selected{{end}}>7 - July</option>
+          <option value="8" {{if eq .APLedgerReport.Month 8}}selected{{end}}>8 - August</option>
+          <option value="9" {{if eq .APLedgerReport.Month 9}}selected{{end}}>9 - September</option>
+          <option value="10" {{if eq .APLedgerReport.Month 10}}selected{{end}}>10 - October</option>
+          <option value="11" {{if eq .APLedgerReport.Month 11}}selected{{end}}>11 - November</option>
+          <option value="12" {{if eq .APLedgerReport.Month 12}}selected{{end}}>12 - December</option>
+        </select>
+        <input type="number" name="year" value="{{.APLedgerReport.Year}}" min="2000" max="2100" class="report-year-input">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="range" {{if eq .APLedgerReport.Coverage "range"}}checked{{end}}>
+        <span>Date to Date</span>
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>From:</span>
+        <input type="date" name="from_date" value="{{.APLedgerReport.FromDate}}">
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>To:</span>
+        <input type="date" name="range_to_date" value="{{.APLedgerReport.ToDate}}">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="to-date" {{if eq .APLedgerReport.Coverage "to-date"}}checked{{end}}>
+        <span>To Date</span>
+        <input type="date" name="to_date" value="{{.APLedgerReport.ToDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{if eq .APLedgerReport.ReportType "detailed"}}
+          {{range $index, $group := .APLedgerReport.Groups}}
+          <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.SupplierName}}</button></li>
+          {{else}}<li><span class="report-tree-empty">No AP ledger records</span></li>{{end}}
+        {{else if eq .APLedgerReport.ReportType "aging"}}
+          {{range $index, $row := .APLedgerReport.AgingRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Company}}</button></li>{{else}}<li><span class="report-tree-empty">No AP ledger records</span></li>{{end}}
+        {{else}}
+          {{range $index, $row := .APLedgerReport.SummaryRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Company}}</button></li>{{else}}<li><span class="report-tree-empty">No AP ledger records</span></li>{{end}}
+        {{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/ap-ledger" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="report_type" value="{{.APLedgerReport.ReportType}}">
+          <input type="hidden" name="coverage" value="{{.APLedgerReport.Coverage}}">
+          <input type="hidden" name="month" value="{{.APLedgerReport.Month}}">
+          <input type="hidden" name="year" value="{{.APLedgerReport.Year}}">
+          <input type="hidden" name="from_date" value="{{.APLedgerReport.FromDate}}">
+          <input type="hidden" name="range_to_date" value="{{.APLedgerReport.ToDate}}">
+          <input type="hidden" name="to_date" value="{{.APLedgerReport.ToDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .APLedgerReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .APLedgerReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .APLedgerReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .APLedgerReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.APLedgerReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.APLedgerReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.APLedgerReport.PaperClass}}">
+          <header class="report-paper-header">
+            <h1>{{.APLedgerReport.Title}}</h1>
+            <h2>{{if eq .APLedgerReport.ReportType "aging"}}Accounts Payable Aging{{else if eq .APLedgerReport.ReportType "summary"}}Accounts Payable Summary{{else}}Accounts Payable Ledger{{end}}</h2>
+            <p>{{if eq .APLedgerReport.ReportType "detailed"}}{{.APLedgerReport.RangeLabel}}{{else}}{{.APLedgerReport.AsOfLabel}}{{end}}</p>
+          </header>
+          {{if eq .APLedgerReport.ReportType "summary"}}
+          <table class="report-table report-summary-table">
+            <thead><tr><th>Code</th><th>Company</th><th>Representative</th><th>Balance</th></tr></thead>
+            <tbody>
+              {{range $index, $row := .APLedgerReport.SummaryRows}}
+              <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.Code}}</td><td>{{$row.Company}}</td><td>{{$row.Representative}}</td><td class="num">{{$row.Balance}}</td></tr>
+              {{else}}
+              <tr><td colspan="4" class="empty">No AP ledger balances for the selected coverage.</td></tr>
+              {{end}}
+            </tbody>
+            <tfoot><tr><td colspan="3">Total Accounts Payable:</td><td class="num">{{.APLedgerReport.TotalNet}}</td></tr></tfoot>
+          </table>
+          {{else if eq .APLedgerReport.ReportType "aging"}}
+          <table class="report-table report-aging-table">
+            <thead><tr><th>Company</th><th>Last Payment</th><th>0 to 30 Days</th><th>31 to 60 Days</th><th>61 to 90 Days</th><th>90 Days Over</th><th>Balance</th></tr></thead>
+            <tbody>
+              {{range $index, $row := .APLedgerReport.AgingRows}}
+              <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.Company}}</td><td>{{$row.LastPayment}}</td><td class="num">{{$row.Bucket0}}</td><td class="num">{{$row.Bucket31}}</td><td class="num">{{$row.Bucket61}}</td><td class="num">{{$row.Bucket90}}</td><td class="num">{{$row.Balance}}</td></tr>
+              {{else}}
+              <tr><td colspan="7" class="empty">No AP ledger balances for the selected coverage.</td></tr>
+              {{end}}
+            </tbody>
+            <tfoot><tr><td colspan="2">TOTAL</td><td class="num">{{.APLedgerReport.AgingTotals.Bucket0}}</td><td class="num">{{.APLedgerReport.AgingTotals.Bucket31}}</td><td class="num">{{.APLedgerReport.AgingTotals.Bucket61}}</td><td class="num">{{.APLedgerReport.AgingTotals.Bucket90}}</td><td class="num">{{.APLedgerReport.AgingTotals.Balance}}</td></tr></tfoot>
+          </table>
+          {{else}}
+          {{range $index, $group := .APLedgerReport.Groups}}
+          <section class="report-detail-group" data-report-page="{{add $index 1}}">
+            <dl class="report-ledger-profile">
+              <dt>Supplier Code:</dt><dd>{{$group.SupplierCode}}</dd>
+              <dt>Supplier Name:</dt><dd>{{$group.SupplierName}}</dd>
+              <dt>Representative:</dt><dd>{{$group.Representative}}</dd>
+            </dl>
+            <table class="report-table report-ledger-table">
+              <thead><tr><th>Date</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
+              <tbody>
+                {{range $group.Rows}}<tr><td>{{.Date}}</td><td>{{.Reference}}</td><td class="num">{{.Debit}}</td><td class="num">{{.Credit}}</td><td class="num">{{.Balance}}</td></tr>{{end}}
+              </tbody>
+            </table>
+          </section>
+          {{else}}
+          <p class="report-empty">No AP ledger records for the selected coverage.</p>
+          {{end}}
+          {{end}}
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !paper) return;
+
+    var pageInput = document.querySelector("[data-report-page-input]");
+    var treeNodes = Array.prototype.slice.call(document.querySelectorAll("[data-report-tree-page]"));
+    var summaryTreeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+    var summaryRows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-report-summary-row]"));
+    var pages = Array.prototype.slice.call(document.querySelectorAll("[data-report-page]")).filter(function (el) {
+      return el.classList.contains("report-detail-group");
+    });
+    var totalPages = Math.max(1, pages.length || 1);
+    var currentPage = 1;
+
+    var setPage = function (page) {
+      currentPage = Math.min(totalPages, Math.max(1, page || 1));
+      if (pageInput) pageInput.value = currentPage;
+      treeNodes.forEach(function (node) {
+        node.classList.toggle("active", Number(node.getAttribute("data-report-tree-page")) === currentPage);
+      });
+      if (pages.length === 0) return;
+      pages.forEach(function (section) {
+        section.hidden = Number(section.getAttribute("data-report-page")) !== currentPage;
+      });
+    };
+
+    setPage(1);
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      if (button.classList.contains("report-detail-group")) return;
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-page")) {
+        case "first": setPage(1); break;
+        case "previous": setPage(currentPage - 1); break;
+        case "next": setPage(currentPage + 1); break;
+        case "last": setPage(totalPages); break;
+        }
+      });
+    });
+
+    if (pageInput) {
+      pageInput.addEventListener("change", function () {
+        setPage(Number(pageInput.value));
+      });
+    }
+
+    treeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        setPage(Number(node.getAttribute("data-report-tree-page")));
+        var paperScroll = document.querySelector(".report-paper-scroll");
+        if (paperScroll) paperScroll.scrollTop = 0;
+      });
+    });
+
+    summaryTreeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        var rowIndex = node.getAttribute("data-report-summary-row");
+        summaryTreeNodes.forEach(function (treeNode) {
+          treeNode.classList.toggle("active", treeNode === node);
+        });
+        summaryRows.forEach(function (row) {
+          row.classList.toggle("report-row-highlight", row.getAttribute("data-report-summary-row") === rowIndex);
+        });
+        var row = summaryRows.find(function (candidate) {
+          return candidate.getAttribute("data-report-summary-row") === rowIndex;
+        });
+        if (row) row.scrollIntoView({block: "center", inline: "nearest"});
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transform = "scale(" + zoom.value + ")";
+        paper.style.transformOrigin = "top center";
+        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+      });
+    }
+
+    var exportCSV = function () {
+      var lines = [];
+      paper.querySelectorAll("table").forEach(function (table) {
+        table.querySelectorAll("tr").forEach(function (row) {
+          var cells = Array.prototype.map.call(row.children, function (cell) {
+            return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+          });
+          lines.push(cells.join(","));
+        });
+        lines.push("");
+      });
+      var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "ap-ledger.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print": window.print(); break;
+        case "export": exportCSV(); break;
+        case "refresh": window.location.reload(); break;
+        case "tree": shell.classList.toggle("report-tree-hidden"); break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (term) window.find(term);
+          break;
+        }
+      });
+    });
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

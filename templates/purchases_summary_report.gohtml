@@ -1,0 +1,299 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .PurchaseReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/purchases-summary" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/report-purchases-summary.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset>
+      <legend>Select Report Type</legend>
+      <div class="report-choice-row">
+        <label class="report-choice"><input type="radio" name="report_type" value="detailed" {{if eq .PurchaseReport.ReportType "detailed"}}checked{{end}}> <span>Detailed</span></label>
+        <label class="report-choice"><input type="radio" name="report_type" value="summary" {{if eq .PurchaseReport.ReportType "summary"}}checked{{end}}> <span>Summary</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Report Coverage</legend>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="month" {{if eq .PurchaseReport.Coverage "month"}}checked{{end}}>
+        <span>Month of</span>
+        <select name="month">
+          <option value="1" {{if eq .PurchaseReport.Month 1}}selected{{end}}>1 - January</option>
+          <option value="2" {{if eq .PurchaseReport.Month 2}}selected{{end}}>2 - February</option>
+          <option value="3" {{if eq .PurchaseReport.Month 3}}selected{{end}}>3 - March</option>
+          <option value="4" {{if eq .PurchaseReport.Month 4}}selected{{end}}>4 - April</option>
+          <option value="5" {{if eq .PurchaseReport.Month 5}}selected{{end}}>5 - May</option>
+          <option value="6" {{if eq .PurchaseReport.Month 6}}selected{{end}}>6 - June</option>
+          <option value="7" {{if eq .PurchaseReport.Month 7}}selected{{end}}>7 - July</option>
+          <option value="8" {{if eq .PurchaseReport.Month 8}}selected{{end}}>8 - August</option>
+          <option value="9" {{if eq .PurchaseReport.Month 9}}selected{{end}}>9 - September</option>
+          <option value="10" {{if eq .PurchaseReport.Month 10}}selected{{end}}>10 - October</option>
+          <option value="11" {{if eq .PurchaseReport.Month 11}}selected{{end}}>11 - November</option>
+          <option value="12" {{if eq .PurchaseReport.Month 12}}selected{{end}}>12 - December</option>
+        </select>
+        <input type="number" name="year" value="{{.PurchaseReport.Year}}" min="2000" max="2100" class="report-year-input">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="range" {{if eq .PurchaseReport.Coverage "range"}}checked{{end}}>
+        <span>Date to Date</span>
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>From:</span>
+        <input type="date" name="from_date" value="{{.PurchaseReport.FromDate}}">
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>To:</span>
+        <input type="date" name="range_to_date" value="{{.PurchaseReport.ToDate}}">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="to-date" {{if eq .PurchaseReport.Coverage "to-date"}}checked{{end}}>
+        <span>To Date</span>
+        <input type="date" name="to_date" value="{{.PurchaseReport.ToDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{if eq .PurchaseReport.ReportType "detailed"}}
+          {{range $index, $group := .PurchaseReport.Groups}}
+          <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.Supplier}}</button></li>
+          {{else}}<li><span class="report-tree-empty">No purchase records</span></li>{{end}}
+        {{else}}
+          {{range $index, $row := .PurchaseReport.SummaryRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Supplier}}</button></li>{{else}}<li><span class="report-tree-empty">No purchase records</span></li>{{end}}
+        {{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/purchases-summary" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="report_type" value="{{.PurchaseReport.ReportType}}">
+          <input type="hidden" name="coverage" value="{{.PurchaseReport.Coverage}}">
+          <input type="hidden" name="month" value="{{.PurchaseReport.Month}}">
+          <input type="hidden" name="year" value="{{.PurchaseReport.Year}}">
+          <input type="hidden" name="from_date" value="{{.PurchaseReport.FromDate}}">
+          <input type="hidden" name="range_to_date" value="{{.PurchaseReport.ToDate}}">
+          <input type="hidden" name="to_date" value="{{.PurchaseReport.ToDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .PurchaseReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .PurchaseReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .PurchaseReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .PurchaseReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.PurchaseReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.PurchaseReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.PurchaseReport.PaperClass}}">
+          <header class="report-paper-header">
+            <h1>{{.PurchaseReport.Title}}</h1>
+            <h2>{{if eq .PurchaseReport.ReportType "summary"}}PURCHASES SUMMARY{{else}}DETAILED PURCHASES{{end}}</h2>
+            <p>{{.PurchaseReport.RangeLabel}}</p>
+          </header>
+          {{if eq .PurchaseReport.ReportType "summary"}}
+          <table class="report-table report-summary-table">
+            <thead><tr><th>Supplier:</th><th>Gross Amount</th><th>Net Amount</th></tr></thead>
+            <tbody>
+              {{range $index, $row := .PurchaseReport.SummaryRows}}
+              <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.Supplier}}</td><td class="num">{{$row.Gross}}</td><td class="num">{{$row.Net}}</td></tr>
+              {{else}}
+              <tr><td colspan="3" class="empty">No purchase records for the selected coverage.</td></tr>
+              {{end}}
+            </tbody>
+            <tfoot><tr><td>Total Purchases Made:</td><td class="num">{{.PurchaseReport.TotalGross}}</td><td class="num">{{.PurchaseReport.TotalNet}}</td></tr></tfoot>
+          </table>
+          {{else}}
+          {{range $index, $group := .PurchaseReport.Groups}}
+          <section class="report-detail-group" data-report-page="{{add $index 1}}">
+            <div class="report-supplier-label">Supplier: <strong>{{$group.Supplier}}</strong></div>
+            <table class="report-table report-detail-table">
+              <colgroup>
+                <col class="report-col-entry">
+                <col class="report-col-date">
+                <col class="report-col-reference">
+                <col class="report-col-money">
+                <col class="report-col-money">
+              </colgroup>
+              <thead><tr><th>Entry ID</th><th>Date</th><th>OR/CI Number</th><th>Gross Amount</th><th>Net Amount</th></tr></thead>
+              <tbody>
+                {{range $group.Rows}}<tr><td>{{.EntryID}}</td><td>{{.Date}}</td><td>{{.ORCINumber}}</td><td class="num">{{.Gross}}</td><td class="num">{{.Net}}</td></tr>{{end}}
+              </tbody>
+              <tfoot><tr><td colspan="3">Total Purchases</td><td class="num">{{$group.GrossTotal}}</td><td class="num">{{$group.NetTotal}}</td></tr></tfoot>
+            </table>
+          </section>
+          {{else}}
+          <p class="report-empty">No purchase records for the selected coverage.</p>
+          {{end}}
+          {{end}}
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var preview = document.querySelector(".report-preview");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !preview || !paper) return;
+
+    var pageInput = document.querySelector("[data-report-page-input]");
+    var treeNodes = Array.prototype.slice.call(document.querySelectorAll("[data-report-tree-page]"));
+    var summaryTreeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+    var summaryRows = Array.prototype.slice.call(document.querySelectorAll(".report-summary-table tbody tr[data-report-summary-row]"));
+    var pages = Array.prototype.slice.call(document.querySelectorAll("[data-report-page]")).filter(function (el) {
+      return el.classList.contains("report-detail-group");
+    });
+    var totalPages = Math.max(1, pages.length || 1);
+    var currentPage = 1;
+
+    var setPage = function (page) {
+      currentPage = Math.min(totalPages, Math.max(1, page || 1));
+      if (pageInput) pageInput.value = currentPage;
+      treeNodes.forEach(function (node) {
+        node.classList.toggle("active", Number(node.getAttribute("data-report-tree-page")) === currentPage);
+      });
+      if (pages.length === 0) return;
+      pages.forEach(function (section) {
+        section.hidden = Number(section.getAttribute("data-report-page")) !== currentPage;
+      });
+    };
+
+    setPage(1);
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      if (button.classList.contains("report-detail-group")) return;
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-page")) {
+        case "first":
+          setPage(1);
+          break;
+        case "previous":
+          setPage(currentPage - 1);
+          break;
+        case "next":
+          setPage(currentPage + 1);
+          break;
+        case "last":
+          setPage(totalPages);
+          break;
+        }
+      });
+    });
+
+    if (pageInput) {
+      pageInput.addEventListener("change", function () {
+        setPage(Number(pageInput.value));
+      });
+    }
+
+    treeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        setPage(Number(node.getAttribute("data-report-tree-page")));
+        var paperScroll = document.querySelector(".report-paper-scroll");
+        if (paperScroll) paperScroll.scrollTop = 0;
+      });
+    });
+
+    summaryTreeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        var rowIndex = node.getAttribute("data-report-summary-row");
+        summaryTreeNodes.forEach(function (treeNode) {
+          treeNode.classList.toggle("active", treeNode === node);
+        });
+        summaryRows.forEach(function (row) {
+          row.classList.toggle("report-row-highlight", row.getAttribute("data-report-summary-row") === rowIndex);
+        });
+        var row = summaryRows.find(function (candidate) {
+          return candidate.getAttribute("data-report-summary-row") === rowIndex;
+        });
+        if (row) row.scrollIntoView({block: "center", inline: "nearest"});
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transform = "scale(" + zoom.value + ")";
+        paper.style.transformOrigin = "top center";
+        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+      });
+    }
+
+    var exportCSV = function () {
+      var lines = [];
+      paper.querySelectorAll("table").forEach(function (table) {
+        table.querySelectorAll("tr").forEach(function (row) {
+          var cells = Array.prototype.map.call(row.children, function (cell) {
+            return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+          });
+          lines.push(cells.join(","));
+        });
+        lines.push("");
+      });
+      var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "purchases-summary.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print":
+          window.print();
+          break;
+        case "export":
+          exportCSV();
+          break;
+        case "refresh":
+          window.location.reload();
+          break;
+        case "tree":
+          shell.classList.toggle("report-tree-hidden");
+          break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (term) window.find(term);
+          break;
+        }
+      });
+    });
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

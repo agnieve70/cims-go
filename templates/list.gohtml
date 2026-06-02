@@ -1,43 +1,82 @@
 {{template "head" .}}
 {{template "topbar" .}}
 <main class="page">
-  <div class="page-head">
-    <div>
-      <h1>{{.Form.Title}}</h1>
-      <p>Master file records with audit tracking.</p>
-    </div>
-  </div>
   {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+  <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
+    <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
+    <div class="legacy-strip-controls">
+      <label class="legacy-inline-field">
+        <span>Year:</span>
+        <select name="year">
+          <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
+          <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
+          <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
+        </select>
+      </label>
+      <label class="legacy-inline-field legacy-strip-search">
+        <span>Search:</span>
+        <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
+      </label>
+    </div>
+  </form>
   <div id="records-table"
        class="table-wrap"
        hx-get="{{.Form.RouteBase}}/"
-       hx-trigger="every 10s"
+       hx-include="#page-query-form"
+       hx-trigger="every 60s"
        hx-select="#records-table"
        hx-swap="outerHTML">
     <table>
       <thead>
+        {{if eq .Form.Kind "stock-categories"}}
+        <tr>
+          <th>ID ▲</th>
+          <th>Name</th>
+          <th>Group</th>
+          <th>APS Monitor</th>
+          <th>Encoder</th>
+          <th>Last Update</th>
+          <th>Last Update By</th>
+        </tr>
+        {{else}}
         <tr>
           <th>ID</th>
           {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
           <th>Encoder</th>
-          <th></th>
         </tr>
+        {{end}}
       </thead>
       <tbody>
         {{if .User.CanWrite}}
         <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+          {{if eq .Form.Kind "stock-categories"}}
+          <td>+</td>
+          <td colspan="6">Add new ...</td>
+          {{else}}
           <td>Add new ...</td>
           <td colspan="20"></td>
+          {{end}}
         </tr>
         {{end}}
         {{range .Records}}
-        <tr>
+        {{if eq $.Form.Kind "stock-categories"}}
+        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+          <td>{{index . "id"}}</td>
+          <td>{{index . "name"}}</td>
+          <td>{{index . "group_name"}}</td>
+          <td>{{index . "aps_monitor"}}</td>
+          <td>{{index . "encoder"}}</td>
+          <td>{{index . "last_update"}}</td>
+          <td>{{index . "updated_by"}}</td>
+        </tr>
+        {{else}}
+        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
           {{$record := .}}
           {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}
           <td>{{index . "encoder"}}</td>
-          <td>{{if $.User.CanWrite}}<a href="{{$.Form.RouteBase}}/{{index . "id"}}/edit">Edit</a>{{end}}</td>
         </tr>
+        {{end}}
         {{else}}
         <tr><td colspan="20" class="empty">No records yet.</td></tr>
         {{end}}

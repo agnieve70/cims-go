@@ -15,6 +15,7 @@ build/
 # Temp and logs
 *.log
 tmp/
+.codex_runtime/
 
 # IDE/editor
 .idea/

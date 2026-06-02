@@ -1,0 +1,113 @@
+{{template "head" .}}
+{{template "topbar" .}}
+<main class="page incoming-check-calendar-page">
+  <section class="incoming-check-calendar-shell">
+    <div class="incoming-check-calendar-toolbar">
+      <form method="get" action="/reports/incoming-check-calendar" class="incoming-check-calendar-form">
+        <input type="hidden" name="run" value="1">
+        <label><strong>Month:</strong>
+          <a class="calendar-step" href="/reports/incoming-check-calendar?run=1&amp;month={{.IncomingCheckCalendar.PrevMonth}}&amp;year={{.IncomingCheckCalendar.PrevYear}}" title="Previous month" aria-label="Previous month"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></a>
+          <select name="month" onchange="this.form.submit()">
+            <option value="1" {{if eq .IncomingCheckCalendar.Month 1}}selected{{end}}>January</option>
+            <option value="2" {{if eq .IncomingCheckCalendar.Month 2}}selected{{end}}>February</option>
+            <option value="3" {{if eq .IncomingCheckCalendar.Month 3}}selected{{end}}>March</option>
+            <option value="4" {{if eq .IncomingCheckCalendar.Month 4}}selected{{end}}>April</option>
+            <option value="5" {{if eq .IncomingCheckCalendar.Month 5}}selected{{end}}>May</option>
+            <option value="6" {{if eq .IncomingCheckCalendar.Month 6}}selected{{end}}>June</option>
+            <option value="7" {{if eq .IncomingCheckCalendar.Month 7}}selected{{end}}>July</option>
+            <option value="8" {{if eq .IncomingCheckCalendar.Month 8}}selected{{end}}>August</option>
+            <option value="9" {{if eq .IncomingCheckCalendar.Month 9}}selected{{end}}>September</option>
+            <option value="10" {{if eq .IncomingCheckCalendar.Month 10}}selected{{end}}>October</option>
+            <option value="11" {{if eq .IncomingCheckCalendar.Month 11}}selected{{end}}>November</option>
+            <option value="12" {{if eq .IncomingCheckCalendar.Month 12}}selected{{end}}>December</option>
+          </select>
+          <input type="number" name="year" value="{{.IncomingCheckCalendar.Year}}" min="1900" max="2200" onchange="this.form.submit()">
+          <a class="calendar-step" href="/reports/incoming-check-calendar?run=1&amp;month={{.IncomingCheckCalendar.NextMonth}}&amp;year={{.IncomingCheckCalendar.NextYear}}" title="Next month" aria-label="Next month"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></a>
+        </label>
+      </form>
+      <h1>Incoming Check Calendar</h1>
+      <div class="incoming-check-calendar-right">
+        <div class="incoming-check-calendar-totalbox">
+          <span>Month Total:</span>
+          <strong>{{.IncomingCheckCalendar.MonthTotal}}</strong>
+        </div>
+        <div class="incoming-check-calendar-actions">
+          <button type="button" class="calendar-command" data-calendar-action="print"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt="">Print</button>
+          <button type="button" class="calendar-command" data-calendar-action="pdf"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt="">Save PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="incoming-check-calendar-titlebar">
+      <span>{{.IncomingCheckCalendar.MonthName}} {{.IncomingCheckCalendar.Year}}</span>
+      <strong>Incoming Check Calendar</strong>
+    </div>
+    <div class="incoming-check-calendar-grid" data-calendar-grid>
+      {{range .IncomingCheckCalendar.Weekdays}}
+      <div class="calendar-weekday {{.Weekend}}">{{.Name}}</div>
+      {{end}}
+      {{range .IncomingCheckCalendar.Days}}
+      {{if .Blank}}
+      <div class="calendar-day blank" aria-hidden="true"></div>
+      {{else}}
+      <article class="calendar-day {{.Weekend}}" data-calendar-date="{{.DateKey}}">
+        <header><span>TA: {{.Total}}</span><strong>{{.DateText}}</strong></header>
+        <div class="calendar-checks">
+          {{range .Rows}}
+          <div class="calendar-check-line" data-calendar-row>
+            <span class="calendar-check-payee">{{.Payee}}</span>
+            <span>{{.Reference}}</span>
+            <span>{{.Number}}</span>
+            <span>{{.BankName}}</span>
+            <span class="calendar-check-amount">{{.Amount}}</span>
+          </div>
+          {{else}}
+          <div class="calendar-empty">No incoming checks</div>
+          {{end}}
+        </div>
+      </article>
+      {{end}}
+      {{end}}
+    </div>
+  </section>
+</main>
+<script>
+  (function () {
+    var grid = document.querySelector("[data-calendar-grid]");
+    if (!grid) return;
+
+    var exportCSV = function () {
+      var lines = [["Date", "Payee", "Reference", "Number", "Bank", "Amount"]];
+      grid.querySelectorAll(".calendar-day:not(.blank)").forEach(function (day) {
+        var date = day.getAttribute("data-calendar-date");
+        day.querySelectorAll("[data-calendar-row]").forEach(function (row) {
+          var cells = Array.prototype.map.call(row.children, function (cell) {
+            return cell.innerText.trim();
+          });
+          lines.push([date].concat(cells));
+        });
+      });
+      var csv = lines.map(function (line) {
+        return line.map(function (cell) {
+          return '"' + String(cell).replaceAll('"', '""') + '"';
+        }).join(",");
+      }).join("\n");
+      var blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "incoming-check-calendar.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    document.querySelectorAll("[data-calendar-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-calendar-action")) {
+        case "print": window.print(); break;
+        case "pdf": window.print(); break;
+        case "export": exportCSV(); break;
+        }
+      });
+    });
+  })();
+</script>
+{{template "foot" .}}

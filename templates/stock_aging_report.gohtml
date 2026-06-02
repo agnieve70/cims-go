@@ -1,0 +1,94 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .StockAgingReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/stock-aging" class="report-options-dialog stock-aging-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter-landscape">
+    <div class="report-dialog-title">
+      <img src="/static/icons/dropdown-stock-aging.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset>
+      <legend>Specify Cut-off Date</legend>
+      <label class="report-option-line">
+        <input type="date" name="cutoff_date" value="{{.StockAgingReport.CutoffDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        <li><span class="report-tree-section">BY PRODUCT</span></li>
+        {{range $index, $category := .StockAgingReport.Categories}}
+        <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$category.Name}}</button></li>
+        {{else}}<li><span class="report-tree-empty">No stock balances</span></li>{{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select>
+        <form method="get" action="/reports/stock-aging" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="cutoff_date" value="{{.StockAgingReport.CutoffDate}}">
+          <label>Paper:<select name="paper_size" onchange="this.form.submit()"><option value="letter-landscape" {{if eq .StockAgingReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option><option value="a4" {{if eq .StockAgingReport.PaperSize "a4"}}selected{{end}}>A4</option><option value="legal" {{if eq .StockAgingReport.PaperSize "legal"}}selected{{end}}>Legal</option></select></label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.StockAgingReport.CurrentPage}}" aria-label="Page number" data-report-page-input><span>of {{.StockAgingReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.StockAgingReport.PaperClass}} stock-aging-paper">
+          <header class="report-paper-header">
+            <h1>{{.StockAgingReport.Title}}</h1>
+            <h2>STOCK AGING</h2>
+            <p>{{.StockAgingReport.CutoffLabel}}</p>
+          </header>
+          {{range $index, $category := .StockAgingReport.Categories}}
+          <section class="report-detail-group" data-report-page="{{add $index 1}}">
+            <table class="report-table stock-aging-table">
+              <thead>
+                <tr>
+                  <th>Stock<br>Code</th>
+                  <th>Stock Name</th>
+                  {{range $.StockAgingReport.BucketLabels}}<th>{{.}}</th>{{end}}
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="report-section-row"><th colspan="2">{{$category.Name}}</th>{{range $.StockAgingReport.BucketLabels}}<th></th>{{end}}</tr>
+                {{range $row := $category.Rows}}
+                <tr><td>{{$row.StockCode}}</td><td>{{$row.StockName}}</td>{{range $row.Buckets}}<td class="num">{{.}}</td>{{end}}</tr>
+                {{end}}
+              </tbody>
+              <tfoot>
+                <tr><td colspan="2">CATEGORY TOTAL</td>{{range $category.Totals.Buckets}}<td class="num">{{.}}</td>{{end}}</tr>
+              </tfoot>
+            </table>
+          </section>
+          {{else}}<p class="report-empty">No stock balances for the selected cut-off date.</p>{{end}}
+          <table class="report-table stock-aging-grand-total"><tfoot><tr><td>G R A N D&nbsp;&nbsp;T O T A L</td>{{range .StockAgingReport.Totals.Buckets}}<td class="num">{{.}}</td>{{end}}</tr></tfoot></table>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>{{template "stock-report-script" "stock-aging.csv"}}</script>
+{{end}}
+{{template "foot" .}}

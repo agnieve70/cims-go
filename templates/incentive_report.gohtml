@@ -1,0 +1,221 @@
+{{template "head" .}}
+{{template "topbar" .}}
+{{if not .IncentiveReport.Generated}}
+<main class="page report-options-page">
+  <form method="get" action="/reports/incentive" class="report-options-dialog">
+    <input type="hidden" name="run" value="1">
+    <input type="hidden" name="paper_size" value="letter">
+    <div class="report-dialog-title">
+      <img src="/static/icons/report-incentive.svg" alt="">
+      <span>Report Options</span>
+    </div>
+    <fieldset class="report-coverage-fieldset">
+      <legend>Specify Report Coverage</legend>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="month" {{if eq .IncentiveReport.Coverage "month"}}checked{{end}}>
+        <span>Month of</span>
+        <select name="month">
+          <option value="1" {{if eq .IncentiveReport.Month 1}}selected{{end}}>1 - January</option>
+          <option value="2" {{if eq .IncentiveReport.Month 2}}selected{{end}}>2 - February</option>
+          <option value="3" {{if eq .IncentiveReport.Month 3}}selected{{end}}>3 - March</option>
+          <option value="4" {{if eq .IncentiveReport.Month 4}}selected{{end}}>4 - April</option>
+          <option value="5" {{if eq .IncentiveReport.Month 5}}selected{{end}}>5 - May</option>
+          <option value="6" {{if eq .IncentiveReport.Month 6}}selected{{end}}>6 - June</option>
+          <option value="7" {{if eq .IncentiveReport.Month 7}}selected{{end}}>7 - July</option>
+          <option value="8" {{if eq .IncentiveReport.Month 8}}selected{{end}}>8 - August</option>
+          <option value="9" {{if eq .IncentiveReport.Month 9}}selected{{end}}>9 - September</option>
+          <option value="10" {{if eq .IncentiveReport.Month 10}}selected{{end}}>10 - October</option>
+          <option value="11" {{if eq .IncentiveReport.Month 11}}selected{{end}}>11 - November</option>
+          <option value="12" {{if eq .IncentiveReport.Month 12}}selected{{end}}>12 - December</option>
+        </select>
+        <input type="number" name="year" value="{{.IncentiveReport.Year}}" min="2000" max="2100" class="report-year-input">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="range" {{if eq .IncentiveReport.Coverage "range"}}checked{{end}}>
+        <span>Date to Date</span>
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>From:</span>
+        <input type="date" name="from_date" value="{{.IncentiveReport.FromDate}}">
+      </label>
+      <label class="report-option-line report-date-offset">
+        <span>To:</span>
+        <input type="date" name="range_to_date" value="{{.IncentiveReport.ToDate}}">
+      </label>
+      <label class="report-option-line">
+        <input type="radio" name="coverage" value="to-date" {{if eq .IncentiveReport.Coverage "to-date"}}checked{{end}}>
+        <span>To Date</span>
+        <input type="date" name="to_date" value="{{.IncentiveReport.ToDate}}">
+      </label>
+    </fieldset>
+    <div class="report-dialog-actions">
+      <button type="submit">OK</button>
+      <a class="button secondary" href="/dashboard">Cancel</a>
+    </div>
+  </form>
+</main>
+{{else}}
+<main class="page report-viewer-page">
+  <div class="report-viewer-shell">
+    <aside class="report-preview-tree">
+      <div>Preview</div>
+      <ul>
+        {{range $index, $row := .IncentiveReport.Rows}}
+        <li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.AgriPost}}</button></li>
+        {{else}}<li><span class="report-tree-empty">No incentive records</span></li>{{end}}
+      </ul>
+    </aside>
+    <section class="report-preview">
+      <div class="report-preview-toolbar">
+        <a class="report-tool report-tool-muted" href="/dashboard" title="Close report" aria-label="Close report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-close.svg" alt=""></a>
+        <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="export" title="Export visible report to CSV" aria-label="Export visible report to CSV"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-export.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="refresh" title="Refresh report" aria-label="Refresh report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-refresh.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="tree" title="Show or hide preview tree" aria-label="Show or hide preview tree"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-tree.svg" alt=""></button>
+        <select aria-label="Zoom" data-report-zoom>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+        <form method="get" action="/reports/incentive" class="report-paper-size-form">
+          <input type="hidden" name="run" value="1">
+          <input type="hidden" name="coverage" value="{{.IncentiveReport.Coverage}}">
+          <input type="hidden" name="month" value="{{.IncentiveReport.Month}}">
+          <input type="hidden" name="year" value="{{.IncentiveReport.Year}}">
+          <input type="hidden" name="from_date" value="{{.IncentiveReport.FromDate}}">
+          <input type="hidden" name="range_to_date" value="{{.IncentiveReport.ToDate}}">
+          <input type="hidden" name="to_date" value="{{.IncentiveReport.ToDate}}">
+          <label>Paper:
+            <select name="paper_size" onchange="this.form.submit()">
+              <option value="letter" {{if eq .IncentiveReport.PaperSize "letter"}}selected{{end}}>Letter</option>
+              <option value="a4" {{if eq .IncentiveReport.PaperSize "a4"}}selected{{end}}>A4</option>
+              <option value="legal" {{if eq .IncentiveReport.PaperSize "legal"}}selected{{end}}>Legal</option>
+              <option value="letter-landscape" {{if eq .IncentiveReport.PaperSize "letter-landscape"}}selected{{end}}>Letter Landscape</option>
+            </select>
+          </label>
+        </form>
+        <button type="button" class="report-nav" data-report-page="first" title="First page" aria-label="First page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-first.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="previous" title="Previous page" aria-label="Previous page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-prev.svg" alt=""></button>
+        <input value="{{.IncentiveReport.CurrentPage}}" aria-label="Page number" data-report-page-input>
+        <span>of {{.IncentiveReport.TotalPages}}</span>
+        <button type="button" class="report-nav" data-report-page="next" title="Next page" aria-label="Next page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-next.svg" alt=""></button>
+        <button type="button" class="report-nav" data-report-page="last" title="Last page" aria-label="Last page"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-last.svg" alt=""></button>
+        <button type="button" class="report-tool report-tool-muted" data-report-action="stop" title="Stop loading" aria-label="Stop loading"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-stop.svg" alt=""></button>
+        <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
+      </div>
+      <div class="report-paper-scroll">
+        <article class="report-paper {{.IncentiveReport.PaperClass}} incentive-report-paper">
+          <header class="report-paper-header">
+            <h1>{{.IncentiveReport.Title}}</h1>
+            <h2>INCENTIVE REPORT</h2>
+            <p>{{.IncentiveReport.RangeLabel}}</p>
+          </header>
+          <div class="incentive-report-label">APS:</div>
+          <table class="report-table incentive-report-table">
+            <thead><tr><th>Agri Post</th><th>Qty</th><th>V.I.P.</th><th>APS</th><th>TAKALS</th><th>FARM</th></tr></thead>
+            <tbody>
+              {{range $index, $row := .IncentiveReport.Rows}}
+              <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.AgriPost}}</td><td class="num">{{$row.Qty}}</td><td class="num">{{$row.VIP}}</td><td class="num">{{$row.APS}}</td><td class="num">{{$row.Takals}}</td><td class="num">{{$row.Farm}}</td></tr>
+              {{else}}
+              <tr><td colspan="6" class="empty">No incentive records for the selected coverage.</td></tr>
+              {{end}}
+            </tbody>
+            <tfoot>
+              <tr><td>Total :</td><td class="num">{{.IncentiveReport.TotalQty}}</td><td class="num">{{.IncentiveReport.TotalVIP}}</td><td class="num">{{.IncentiveReport.TotalAPS}}</td><td class="num">{{.IncentiveReport.TotalTakals}}</td><td class="num">{{.IncentiveReport.TotalFarm}}</td></tr>
+              <tr><td>Group Total :</td><td></td><td colspan="4" class="num">{{.IncentiveReport.GrandTotal}}</td></tr>
+              <tr><td>Grand Total :</td><td></td><td colspan="4" class="num">{{.IncentiveReport.GrandTotal}}</td></tr>
+            </tfoot>
+          </table>
+          <div class="report-page-label">Page 1 of {{.IncentiveReport.TotalPages}}</div>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  (function () {
+    var shell = document.querySelector(".report-viewer-shell");
+    var preview = document.querySelector(".report-preview");
+    var paper = document.querySelector(".report-paper");
+    if (!shell || !preview || !paper) return;
+
+    var rows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-report-summary-row]"));
+    var treeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+    var pageInput = document.querySelector("[data-report-page-input]");
+    var currentRow = 1;
+
+    var highlightRow = function (rowNumber) {
+      currentRow = Math.min(Math.max(rowNumber || 1, 1), Math.max(rows.length, 1));
+      if (pageInput) pageInput.value = "1";
+      rows.forEach(function (row) {
+        row.classList.toggle("report-row-highlight", Number(row.getAttribute("data-report-summary-row")) === currentRow);
+      });
+      treeNodes.forEach(function (node) {
+        node.classList.toggle("active", Number(node.getAttribute("data-report-summary-row")) === currentRow);
+      });
+    };
+    highlightRow(1);
+
+    treeNodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        highlightRow(Number(node.getAttribute("data-report-summary-row")));
+      });
+    });
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (button.getAttribute("data-report-page") === "first" || button.getAttribute("data-report-page") === "last") {
+          highlightRow(1);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-report-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-action")) {
+        case "print":
+          window.print();
+          break;
+        case "refresh":
+          window.location.reload();
+          break;
+        case "tree":
+          shell.classList.toggle("report-tree-collapsed");
+          break;
+        case "find":
+          var term = window.prompt("Find text");
+          if (!term) return;
+          var match = rows.find(function (row) { return row.textContent.toLowerCase().indexOf(term.toLowerCase()) !== -1; });
+          if (match) {
+            highlightRow(Number(match.getAttribute("data-report-summary-row")));
+            match.scrollIntoView({ block: "center" });
+          }
+          break;
+        case "export":
+          var csv = Array.prototype.slice.call(document.querySelectorAll(".incentive-report-table tr")).map(function (row) {
+            return Array.prototype.slice.call(row.children).map(function (cell) {
+              return '"' + cell.textContent.trim().replace(/"/g, '""') + '"';
+            }).join(",");
+          }).join("\n");
+          var blob = new Blob([csv], { type: "text/csv" });
+          var link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "incentive-report.csv";
+          link.click();
+          URL.revokeObjectURL(link.href);
+          break;
+        }
+      });
+    });
+
+    var zoom = document.querySelector("[data-report-zoom]");
+    if (zoom) {
+      zoom.addEventListener("change", function () {
+        paper.style.transformOrigin = "top center";
+        paper.style.transform = "scale(" + zoom.value + ")";
+      });
+    }
+  })();
+</script>
+{{end}}
+{{template "foot" .}}

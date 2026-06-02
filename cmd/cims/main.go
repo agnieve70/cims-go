@@ -35,7 +35,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := db.OpenPool(ctx, cfg.DatabaseURL)
+	pool, err := db.OpenPool(ctx, cfg.DatabaseURL, cfg.DBMaxConns, cfg.DBMinConns)
 	if err != nil {
 		return err
 	}
@@ -51,11 +51,15 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	app.SetRequestLogging(cfg.RequestLogging)
 
 	server := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           app.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      5 * time.Minute,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	errCh := make(chan error, 1)

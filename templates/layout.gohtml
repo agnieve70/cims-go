@@ -5,76 +5,278 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Title}} · CIMS</title>
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/app.css?v=202605311520">
+  <script src="/static/htmx.min.js?v=1.9.12"></script>
 </head>
 <body>
 {{end}}
 
 {{define "topbar"}}
-<header class="topbar">
-  <a class="brand" href="/dashboard">DIGOS | CUSTOMIZED INFORMATION MANAGEMENT SYSTEM</a>
-  {{if .User.ID}}
-  <span class="user-icon">⌕</span>
-  <span class="user">{{.User.DisplayName}}</span>
-  <form method="post" action="/logout" class="logout-form"><button type="submit">Logout</button></form>
-  {{end}}
-</header>
 {{if .User.ID}}
 <nav class="navrail" aria-label="Primary">
-  <a class="navitem active" href="/dashboard"><span class="navicon">▣</span>Main Menu</a>
-  <div class="navitem has-menu" tabindex="0"><span class="navicon">▰</span>Utility Files
+  <button class="navitem navitem-modern navtoggle active" type="button" aria-label="Main Menu" aria-controls="primary-sidebar" aria-expanded="true"><img class="toolbar-icon-image" src="/static/toolbar-icons/main-menu-icon-v2.png" alt=""><span class="navlabel">Main Menu</span></button>
+  <div class="navitem navitem-modern has-menu has-caret" tabindex="0" aria-label="Utility Files"><img class="toolbar-icon-image" src="/static/toolbar-icons/utility-files-icon-v2.png" alt=""><span class="navlabel">Utility Files</span>
     <div class="dropdown-menu wide-menu">
       <h3>Utility Files</h3>
-      <a href="/masters/stocks/"><span>▤</span>Stocks</a>
-      <a href="/masters/branches/"><span>⌂</span>Branches</a>
-      <a href="/masters/suppliers/"><span>▱</span>Suppliers</a>
-      <a href="/masters/customers/"><span>♙</span>Customers</a>
-      <a href="/masters/expense-chart/"><span>▥</span>Expenses Chart</a>
-      <a href="/masters/stock-categories/"><span>◇</span>Stock Categories</a>
+      <a href="/masters/stocks/"><img class="dropdown-icon" src="/static/icons/dropdown-stocks.svg" alt="">Stocks</a>
+      <a href="/masters/branches/"><img class="dropdown-icon" src="/static/icons/dropdown-branches.svg" alt="">Branches</a>
+      <a href="/masters/suppliers/"><img class="dropdown-icon" src="/static/icons/dropdown-suppliers.svg" alt="">Suppliers</a>
+      <a href="/masters/customers/"><img class="dropdown-icon" src="/static/icons/dropdown-customers.svg" alt="">Customers</a>
+      <a href="/masters/expense-chart/"><img class="dropdown-icon" src="/static/icons/dropdown-expense-chart.svg" alt="">Expenses Chart</a>
+      <a href="/masters/stock-categories/"><img class="dropdown-icon" src="/static/icons/dropdown-stock-categories.svg" alt="">Stock Categories</a>
     </div>
   </div>
-  <div class="navitem has-menu" tabindex="0"><span class="navicon">◰</span>Other Files
+  <div class="navitem navitem-modern has-menu has-caret" tabindex="0" aria-label="Other Files"><img class="toolbar-icon-image" src="/static/toolbar-icons/other-files-icon-v3.png" alt=""><span class="navlabel">Other Files</span>
     <div class="dropdown-menu">
       <h3>Other Files</h3>
-      <a href="/transactions/stock-in/"><span>↓</span>Stock In</a>
-      <a href="/transactions/stock-out/"><span>↑</span>Stock Out</a>
-      <a href="/transactions/checks-in/"><span>▭</span>Checks In</a>
-      <a href="/transactions/other-income/"><span>▧</span>Other Income File</a>
-      <a href="/masters/other-income-chart/"><span>♧</span>Other Income</a>
+      <a href="/transactions/stock-in/"><img class="dropdown-icon" src="/static/icons/dropdown-stock-in.svg" alt="">Stock In</a>
+      <a href="/transactions/stock-out/"><img class="dropdown-icon" src="/static/icons/dropdown-stock-out.svg" alt="">Stock Out</a>
+      <a href="/transactions/checks-in/"><img class="dropdown-icon" src="/static/icons/dropdown-checks-in.svg" alt="">Checks In</a>
+      <a href="/transactions/other-income/"><img class="dropdown-icon" src="/static/icons/dropdown-other-income-file.svg" alt="">Other Income File</a>
+      <a href="/masters/other-income-chart/"><img class="dropdown-icon" src="/static/icons/dropdown-other-income.svg" alt="">Other Income</a>
     </div>
   </div>
-  <a class="navitem" href="/masters/stocks/"><span class="navicon">▥</span>Stock Summary</a>
-  <a class="navitem" href="/transactions/purchases/"><span class="navicon">▣</span>Stock Purchases</a>
-  <a class="navitem" href="/transactions/dr/"><span class="navicon">▤</span>DR File</a>
-  <a class="navitem" href="/transactions/sales/"><span class="navicon">▤</span>Stock Sales</a>
-  <a class="navitem" href="/transactions/stock-transactions/"><span class="navicon">↔</span>Stock Transfers</a>
+  <div class="navitem navitem-compact has-menu has-caret" tabindex="0" aria-label="Stock Summary"><img class="toolbar-icon-image" src="/static/toolbar-icons/stock-summary.png" alt=""><span class="navlabel">Stock Summary</span>
+    <div class="dropdown-menu">
+      <h3>Stock Summary</h3>
+      <a href="/reports/stock-aging"><img class="dropdown-icon" src="/static/icons/dropdown-stock-aging.svg" alt="">Stock Aging</a>
+      <a href="/reports/stock-ledger"><img class="dropdown-icon" src="/static/icons/dropdown-stock-ledger.svg" alt="">Stock Ledger</a>
+      <a href="/reports/stock-reorder-point"><img class="dropdown-icon" src="/static/icons/dropdown-stock-reorder-point.svg" alt="">Stock Reorder Point</a>
+      <a href="/reports/stock-summary"><img class="dropdown-icon" src="/static/icons/dropdown-stock-summary.svg" alt="">Stock Summary</a>
+    </div>
+  </div>
+  <div class="navitem navitem-compact has-menu has-caret" tabindex="0" aria-label="Stock Purchases"><img class="toolbar-icon-image" src="/static/toolbar-icons/stock-purchases.png" alt=""><span class="navlabel">Stock Purchases</span>
+    <div class="dropdown-menu">
+      <h3>Stock Purchases</h3>
+      <a href="/reports/purchases-by-dr-number"><img class="dropdown-icon" src="/static/icons/dropdown-purchases-by-dr-number.svg" alt="">By DR Number</a>
+      <a href="/reports/purchases-by-stock-code"><img class="dropdown-icon" src="/static/icons/dropdown-purchases-by-stock-code.svg" alt="">By Stock Code</a>
+      <a href="/reports/purchases-by-supplier"><img class="dropdown-icon" src="/static/icons/dropdown-purchases-by-supplier.svg" alt="">By Supplier</a>
+    </div>
+  </div>
+  <div class="navitem navitem-compact has-menu has-caret" tabindex="0" aria-label="Stock Sales"><img class="toolbar-icon-image" src="/static/toolbar-icons/stock-sales.png" alt=""><span class="navlabel">Stock Sales</span>
+    <div class="dropdown-menu">
+      <h3>Stock Sales</h3>
+      <a href="/reports/sales-by-customer"><img class="dropdown-icon" src="/static/icons/dropdown-sales-by-customer.svg" alt="">By Customer</a>
+      <a href="/reports/sales-by-stock-name"><img class="dropdown-icon" src="/static/icons/dropdown-sales-by-stock-name.svg" alt="">By Stock Name</a>
+      <a href="/reports/sales-by-or-ci-dr-number"><img class="dropdown-icon" src="/static/icons/dropdown-sales-by-or-ci-dr-number.svg" alt="">By OR/CI/DR Number</a>
+      <a href="/reports/sales-summary-by-item"><img class="dropdown-icon" src="/static/icons/dropdown-sales-summary-by-item.svg" alt="">Summary By Item</a>
+      <a href="/reports/sales-markup-by-transaction"><img class="dropdown-icon" src="/static/icons/dropdown-sales-markup-by-transaction.svg" alt="">Sales Markup by Transaction</a>
+      <a href="/reports/sales-by-customer-summary-by-item"><img class="dropdown-icon" src="/static/icons/dropdown-sales-by-customer-summary.svg" alt="">By Customer (Summary By Item)</a>
+    </div>
+  </div>
+  <div class="navitem navitem-compact has-menu has-caret" tabindex="0" aria-label="Stock Transfers"><img class="toolbar-icon-image" src="/static/toolbar-icons/stock-transfers.png" alt=""><span class="navlabel">Stock Transfers</span>
+    <div class="dropdown-menu">
+      <h3>Stock Transfers</h3>
+      <a href="/reports/transfers-summary"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-summary.svg" alt="">Summary</a>
+      <a href="/reports/transfers-by-stock-name"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-by-stock-name.svg" alt="">By Stock Name</a>
+      <a href="/reports/transfers-by-entry-id"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-by-entry-id.svg" alt="">By Entry ID</a>
+      <a href="/reports/transfers-summary-by-entry-id"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-summary-by-entry-id.svg" alt="">Summary By Entry ID</a>
+      <a href="/reports/transfers-summary-by-item"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-summary-by-item.svg" alt="">Summary By Item</a>
+      <a href="/reports/transfers-markup-by-transaction"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-markup-by-transaction.svg" alt="">Transfer Markup By Transaction</a>
+      <a href="/reports/transfers-by-branch"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-by-branch.svg" alt="">By Branch</a>
+    </div>
+  </div>
 </nav>
-<aside class="sidebar" aria-label="Files">
-  <section class="side-section expanded">
-    <h2>Files <span>⌄</span></h2>
-    <a class="side-link" href="/transactions/purchases/"><span>⌑</span>Purchases File</a>
-    <a class="side-link" href="/transactions/dr/"><span>▤</span>DR File</a>
-    <a class="side-link" href="/transactions/sales/"><span>▣</span>Sales File</a>
-    <a class="side-link" href="/transactions/stock-transactions/"><span>↔</span>Stock Transaction File</a>
-    <a class="side-link" href="/transactions/ap-credit/"><span>♧</span>AP Credit File</a>
-    <a class="side-link" href="/transactions/ap-debit/"><span>♧</span>AP Debit File</a>
-    <a class="side-link" href="/transactions/ar-credit/"><span>♧</span>AR Credit File</a>
-    <a class="side-link" href="/transactions/ar-debit/"><span>♧</span>AR Debit File</a>
-    <a class="side-link" href="/transactions/rebates/"><span>▧</span>Rebates Entry File</a>
-    <a class="side-link" href="/transactions/expenses/"><span>▥</span>Expenses File</a>
+<aside class="sidebar" id="primary-sidebar" aria-label="Files">
+  <section class="side-section expanded" data-section-key="files">
+    <button class="side-section-toggle" type="button" aria-expanded="true">
+      <span class="section-heading-label"><img class="section-heading-icon" src="/static/icons/sidebar-files.svg" alt="">Files</span>
+      <span class="section-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="side-section-body">
+    <a class="side-link side-link-tile" href="/transactions/purchases/"><img class="side-icon" src="/static/icons/purchases.svg" alt=""><span class="side-text">Purchases File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/dr/"><img class="side-icon" src="/static/icons/dr.svg" alt=""><span class="side-text">DR File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/sales/"><img class="side-icon" src="/static/icons/sales.svg" alt=""><span class="side-text">Sales File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/stock-transactions/"><img class="side-icon" src="/static/icons/transfer.svg" alt=""><span class="side-text">Stock Transaction File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/ap-credit/"><img class="side-icon" src="/static/icons/ap-credit.svg" alt=""><span class="side-text">AP Credit File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/ap-debit/"><img class="side-icon" src="/static/icons/ap-debit.svg" alt=""><span class="side-text">AP Debit File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/ar-credit/"><img class="side-icon" src="/static/icons/ar-credit.svg" alt=""><span class="side-text">AR Credit File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/ar-debit/"><img class="side-icon" src="/static/icons/ar-debit.svg" alt=""><span class="side-text">AR Debit File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/rebates/"><img class="side-icon" src="/static/icons/rebates.svg" alt=""><span class="side-text">Rebates Entry File</span></a>
+    <a class="side-link side-link-tile" href="/transactions/expenses/"><img class="side-icon" src="/static/icons/expenses.svg" alt=""><span class="side-text">Expenses File</span></a>
+    </div>
   </section>
-  <section class="side-section collapsed"><h2>Reports <span>›</span></h2></section>
-  <section class="side-section collapsed"><h2>Special Reports <span>›</span></h2></section>
-  <section class="side-section expanded">
-    <h2>Settings <span>⌄</span></h2>
-    <a class="side-link" href="/dashboard"><span>♙</span>User Settings</a>
+  <section class="side-section expanded" data-section-key="reports">
+    <button class="side-section-toggle" type="button" aria-expanded="true">
+      <span class="section-heading-label"><img class="section-heading-icon" src="/static/icons/sidebar-reports.svg" alt="">Reports</span>
+      <span class="section-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="side-section-body">
+    <a class="side-link side-link-report" href="/reports/purchases-summary"><img class="side-icon" src="/static/icons/report-purchases-summary.svg" alt=""><span class="side-text">Purchases Summary</span></a>
+    <a class="side-link side-link-report" href="/reports/sales-summary"><img class="side-icon" src="/static/icons/report-sales-summary.svg" alt=""><span class="side-text">Sales Summary</span></a>
+    <a class="side-link side-link-report" href="/reports/ap-ledger"><img class="side-icon" src="/static/icons/report-ap-ledger.svg" alt=""><span class="side-text">AP Ledger</span></a>
+    <a class="side-link side-link-report" href="/reports/ar-ledger"><img class="side-icon" src="/static/icons/report-ar-ledger.svg" alt=""><span class="side-text">AR Ledger</span></a>
+    <a class="side-link side-link-report" href="/reports/incoming-check-list"><img class="side-icon" src="/static/icons/report-incoming-check.svg" alt=""><span class="side-text">Incoming Check List</span></a>
+    <a class="side-link side-link-report" href="/reports/expenses-summary"><img class="side-icon" src="/static/icons/report-expenses-summary.svg" alt=""><span class="side-text">Expenses Summary</span></a>
+    <a class="side-link side-link-report" href="/reports/outgoing-check-list"><img class="side-icon" src="/static/icons/report-outgoing-check.svg" alt=""><span class="side-text">Outgoing Check List</span></a>
+    <a class="side-link side-link-report" href="/reports/income-statement"><img class="side-icon" src="/static/icons/report-income-statement.svg" alt=""><span class="side-text">Income Statement</span></a>
+    <a class="side-link side-link-report" href="/reports/incentive"><img class="side-icon" src="/static/icons/report-incentive.svg" alt=""><span class="side-text">Incentive Report</span></a>
+    </div>
+  </section>
+  <section class="side-section expanded" data-section-key="special-reports">
+    <button class="side-section-toggle" type="button" aria-expanded="true">
+      <span class="section-heading-label"><img class="section-heading-icon" src="/static/icons/report-document.svg" alt="">Special Reports</span>
+      <span class="section-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="side-section-body">
+    <a class="side-link side-link-report side-link-special-report" href="/reports/daily-sales-collection"><img class="side-icon" src="/static/icons/special-daily-sales-collection.svg" alt=""><span class="side-text">Daily Sales &amp; Collection</span></a>
+    <a class="side-link side-link-report side-link-special-report" href="/reports/incoming-check-calendar"><img class="side-icon" src="/static/icons/special-incoming-check-calendar.svg" alt=""><span class="side-text">Incoming Check Calendar</span></a>
+    <a class="side-link side-link-report side-link-special-report" href="/reports/daily-due-check"><img class="side-icon" src="/static/icons/special-daily-due-check.svg" alt=""><span class="side-text">Daily Due Check</span></a>
+    <a class="side-link side-link-report side-link-special-report" href="/reports/stock-sales-transfer"><img class="side-icon" src="/static/icons/special-stock-sales-transfer.svg" alt=""><span class="side-text">Stock Sales &amp; Transfer</span></a>
+    <a class="side-link side-link-report side-link-special-report" href="/reports/stock-sales-transfer-amount"><img class="side-icon" src="/static/icons/special-stock-sales-transfer-amount.svg" alt=""><span class="side-text">Stk. Sales &amp; Transfer Amount</span></a>
+    </div>
+  </section>
+  <section class="side-section expanded" data-section-key="settings">
+    <button class="side-section-toggle" type="button" aria-expanded="true">
+      <span class="section-heading-label">Settings</span>
+      <span class="section-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="side-section-body">
+    <a class="side-link" href="/dashboard"><span>♙</span><span class="side-text">User Settings</span></a>
+    </div>
   </section>
 </aside>
 {{end}}
 {{end}}
 
 {{define "foot"}}
+<script>
+  (function () {
+    var storageKey = "cims.sidebarCollapsed";
+    var sectionKeyPrefix = "cims.sidebarSection.";
+    var body = document.body;
+    var toggle = document.querySelector(".navtoggle");
+    if (!body || !toggle) return;
+
+    var setSidebarState = function (collapsed) {
+      body.classList.toggle("sidebar-collapsed", collapsed);
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    };
+
+    setSidebarState(localStorage.getItem(storageKey) === "1");
+
+    toggle.addEventListener("click", function () {
+      var collapsed = !body.classList.contains("sidebar-collapsed");
+      setSidebarState(collapsed);
+      localStorage.setItem(storageKey, collapsed ? "1" : "0");
+    });
+
+    document.querySelectorAll(".side-section[data-section-key]").forEach(function (section) {
+      var button = section.querySelector(".side-section-toggle");
+      var sectionKey = sectionKeyPrefix + section.getAttribute("data-section-key");
+      if (!button) return;
+
+      var setSectionState = function (collapsed) {
+        section.classList.toggle("collapsed", collapsed);
+        section.classList.toggle("expanded", !collapsed);
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      };
+
+      setSectionState(localStorage.getItem(sectionKey) === "1");
+
+      button.addEventListener("click", function () {
+        var collapsed = !section.classList.contains("collapsed");
+        setSectionState(collapsed);
+        localStorage.setItem(sectionKey, collapsed ? "1" : "0");
+
+        if (section.getAttribute("data-section-key") === "files" && window.location.pathname !== "/dashboard") {
+          window.location.href = "/dashboard";
+        }
+      });
+    });
+
+    var normalizePath = function (path) {
+      if (!path) return "/";
+      return path.length > 1 ? path.replace(/\/+$/, "") : path;
+    };
+
+    var currentPath = normalizePath(window.location.pathname);
+    var bestMatch = null;
+
+    document.querySelectorAll(".side-link[href]").forEach(function (link) {
+      var href = normalizePath(link.getAttribute("href"));
+      if (currentPath === href || (href !== "/" && currentPath.indexOf(href + "/") === 0)) {
+        if (!bestMatch || href.length > bestMatch.href.length) {
+          bestMatch = { link: link, href: href };
+        }
+      }
+    });
+
+    if (bestMatch) {
+      bestMatch.link.classList.add("active");
+    }
+  })();
+
+  (function () {
+    var tree = document.querySelector(".report-preview-tree");
+    if (!tree) return;
+
+    var treeNodes = function () {
+      return Array.prototype.slice.call(tree.querySelectorAll(".report-tree-node"));
+    };
+    var visibleTreeNodes = function () {
+      return treeNodes().filter(function (node) {
+        return node.offsetParent !== null && !node.closest(".report-tree-branch.collapsed > ul");
+      });
+    };
+    var scrollReportPaperToTop = function () {
+      var paperScroll = document.querySelector(".report-paper-scroll");
+      if (paperScroll) paperScroll.scrollTop = 0;
+    };
+    var resetReportPaperToTop = function () {
+      scrollReportPaperToTop();
+      window.setTimeout(scrollReportPaperToTop, 0);
+      window.setTimeout(scrollReportPaperToTop, 50);
+      window.requestAnimationFrame(scrollReportPaperToTop);
+    };
+    var focusTreeNode = function (node, activate) {
+      if (!node) return;
+      node.focus();
+      node.scrollIntoView({block: "nearest", inline: "nearest"});
+      if (activate) {
+        node.setAttribute("data-report-keyboard-activate", "1");
+        node.click();
+        node.removeAttribute("data-report-keyboard-activate");
+        resetReportPaperToTop();
+      }
+    };
+
+    tree.addEventListener("keydown", function (event) {
+      var node = event.target.closest(".report-tree-node");
+      if (!node || !tree.contains(node)) return;
+
+      var nodes = visibleTreeNodes();
+      var currentIndex = nodes.indexOf(node);
+      if (currentIndex < 0) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        focusTreeNode(nodes[Math.min(nodes.length - 1, currentIndex + 1)], true);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        focusTreeNode(nodes[Math.max(0, currentIndex - 1)], true);
+      } else if (event.key === "ArrowRight" && node.hasAttribute("data-report-tree-toggle")) {
+        var branch = node.closest(".report-tree-branch");
+        if (branch && branch.classList.contains("collapsed")) {
+          event.preventDefault();
+          node.click();
+        }
+      } else if (event.key === "ArrowLeft" && node.hasAttribute("data-report-tree-toggle")) {
+        var parentBranch = node.closest(".report-tree-branch");
+        if (parentBranch && parentBranch.classList.contains("expanded")) {
+          event.preventDefault();
+          node.click();
+        }
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        focusTreeNode(nodes[0], true);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        focusTreeNode(nodes[nodes.length - 1], true);
+      }
+    });
+  })();
+</script>
 </body>
 </html>
 {{end}}

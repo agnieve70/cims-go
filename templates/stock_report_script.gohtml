@@ -1,0 +1,131 @@
+{{define "stock-report-script"}}
+(function () {
+  var shell = document.querySelector(".report-viewer-shell");
+  var paper = document.querySelector(".report-paper");
+  if (!shell || !paper) return;
+
+  var paperScroll = document.querySelector(".report-paper-scroll");
+  var pageInput = document.querySelector("[data-report-page-input]");
+  var pages = Array.prototype.slice.call(document.querySelectorAll(".report-detail-group[data-report-page]"));
+  var treeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-tree-page]"));
+  var selectedTreeNode = null;
+  var filterItems = Array.prototype.slice.call(document.querySelectorAll("[data-report-filter-item]"));
+  var summaryRows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-report-summary-row]"));
+  var summaryNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+  var totalPages = Math.max(1, pages.length || 1);
+  var currentPage = 1;
+
+  var setPage = function (page) {
+    currentPage = Math.min(totalPages, Math.max(1, page || 1));
+    if (pageInput) pageInput.value = currentPage;
+    treeNodes.forEach(function (node) {
+      var isSelected = selectedTreeNode ? node === selectedTreeNode : Number(node.getAttribute("data-report-tree-page")) === currentPage && !node.hasAttribute("data-report-scroll-target");
+      node.classList.toggle("active", isSelected);
+    });
+    pages.forEach(function (section) { section.hidden = Number(section.getAttribute("data-report-page")) !== currentPage; });
+  };
+  setPage(1);
+
+  var setFilter = function (targetID) {
+    filterItems.forEach(function (item) {
+      item.hidden = !!targetID && item.id !== targetID;
+    });
+  };
+  var scrollPaperToTop = function () {
+    if (paperScroll) paperScroll.scrollTop = 0;
+  };
+  var resetPaperToTop = function () {
+    scrollPaperToTop();
+    window.setTimeout(scrollPaperToTop, 0);
+    window.setTimeout(scrollPaperToTop, 50);
+    window.requestAnimationFrame(scrollPaperToTop);
+  };
+
+  document.querySelectorAll("[data-report-page]").forEach(function (button) {
+    if (button.classList.contains("report-detail-group")) return;
+    button.addEventListener("click", function () {
+      switch (button.getAttribute("data-report-page")) {
+      case "first": setPage(1); resetPaperToTop(); break;
+      case "previous": setPage(currentPage - 1); resetPaperToTop(); break;
+      case "next": setPage(currentPage + 1); resetPaperToTop(); break;
+      case "last": setPage(totalPages); resetPaperToTop(); break;
+      }
+    });
+  });
+  if (pageInput) pageInput.addEventListener("change", function () {
+    setPage(Number(pageInput.value));
+    resetPaperToTop();
+  });
+  treeNodes.forEach(function (node) {
+    node.addEventListener("click", function (event) {
+      var keyboardActivate = event.detail === 0 || node.getAttribute("data-report-keyboard-activate") === "1";
+      selectedTreeNode = node;
+      var branch = node.closest(".report-tree-branch");
+      if (node.hasAttribute("data-report-tree-toggle") && branch) {
+        var collapsed = !branch.classList.contains("collapsed");
+        branch.classList.toggle("collapsed", collapsed);
+        branch.classList.toggle("expanded", !collapsed);
+        node.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      }
+      setFilter(node.getAttribute("data-report-filter-target"));
+      setPage(Number(node.getAttribute("data-report-tree-page")));
+      var targetID = node.getAttribute("data-report-scroll-target");
+      if (targetID && !keyboardActivate) {
+        window.requestAnimationFrame(function () {
+          var target = document.getElementById(targetID);
+          if (target) target.scrollIntoView({block: "start", inline: "nearest"});
+        });
+      } else {
+        resetPaperToTop();
+      }
+    });
+  });
+  summaryNodes.forEach(function (node) {
+    node.addEventListener("click", function () {
+      var rowIndex = node.getAttribute("data-report-summary-row");
+      summaryNodes.forEach(function (treeNode) { treeNode.classList.toggle("active", treeNode === node); });
+      summaryRows.forEach(function (row) { row.classList.toggle("report-row-highlight", row.getAttribute("data-report-summary-row") === rowIndex); });
+      var row = summaryRows.find(function (candidate) { return candidate.getAttribute("data-report-summary-row") === rowIndex; });
+      if (row) row.scrollIntoView({block: "center", inline: "nearest"});
+    });
+  });
+
+  var zoom = document.querySelector("[data-report-zoom]");
+  if (zoom) zoom.addEventListener("change", function () {
+    paper.style.transform = "scale(" + zoom.value + ")";
+    paper.style.transformOrigin = "top center";
+    paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+  });
+
+  var exportCSV = function () {
+    var lines = [];
+    paper.querySelectorAll("table").forEach(function (table) {
+      table.querySelectorAll("tr").forEach(function (row) {
+        var cells = Array.prototype.map.call(row.children, function (cell) {
+          return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+        });
+        lines.push(cells.join(","));
+      });
+      lines.push("");
+    });
+    var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "{{.}}";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  document.querySelectorAll("[data-report-action]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      switch (button.getAttribute("data-report-action")) {
+      case "print": window.print(); break;
+      case "export": exportCSV(); break;
+      case "refresh": window.location.reload(); break;
+      case "tree": shell.classList.toggle("report-tree-hidden"); break;
+      case "find": var term = window.prompt("Find text"); if (term) window.find(term); break;
+      }
+    });
+  });
+})();
+{{end}}

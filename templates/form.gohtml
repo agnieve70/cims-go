@@ -4,25 +4,1158 @@
   <form method="post" action="{{.Action}}" class="form-shell modal-form">
     <div class="modal-titlebar">
       <div class="modal-title">
-        <span class="modal-icon">▱</span>
+        <span class="modal-icon" aria-hidden="true"></span>
         <strong>{{.Form.Title}}</strong>
       </div>
       <a class="modal-close" href="{{.Form.RouteBase}}/" aria-label="Close">×</a>
     </div>
     <div class="modal-body">
       {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
-      <section class="form-grid modal-fields">
+      {{if eq .Form.Kind "purchases"}}
+      <section class="purchase-legacy-form">
+        <label class="purchase-field purchase-entry-id">
+          <span>Entry ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="purchase-field purchase-updated-by">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="purchase-field purchase-entry-date">
+          <span>Entry Date:</span>
+          <input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required>
+        </label>
+        <label class="purchase-field purchase-cash">
+          <span class="purchase-checkbox-copy">
+            <input type="checkbox" name="cash" {{if truthy (fieldValue $.Record "cash")}}checked{{end}}>
+            <span>Cash</span>
+          </span>
+        </label>
+        <label class="purchase-field purchase-or-ci">
+          <span>OR/CI Number:</span>
+          <input name="or_ci_number" value="{{fieldValue $.Record "or_ci_number"}}">
+        </label>
+        <label class="purchase-field purchase-supplier">
+          <span>Supplier:</span>
+          <span class="purchase-supplier-control">
+            <input name="party_name" list="purchase-supplier-options" value="" autocomplete="off" required>
+            <input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-purchase-party-id>
+            <datalist id="purchase-supplier-options">
+              {{range index $.Options "suppliers"}}
+                <option value="{{.Label}}"></option>
+              {{end}}
+            </datalist>
+          </span>
+        </label>
+        <label class="purchase-field purchase-date">
+          <span>Purchase Date:</span>
+          <input name="purchase_date" type="date" value="{{fieldValue $.Record "purchase_date"}}">
+        </label>
+      </section>
+
+      {{$detailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section purchase-line-details">
+        <div class="section-head">
+          <h2>{{$detailsGroup.Label}}</h2>
+          <button type="button" onclick="addPurchaseDetailRow()">Add Row</button>
+        </div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid purchase-details-grid">
+            <datalist id="purchase-stock-code-options">
+              {{range index $.Options "stocks"}}
+                <option value="{{.Label}}"></option>
+              {{end}}
+            </datalist>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Stock Code</th>
+                <th>Stock Name</th>
+                <th>Qty</th>
+                <th>Unit Cost</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}
+                {{range $rows}}
+                <tr class="purchase-detail-row">
+                  <td class="row-no"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
+                    <input type="hidden" name="line_details_qty" value="{{fieldValue . "qty"}}" readonly data-field-input="qty">
+                    <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}">
+                    <input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                  </td>
+                </tr>
+                {{end}}
+              {{else}}
+                <tr class="purchase-detail-row">
+                  <td class="row-no"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty">
+                    <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost">
+                    <input type="hidden" name="line_details_amount" data-field-input="amount">
+                  </td>
+                </tr>
+                <tr class="purchase-detail-row">
+                  <td class="row-no"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty">
+                    <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost">
+                    <input type="hidden" name="line_details_amount" data-field-input="amount">
+                  </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {{$discountGroup := index .Form.LineGroups 1}}
+      {{$additionalGroup := index .Form.LineGroups 2}}
+      {{$paymentGroup := index .Form.LineGroups 3}}
+      <section class="purchase-summary">
+        <div class="purchase-summary-tabs">
+          <button type="button" class="purchase-tab is-active" data-purchase-tab="adjustments">Discounts/Additionals/Totals</button>
+          <button type="button" class="purchase-tab" data-purchase-tab="payments">Mode Of Payment</button>
+          <label>Total Qty:<input readonly data-purchase-total-qty></label>
+        </div>
+        <div class="purchase-summary-grid">
+          <section class="purchase-adjustment purchase-discounts">
+            <div class="section-head">
+              <h2>{{$discountGroup.Label}}</h2>
+              <button type="button" onclick="addPurchaseAdjustmentRow('discounts')">Add Row</button>
+            </div>
+            <div class="table-wrap modal-table">
+              <table class="editable-grid purchase-adjustment-grid">
+                <thead>
+                  <tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr>
+                </thead>
+                <tbody id="rows-{{$discountGroup.Key}}">
+                  {{$rows := index $.LineRows $discountGroup.Key}}
+                  {{if $rows}}
+                    {{range $rows}}
+                    <tr class="purchase-adjustment-row" data-adjustment-group="discounts">
+                      <td class="editable-cell" contenteditable="true" data-field="particulars">{{fieldValue . "particulars"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="price">{{fieldValue . "price"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                      <td class="hidden-col">
+                        <input type="hidden" name="line_discounts_particulars" data-field-input="particulars" value="{{fieldValue . "particulars"}}">
+                        <input type="hidden" name="line_discounts_qty" data-field-input="qty" value="{{fieldValue . "qty"}}">
+                        <input type="hidden" name="line_discounts_price" data-field-input="price" value="{{fieldValue . "price"}}">
+                        <input type="hidden" name="line_discounts_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                      </td>
+                    </tr>
+                    {{end}}
+                  {{else}}
+                    <tr class="purchase-adjustment-row" data-adjustment-group="discounts">
+                      <td class="editable-cell" contenteditable="true" data-field="particulars"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="price"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                      <td class="hidden-col">
+                        <input type="hidden" name="line_discounts_particulars" data-field-input="particulars">
+                        <input type="hidden" name="line_discounts_qty" data-field-input="qty">
+                        <input type="hidden" name="line_discounts_price" data-field-input="price">
+                        <input type="hidden" name="line_discounts_amount" data-field-input="amount">
+                      </td>
+                    </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="purchase-adjustment purchase-additionals">
+            <div class="section-head">
+              <h2>{{$additionalGroup.Label}}</h2>
+              <button type="button" onclick="addPurchaseAdjustmentRow('additionals')">Add Row</button>
+            </div>
+            <div class="table-wrap modal-table">
+              <table class="editable-grid purchase-adjustment-grid">
+                <thead>
+                  <tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr>
+                </thead>
+                <tbody id="rows-{{$additionalGroup.Key}}">
+                  {{$rows := index $.LineRows $additionalGroup.Key}}
+                  {{if $rows}}
+                    {{range $rows}}
+                    <tr class="purchase-adjustment-row" data-adjustment-group="additionals">
+                      <td class="editable-cell" contenteditable="true" data-field="particulars">{{fieldValue . "particulars"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="price">{{fieldValue . "price"}}</td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                      <td class="hidden-col">
+                        <input type="hidden" name="line_additionals_particulars" data-field-input="particulars" value="{{fieldValue . "particulars"}}">
+                        <input type="hidden" name="line_additionals_qty" data-field-input="qty" value="{{fieldValue . "qty"}}">
+                        <input type="hidden" name="line_additionals_price" data-field-input="price" value="{{fieldValue . "price"}}">
+                        <input type="hidden" name="line_additionals_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                      </td>
+                    </tr>
+                    {{end}}
+                  {{else}}
+                    <tr class="purchase-adjustment-row" data-adjustment-group="additionals">
+                      <td class="editable-cell" contenteditable="true" data-field="particulars"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="price"></td>
+                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                      <td class="hidden-col">
+                        <input type="hidden" name="line_additionals_particulars" data-field-input="particulars">
+                        <input type="hidden" name="line_additionals_qty" data-field-input="qty">
+                        <input type="hidden" name="line_additionals_price" data-field-input="price">
+                        <input type="hidden" name="line_additionals_amount" data-field-input="amount">
+                      </td>
+                    </tr>
+                  {{end}}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="purchase-totals">
+            <label>Total:<input readonly data-purchase-total></label>
+            <label>Less:<input readonly data-purchase-less></label>
+            <label>Add:<input readonly data-purchase-add></label>
+            <label>Net:<input readonly data-purchase-net></label>
+          </section>
+        </div>
+      </section>
+
+      <section class="line-section modal-line-section purchase-line-section purchase-line-payments">
+        <div class="section-head">
+          <h2>{{$paymentGroup.Label}}</h2>
+          <button type="button" hx-get="/line-row/{{$paymentGroup.Key}}" hx-target="#rows-{{$paymentGroup.Key}}" hx-swap="beforeend">Add Row</button>
+        </div>
+        <div class="table-wrap modal-table">
+          <table>
+            <thead>
+              <tr>{{range $paymentGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr>
+            </thead>
+            <tbody id="rows-{{$paymentGroup.Key}}">
+              {{$rows := index $.LineRows $paymentGroup.Key}}
+              {{if $rows}}
+                {{range $rows}}
+                  {{template "line_row.gohtml" dictRow $paymentGroup $.Options .}}
+                {{end}}
+              {{else}}
+                {{template "line_row.gohtml" dictLine $paymentGroup $.Options}}
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "sales"}}
+      <section class="sales-legacy-form">
+        <label class="sales-field sales-entry-id">
+          <span>Entry ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="sales-field sales-customer">
+          <span>Customer:</span>
+          <select name="party_id" required>
+            <option value="">Select</option>
+            {{$currentParty := fieldValue $.Record "party_id"}}
+            {{range index $.Options "customers"}}
+              <option value="{{.Value}}" {{if eq .Value $currentParty}}selected{{end}}>{{.Label}}</option>
+            {{end}}
+          </select>
+        </label>
+        <label class="sales-field sales-entry-date">
+          <span>Entry Date:</span>
+          <input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required>
+        </label>
+        <label class="sales-field sales-cash">
+          <span class="purchase-checkbox-copy">
+            <input type="checkbox" name="cash" {{if truthy (fieldValue $.Record "cash")}}checked{{end}}>
+            <span>Cash</span>
+          </span>
+        </label>
+        <label class="sales-field sales-dr-file">
+          <span>DR File:</span>
+          <select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')">
+            <option value="">Select</option>
+            {{$currentDR := fieldValue $.Record "dr_document_id"}}
+            {{range index $.Options "dr_documents"}}
+              <option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>
+            {{end}}
+          </select>
+        </label>
+        <label class="sales-field sales-sales-date">
+          <span>Sales Date:</span>
+          <input name="sales_date" type="date" value="{{fieldValue $.Record "sales_date"}}">
+        </label>
+        <label class="sales-field sales-or-ci">
+          <span>OR/CI Number:</span>
+          <input name="or_ci_number" value="{{fieldValue $.Record "or_ci_number"}}">
+        </label>
+        <label class="sales-field sales-updated-by">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="sales-field sales-remarks">
+          <span>Remarks:</span>
+          <textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea>
+        </label>
+      </section>
+
+      {{$salesDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section sales-line-details">
+        <div class="section-head">
+          <h2>{{$salesDetailsGroup.Label}}</h2>
+          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+        </div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid sales-details-grid">
+            <thead>
+              <tr>
+                <th>No.</th><th>Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th><th>Discount</th><th>Other Disc.</th><th>Net Amount</th><th>Capital</th><th>Markup</th><th>MU %</th>
+              </tr>
+            </thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}
+                {{range $rows}}
+                <tr class="sales-detail-row">
+                  <td class="row-no"></td>
+                  <td class="editable-cell" contenteditable="true" data-field="stock_code">{{fieldValue . "stock_label"}}</td>
+                  <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="discount">{{fieldValue . "discount"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="other_discount">{{fieldValue . "other_discount"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="net_amount"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="capital">{{fieldValue . "capital"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="markup">{{fieldValue . "markup"}}</td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_dr_line_id" data-field-input="dr_line_id" value="{{fieldValue . "dr_line_id"}}">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
+                    <input type="hidden" name="line_details_stock_label" data-field-input="stock_label" value="{{fieldValue . "stock_label"}}">
+                    <input type="hidden" data-field-input="stock_group" value="{{fieldValue . "stock_group"}}">
+                    <input type="hidden" name="line_details_qty" value="{{fieldValue . "qty"}}" readonly data-field-input="qty">
+                    <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}">
+                    <input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                    <input type="hidden" name="line_details_capital" data-field-input="capital" value="{{fieldValue . "capital"}}">
+                    <input type="hidden" name="line_details_discount" data-field-input="discount" value="{{fieldValue . "discount"}}">
+                    <input type="hidden" name="line_details_other_discount" data-field-input="other_discount" value="{{fieldValue . "other_discount"}}">
+                    <input type="hidden" name="line_details_markup" data-field-input="markup" value="{{fieldValue . "markup"}}">
+                    <input type="hidden" name="line_details_markup_pct" data-field-input="markup_pct" value="{{fieldValue . "markup_pct"}}">
+                  </td>
+                </tr>
+                {{end}}
+              {{else}}
+                <tr><td colspan="12" class="empty">Select a DR file to load detail quantities.</td></tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {{$deductionGroup := index .Form.LineGroups 1}}
+      {{$salesAdditionalGroup := index .Form.LineGroups 2}}
+      {{$salesPaymentGroup := index .Form.LineGroups 3}}
+      <section class="sales-summary">
+        <div class="sales-summary-tabs">
+          <button type="button" class="sales-tab is-active" data-sales-tab="markup">Markup Summary/Totals</button>
+          <button type="button" class="sales-tab" data-sales-tab="payments">Mode Of Payment</button>
+          <button type="button" class="sales-tab" data-sales-tab="adjustments">Other Deductions/Additionals</button>
+          <label>Total Qty:<input readonly data-sales-total-qty></label>
+          <label>Total Net Amnt:<input readonly data-sales-total-net></label>
+        </div>
+        <div class="sales-summary-grid" data-sales-panel="markup">
+          <section class="sales-markup-summary">
+            <div class="table-wrap modal-table">
+              <table class="editable-grid">
+                <thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead>
+                <tbody id="sales-markup-summary-rows"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="sales-totals">
+            <label>Total:<input readonly data-sales-total></label>
+            <label>Less (A):<input readonly data-sales-less-a></label>
+            <label>Less (M):<input readonly data-sales-less-m></label>
+            <label>Add:<input readonly data-sales-add></label>
+            <label>Net:<input readonly data-sales-net></label>
+          </section>
+        </div>
+        <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
+          <section class="purchase-adjustment">
+            <div class="section-head"><h2>{{$deductionGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$deductionGroup.Key}}" hx-target="#rows-{{$deductionGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-deductions">{{$rows := index $.LineRows $deductionGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $deductionGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $deductionGroup $.Options}}{{end}}</tbody></table></div>
+          </section>
+          <section class="purchase-adjustment">
+            <div class="section-head"><h2>{{$salesAdditionalGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$salesAdditionalGroup.Key}}" hx-target="#rows-{{$salesAdditionalGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $salesAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $salesAdditionalGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $salesAdditionalGroup $.Options}}{{end}}</tbody></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="line-section modal-line-section purchase-line-section sales-line-payments is-hidden" data-sales-panel="payments">
+        <div class="section-head"><h2>{{$salesPaymentGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$salesPaymentGroup.Key}}" hx-target="#rows-{{$salesPaymentGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="table-wrap modal-table"><table><thead><tr>{{range $salesPaymentGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead><tbody id="rows-{{$salesPaymentGroup.Key}}">{{$rows := index $.LineRows $salesPaymentGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $salesPaymentGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $salesPaymentGroup $.Options}}{{end}}</tbody></table></div>
+      </section>
+      {{else if eq .Form.Kind "stock-transactions"}}
+      <section class="transfer-legacy-form">
+        <label class="transfer-field transfer-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="transfer-field transfer-entry-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="transfer-field transfer-date"><span>Transfer Date:</span><input name="transfer_date" type="date" value="{{fieldValue $.Record "transfer_date"}}"></label>
+        <label class="transfer-field transfer-id"><span>Transfer ID:</span><input name="transfer_id" value="{{fieldValue $.Record "transfer_id"}}"></label>
+        <label class="transfer-field transfer-transaction"><span>Transaction:</span><input name="transaction" value="{{fieldValue $.Record "transaction"}}"></label>
+        <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-dr-file"><span>DR File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{range index $.Options "dr_documents"}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+        <label class="transfer-field transfer-updated-by"><span>Last Update By:</span><input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true"></label>
+      </section>
+
+      {{$transferDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section sales-line-details">
+        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}</div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid sales-details-grid">
+            <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th><th>Capital</th><th>Markup</th><th>MU %</th></tr></thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}{{range $rows}}
+              <tr class="sales-detail-row">
+                <td class="row-no"></td>
+                <td class="editable-cell" contenteditable="true" data-field="stock_code">{{fieldValue . "stock_label"}}</td>
+                <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="capital">{{fieldValue . "capital"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="markup">{{fieldValue . "markup"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
+                <td class="hidden-col">
+                  <input type="hidden" name="line_details_dr_line_id" data-field-input="dr_line_id" value="{{fieldValue . "dr_line_id"}}">
+                  <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
+                  <input type="hidden" name="line_details_stock_label" data-field-input="stock_label" value="{{fieldValue . "stock_label"}}">
+                  <input type="hidden" data-field-input="stock_group" value="{{fieldValue . "stock_group"}}">
+                  <input type="hidden" name="line_details_qty" value="{{fieldValue . "qty"}}" readonly data-field-input="qty">
+                  <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}">
+                  <input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                  <input type="hidden" name="line_details_capital" data-field-input="capital" value="{{fieldValue . "capital"}}">
+                  <input type="hidden" name="line_details_discount" data-field-input="discount" value="{{fieldValue . "discount"}}">
+                  <input type="hidden" name="line_details_other_discount" data-field-input="other_discount" value="{{fieldValue . "other_discount"}}">
+                  <input type="hidden" name="line_details_markup" data-field-input="markup" value="{{fieldValue . "markup"}}">
+                  <input type="hidden" name="line_details_markup_pct" data-field-input="markup_pct" value="{{fieldValue . "markup_pct"}}">
+                </td>
+              </tr>
+              {{end}}{{else}}<tr><td colspan="9" class="empty">Select a DR file to load detail quantities.</td></tr>{{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {{$transferDiscountGroup := index .Form.LineGroups 1}}
+      {{$transferAdditionalGroup := index .Form.LineGroups 2}}
+      <section class="sales-summary">
+        <div class="sales-summary-tabs transfer-summary-tabs">
+          <button type="button" class="sales-tab is-active" data-sales-tab="markup">Markup Summary</button>
+          <button type="button" class="sales-tab" data-sales-tab="adjustments">Discounts/Additionals/Summary</button>
+        </div>
+        <div class="sales-summary-grid" data-sales-panel="markup">
+          <section class="sales-markup-summary"><div class="table-wrap modal-table"><table class="editable-grid"><thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead><tbody id="sales-markup-summary-rows"></tbody></table></div></section>
+          <section class="sales-totals"><label>Total:<input readonly data-sales-total></label><label>Less:<input readonly data-sales-less-a></label><label>Add:<input readonly data-sales-add></label><label>Net:<input readonly data-sales-net></label></section>
+        </div>
+        <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
+          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferDiscountGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$transferDiscountGroup.Key}}" hx-target="#rows-{{$transferDiscountGroup.Key}}" hx-swap="beforeend">Add Row</button></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-discounts">{{$rows := index $.LineRows $transferDiscountGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $transferDiscountGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $transferDiscountGroup $.Options}}{{end}}</tbody></table></div></section>
+          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferAdditionalGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$transferAdditionalGroup.Key}}" hx-target="#rows-{{$transferAdditionalGroup.Key}}" hx-swap="beforeend">Add Row</button></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $transferAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $transferAdditionalGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $transferAdditionalGroup $.Options}}{{end}}</tbody></table></div></section>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "ap-credit"}}
+      <section class="credit-legacy-form">
+        <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$creditChecksGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section credit-line-checks">
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table>
+            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+            <tbody id="rows-{{$creditChecksGroup.Key}}">
+              {{$rows := index $.LineRows $creditChecksGroup.Key}}
+              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "ar-credit"}}
+      <section class="credit-legacy-form">
+        <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ar_credit_company_name" list="ar-credit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ar-credit-party-id><datalist id="ar-credit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$creditChecksGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section credit-line-checks">
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table>
+            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+            <tbody id="rows-{{$creditChecksGroup.Key}}">
+              {{$rows := index $.LineRows $creditChecksGroup.Key}}
+              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "rebates"}}
+      <section class="credit-legacy-form">
+        <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="rebates_company_name" list="rebates-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-rebates-party-id><datalist id="rebates-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$creditChecksGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section credit-line-checks">
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table>
+            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+            <tbody id="rows-{{$creditChecksGroup.Key}}">
+              {{$rows := index $.LineRows $creditChecksGroup.Key}}
+              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "ap-debit"}}
+      <section class="debit-legacy-form ap-debit-legacy-form">
+        <label class="debit-field debit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="debit-field debit-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_debit_company_name" list="ap-debit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-debit-party-id><datalist id="ap-debit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.01" value="{{fieldValue $.Record "amount"}}" required></label>
+        <label class="debit-field debit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="debit-field debit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+      {{else if eq .Form.Kind "ar-debit"}}
+      <section class="debit-legacy-form ar-debit-legacy-form">
+        <label class="debit-field debit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="debit-field debit-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ar_debit_company_name" list="ar-debit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ar-debit-party-id><datalist id="ar-debit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.01" value="{{fieldValue $.Record "amount"}}" required></label>
+        <label class="debit-field debit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="debit-field debit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+      {{else if eq .Form.Kind "expenses"}}
+      <section class="expense-legacy-form">
+        <label class="expense-field expense-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="expense-field expense-entry-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="expense-field expense-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="expense-field expense-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$expenseDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section expense-line-details">
+        <div class="section-head"><h2>{{$expenseDetailsGroup.Label}}</h2><button type="button" onclick="addExpenseRow()">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid expense-details-grid">
+            <datalist id="expense-code-options">{{range index $.Options "expense_charts"}}<option value="{{.Label}}"></option>{{end}}</datalist>
+            <thead><tr><th>No.</th><th>Code</th><th>Reference</th><th>Cash</th><th>Check</th><th>Total</th></tr></thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}{{range $rows}}
+              <tr class="expense-detail-row">
+                <td class="row-no"></td>
+                <td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td>
+                <td class="editable-cell" contenteditable="true" data-field="reference">{{fieldValue . "reference"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="cash">{{fieldValue . "cash"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="check">{{fieldValue . "check"}}</td>
+                <td class="editable-cell number-cell" contenteditable="true" data-field="total">{{fieldValue . "total"}}</td>
+                <td class="hidden-col">
+                  <input type="hidden" name="line_details_code_id" data-field-input="code_id" value="{{fieldValue . "code_id"}}">
+                  <input type="hidden" name="line_details_reference" data-field-input="reference" value="{{fieldValue . "reference"}}">
+                  <input type="hidden" name="line_details_cash" data-field-input="cash" value="{{fieldValue . "cash"}}">
+                  <input type="hidden" name="line_details_check" data-field-input="check" value="{{fieldValue . "check"}}">
+                  <input type="hidden" name="line_details_total" data-field-input="total" value="{{fieldValue . "total"}}">
+                </td>
+              </tr>
+              {{end}}{{else}}
+              <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="expense-totals"><label>Cash:<input readonly data-expense-cash-total></label><label>Check:<input readonly data-expense-check-total></label><label>Total:<input readonly data-expense-grand-total></label></section>
+      {{else if eq .Form.Kind "other-income"}}
+      <section class="other-income-legacy-form">
+        <label class="other-income-field other-income-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="other-income-field other-income-entry-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="other-income-field other-income-branch"><span>Branch:</span><select name="branch_id"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_id"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="other-income-field other-income-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="other-income-field other-income-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$otherIncomeDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section other-income-line-details">
+        <div class="section-head"><h2>{{$otherIncomeDetailsGroup.Label}}</h2><button type="button" onclick="addOtherIncomeRow()">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid other-income-details-grid">
+            <datalist id="other-income-code-options">{{range index $.Options "other_income_charts"}}<option value="{{.Label}}"></option>{{end}}</datalist>
+            <thead><tr><th>No.</th><th>Code</th><th>Reference</th><th>Cash</th><th>Check</th><th>Total</th></tr></thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}{{range $rows}}
+              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference">{{fieldValue . "reference"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="cash">{{fieldValue . "cash"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="check">{{fieldValue . "check"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="total">{{fieldValue . "total"}}</td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id" value="{{fieldValue . "code_id"}}"><input type="hidden" name="line_details_reference" data-field-input="reference" value="{{fieldValue . "reference"}}"><input type="hidden" name="line_details_cash" data-field-input="cash" value="{{fieldValue . "cash"}}"><input type="hidden" name="line_details_check" data-field-input="check" value="{{fieldValue . "check"}}"><input type="hidden" name="line_details_total" data-field-input="total" value="{{fieldValue . "total"}}"></td></tr>
+              {{end}}{{else}}
+              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="other-income-totals"><label>Cash:<input readonly data-other-income-cash-total></label><label>Check:<input readonly data-other-income-check-total></label><label>Total:<input readonly data-other-income-grand-total></label></section>
+      {{else if or (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out")}}
+      <section class="stock-in-legacy-form">
+        <label class="stock-in-field stock-in-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="stock-in-field stock-in-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="stock-in-field stock-in-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="stock-in-field stock-in-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$stockInDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section stock-in-line-details">
+        <div class="section-head"><h2>{{$stockInDetailsGroup.Label}}</h2><button type="button" onclick="addPurchaseDetailRow()">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <datalist id="stock-in-stock-code-options">{{range index $.Options "stocks"}}<option value="{{.Label}}"></option>{{end}}</datalist>
+          <table class="editable-grid stock-in-details-grid">
+            <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th></tr></thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}
+                {{range $rows}}
+                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off" value="{{optionCode $.Options "stocks" (fieldValue . "stock_id")}}"></td><td class="editable-cell" contenteditable="true" data-field="stock_name">{{optionName $.Options "stocks" (fieldValue . "stock_id")}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}"><input type="hidden" name="line_details_qty" data-field-input="qty" value="{{fieldValue . "qty"}}"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}"><input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}"></td></tr>
+                {{end}}
+              {{else}}
+                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="stock_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id"><input type="hidden" name="line_details_qty" data-field-input="qty"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost"><input type="hidden" name="line_details_amount" data-field-input="amount"></td></tr>
+                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="stock_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id"><input type="hidden" name="line_details_qty" data-field-input="qty"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost"><input type="hidden" name="line_details_amount" data-field-input="amount"></td></tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "checks-in"}}
+      <section class="checks-in-legacy-form">
+        <label class="checks-in-field checks-in-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="checks-in-field checks-in-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
+        <label class="checks-in-field checks-in-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="checks-in-field checks-in-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+      </section>
+
+      {{$checksInGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section checks-in-line-details">
+        <div class="section-head"><h2>{{$checksInGroup.Label}}</h2><button type="button" onclick="addChecksInRow()">Add Row</button></div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid checks-in-details-grid">
+            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
+            <tbody id="rows-checks">
+              {{$rows := index $.LineRows "checks"}}
+              {{if $rows}}
+                {{range $rows}}
+                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number">{{fieldValue . "number"}}</td><td><input class="cell-date" type="date" data-field="date" value="{{fieldValue . "date"}}"></td><td class="editable-cell" contenteditable="true" data-field="bank_name">{{fieldValue . "bank_name"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td><td class="editable-cell" contenteditable="true" data-field="nature">{{fieldValue . "nature"}}</td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number" value="{{fieldValue . "number"}}"><input type="hidden" name="line_checks_date" data-field-input="date" value="{{fieldValue . "date"}}"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name" value="{{fieldValue . "bank_name"}}"><input type="hidden" name="line_checks_amount" data-field-input="amount" value="{{fieldValue . "amount"}}"><input type="hidden" name="line_checks_nature" data-field-input="nature" value="{{fieldValue . "nature"}}"></td></tr>
+                {{end}}
+              {{else}}
+                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
+                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
+                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "dr"}}
+      <section class="dr-legacy-form">
+        <label class="dr-field dr-customer">
+          <span>Customer:</span>
+          <input name="customer_name" list="dr-customer-options" value="" autocomplete="off" required>
+          <input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-dr-party-id>
+          <datalist id="dr-customer-options">
+            {{range index $.Options "customers"}}
+              <option value="{{.Label}}"></option>
+            {{end}}
+          </datalist>
+        </label>
+        <label class="dr-field dr-entry-date">
+          <span>Entry Date:</span>
+          <input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required>
+        </label>
+        <label class="dr-field dr-number">
+          <span>DR Number:</span>
+          <input name="reference" value="{{fieldValue $.Record "reference"}}">
+        </label>
+        <label class="dr-field dr-date">
+          <span>DR Date:</span>
+          <input name="sales_date" type="date" value="{{fieldValue $.Record "sales_date"}}">
+        </label>
+        <label class="dr-field dr-remarks">
+          <span>Remarks:</span>
+          <textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea>
+        </label>
+      </section>
+
+      {{$drDetailsGroup := index .Form.LineGroups 0}}
+      <section class="line-section modal-line-section purchase-line-section dr-line-section">
+        <div class="section-head">
+          <h2>{{$drDetailsGroup.Label}}</h2>
+          <button type="button" onclick="addDRDetailRow()">Add Row</button>
+        </div>
+        <div class="table-wrap modal-table">
+          <table class="editable-grid dr-details-grid">
+            <datalist id="dr-stock-code-options">
+              {{range index $.Options "stocks"}}
+                <option value="{{.Label}}"></option>
+              {{end}}
+            </datalist>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Stock Code</th>
+                <th>Stock Name</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody id="rows-details">
+              {{$rows := index $.LineRows "details"}}
+              {{if $rows}}
+                {{range $rows}}
+                <tr class="dr-detail-row">
+                  <td class="row-no"></td>
+                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty" value="{{fieldValue . "qty"}}">
+                  </td>
+                </tr>
+                {{end}}
+              {{else}}
+                <tr class="dr-detail-row">
+                  <td class="row-no"></td>
+                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty">
+                  </td>
+                </tr>
+                <tr class="dr-detail-row">
+                  <td class="row-no"></td>
+                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty">
+                  </td>
+                </tr>
+                <tr class="dr-detail-row">
+                  <td class="row-no"></td>
+                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
+                    <input type="hidden" name="line_details_qty" data-field-input="qty">
+                  </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {{else if eq .Form.Kind "stock-categories"}}
+      <section class="stock-category-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Name:</span>
+          <input name="name" value="{{fieldValue $.Record "name"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Group:</span>
+          <input name="group_name" list="list-group_name" value="{{fieldValue $.Record "group_name"}}" required>
+          <datalist id="list-group_name">
+            {{range index $.Options "stock_category_groups"}}
+              <option value="{{.Value}}">{{.Label}}</option>
+            {{end}}
+          </datalist>
+        </label>
+        <label class="legacy-record-field legacy-monitor-field">
+          <span></span>
+          <span class="legacy-checkbox-copy">
+            <input type="checkbox" name="aps_monitor" {{if truthy (fieldValue $.Record "aps_monitor")}}checked{{end}}>
+            <span>Show in APS Monitor Stock Reports</span>
+          </span>
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "stocks"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Name:</span>
+          <input name="name" value="{{fieldValue $.Record "name"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Category Group:</span>
+          <input name="category_group" list="list-category_group" value="{{fieldValue $.Record "category_group"}}">
+          <datalist id="list-category_group">
+            {{range index $.Options "stock_category_groups"}}
+              <option value="{{.Value}}">{{.Label}}</option>
+            {{end}}
+          </datalist>
+        </label>
+        <label class="legacy-record-field">
+          <span>Unit:</span>
+          <input name="unit" type="number" step="1" value="{{fieldValue $.Record "unit"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Description:</span>
+          <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Latest Cost:</span>
+          <input name="latest_cost" type="number" step="0.01" value="{{fieldValue $.Record "latest_cost"}}">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Min. Inventory:</span>
+          <input name="min_inventory" type="number" step="1" value="{{fieldValue $.Record "min_inventory"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "other-income-chart"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Name:</span>
+          <input name="name" value="{{fieldValue $.Record "name"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Description:</span>
+          <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "branches"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Name:</span>
+          <input name="name" value="{{fieldValue $.Record "name"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Incharge:</span>
+          <input name="incharge" value="{{fieldValue $.Record "incharge"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>APS:</span>
+          <input name="aps" value="{{fieldValue $.Record "aps"}}">
+        </label>
+        <label class="legacy-record-field legacy-monitor-field">
+          <span></span>
+          <span class="legacy-checkbox-copy">
+            <input type="checkbox" name="farm_customer" {{if truthy (fieldValue $.Record "farm_customer")}}checked{{end}}>
+            <span>Farm Customer</span>
+          </span>
+        </label>
+        <label class="legacy-record-field">
+          <span>Remarks:</span>
+          <textarea name="remarks" rows="3">{{fieldValue $.Record "remarks"}}</textarea>
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "suppliers"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Supplier Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Company:</span>
+          <input name="company" value="{{fieldValue $.Record "company"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Lastname:</span>
+          <input name="lastname" value="{{fieldValue $.Record "lastname"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Firstname:</span>
+          <input name="firstname" value="{{fieldValue $.Record "firstname"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Middle Name:</span>
+          <input name="middlename" value="{{fieldValue $.Record "middlename"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Phone Number:</span>
+          <input name="phone_number" value="{{fieldValue $.Record "phone_number"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Address:</span>
+          <textarea name="address" rows="3">{{fieldValue $.Record "address"}}</textarea>
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Balance:</span>
+          <input name="balance" type="number" step="0.01" value="{{fieldValue $.Record "balance"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "customers"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Client Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Company:</span>
+          <input name="company" value="{{fieldValue $.Record "company"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Lastname:</span>
+          <input name="lastname" value="{{fieldValue $.Record "lastname"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Firstname:</span>
+          <input name="firstname" value="{{fieldValue $.Record "firstname"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Middle Name:</span>
+          <input name="middlename" value="{{fieldValue $.Record "middlename"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Phone Number:</span>
+          <input name="phone_number" value="{{fieldValue $.Record "phone_number"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Address:</span>
+          <textarea name="address" rows="3">{{fieldValue $.Record "address"}}</textarea>
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Balance:</span>
+          <input name="balance" type="number" step="0.01" value="{{fieldValue $.Record "balance"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>Credit Term:</span>
+          <input name="credit_term" value="{{fieldValue $.Record "credit_term"}}">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Credit Limit:</span>
+          <input name="credit_limit" type="number" step="0.01" value="{{fieldValue $.Record "credit_limit"}}">
+        </label>
+        <label class="legacy-record-field">
+          <span>APS:</span>
+          <input name="aps" value="{{fieldValue $.Record "aps"}}">
+        </label>
+        <label class="legacy-record-field legacy-monitor-field">
+          <span></span>
+          <span class="legacy-checkbox-copy">
+            <input type="checkbox" name="farm_customer" {{if truthy (fieldValue $.Record "farm_customer")}}checked{{end}}>
+            <span>Farm Customer</span>
+          </span>
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else if eq .Form.Kind "expense-chart"}}
+      <section class="stock-category-legacy-form stock-legacy-form">
+        <label class="legacy-record-field legacy-record-id">
+          <span>ID:</span>
+          <input value="{{fieldValue $.Record "id"}}" readonly>
+        </label>
+        <label class="legacy-record-field">
+          <span>Code:</span>
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Name:</span>
+          <input name="name" value="{{fieldValue $.Record "name"}}" required>
+        </label>
+        <label class="legacy-record-field">
+          <span>Description:</span>
+          <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
+        </label>
+        <label class="legacy-record-field legacy-monitor-field">
+          <span></span>
+          <span class="legacy-checkbox-copy">
+            <input type="checkbox" name="exclude_daily_sales" {{if truthy (fieldValue $.Record "exclude_daily_sales")}}checked{{end}}>
+            <span>Not Included in Daily Sales and Collection Report</span>
+          </span>
+        </label>
+        <label class="legacy-record-field legacy-monitor-field">
+          <span></span>
+          <span class="legacy-checkbox-copy">
+            <input type="checkbox" name="daily_sales_only" {{if truthy (fieldValue $.Record "daily_sales_only")}}checked{{end}}>
+            <span>For Daily Sales and Collection Report Only</span>
+          </span>
+        </label>
+        <label class="legacy-record-field">
+          <span>Encoder:</span>
+          <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field legacy-record-date">
+          <span>Last Update:</span>
+          <input value="{{fieldValue $.Record "last_update"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+        <label class="legacy-record-field">
+          <span>Last Update By:</span>
+          <input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true">
+        </label>
+      </section>
+      {{else}}
+      <section class="form-grid modal-fields{{if eq .Form.Kind "other-income-chart"}} other-income-chart-fields{{end}}">
         {{range .Form.Fields}}
           <label class="field {{if eq .Type "textarea"}}wide{{end}} {{if eq .Type "bool"}}check-field{{end}}">
             <span>{{.Label}}{{if .Required}} *{{end}}</span>
             {{if eq .Type "textarea"}}
               <textarea name="{{.Key}}" rows="2">{{fieldValue $.Record .Key}}</textarea>
             {{else if eq .Type "bool"}}
-              <input type="checkbox" name="{{.Key}}" {{if eq (fieldValue $.Record .Key) "true"}}checked{{end}}>
+              <input type="checkbox" name="{{.Key}}" {{if truthy (fieldValue $.Record .Key)}}checked{{end}}>
             {{else if eq .Type "readonly"}}
               <input name="{{.Key}}" value="{{fieldValue $.Record .Key}}" readonly>
             {{else if eq .Type "select"}}
-              <select name="{{.Key}}" {{if .Required}}required{{end}} {{if and (eq .Key "dr_document_id") (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions"))}}onchange="window.location='{{$.Form.RouteBase}}/new' + (this.value ? '?dr_document_id=' + this.value : '')"{{end}}>
+              <select name="{{.Key}}" {{if .Required}}required{{end}} {{if and (eq .Key "dr_document_id") (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions"))}}onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"{{end}}>
                 <option value="">Select</option>
                 {{$current := fieldValue $.Record .Key}}
                 {{range index $.Options .Source}}
@@ -42,72 +1175,285 @@
           </label>
         {{end}}
       </section>
+      {{end}}
 
-      {{range .Form.LineGroups}}
-      {{$group := .}}
-      <section class="line-section modal-line-section">
-        <div class="section-head">
-          <h2>{{.Label}}</h2>
-          {{if and (eq $.Form.Kind "sales") (eq .Key "details")}}
-            {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
-          {{else if and (eq $.Form.Kind "stock-transactions") (eq .Key "details")}}
-            {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
-          {{else}}
-            <button type="button" hx-get="/line-row/{{.Key}}" hx-target="#rows-{{.Key}}" hx-swap="beforeend">Add Row</button>
-          {{end}}
-        </div>
-        <div class="table-wrap modal-table">
-          <table>
-            <thead>
-              <tr>{{range .Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr>
-            </thead>
-            <tbody id="rows-{{.Key}}">
-              {{$rows := index $.LineRows .Key}}
-              {{if $rows}}
-                {{range $rows}}
-                  {{template "line_row.gohtml" dictRow $group $.Options .}}
+      {{if and (ne .Form.Kind "purchases") (ne .Form.Kind "dr") (ne .Form.Kind "sales") (ne .Form.Kind "stock-transactions") (ne .Form.Kind "ap-credit") (ne .Form.Kind "ar-credit") (ne .Form.Kind "rebates") (ne .Form.Kind "ap-debit") (ne .Form.Kind "ar-debit") (ne .Form.Kind "expenses") (ne .Form.Kind "other-income") (ne .Form.Kind "stock-in") (ne .Form.Kind "stock-out") (ne .Form.Kind "checks-in")}}
+        {{range .Form.LineGroups}}
+        {{$group := .}}
+        <section class="line-section modal-line-section">
+          <div class="section-head">
+            <h2>{{.Label}}</h2>
+            {{if and (eq $.Form.Kind "sales") (eq .Key "details")}}
+              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+            {{else if and (eq $.Form.Kind "stock-transactions") (eq .Key "details")}}
+              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+            {{else}}
+              <button type="button" hx-get="/line-row/{{.Key}}" hx-target="#rows-{{.Key}}" hx-swap="beforeend">Add Row</button>
+            {{end}}
+          </div>
+          <div class="table-wrap modal-table">
+            <table>
+              <thead>
+                <tr>{{range .Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr>
+              </thead>
+              <tbody id="rows-{{.Key}}">
+                {{$rows := index $.LineRows .Key}}
+                {{if $rows}}
+                  {{range $rows}}
+                    {{template "line_row.gohtml" dictRow $group $.Options .}}
+                  {{end}}
+                {{else if and (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions")) (eq .Key "details")}}
+                  <tr><td colspan="20" class="empty">Select a DR file to load detail quantities.</td></tr>
+                {{else}}
+                  {{template "line_row.gohtml" dictLine $group $.Options}}
+                  {{template "line_row.gohtml" dictLine $group $.Options}}
+                  {{template "line_row.gohtml" dictLine $group $.Options}}
                 {{end}}
-              {{else if and (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions")) (eq .Key "details")}}
-                <tr><td colspan="20" class="empty">Select a DR file to load detail quantities.</td></tr>
-              {{else}}
-                {{template "line_row.gohtml" dictLine $group $.Options}}
-                {{template "line_row.gohtml" dictLine $group $.Options}}
-                {{template "line_row.gohtml" dictLine $group $.Options}}
-              {{end}}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {{end}}
       {{end}}
     </div>
 
     <div class="modal-footer actions">
+      {{if eq .Form.Kind "purchases"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <a class="button secondary" href="/transactions/ap-debit/new">AP Debit File</a>
+        <a class="button secondary" href="/transactions/ap-credit/new">AP Credit File</a>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "dr"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "sales"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <a class="button secondary" href="/transactions/ar-debit/new">AR Debit File</a>
+        <a class="button secondary" href="/transactions/ar-credit/new">AR Credit File</a>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "stock-transactions"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "ap-credit"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "ar-credit"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "rebates"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "ap-debit"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if eq .Form.Kind "ar-debit"}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if or (eq .Form.Kind "expenses") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goPurchaseRecord('previous')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "other-income-chart")}}
+      <div class="legacy-form-toolbar" aria-label="Record actions">
+        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="button" title="First" aria-label="First record" onclick="goStockCategoryRecord('{{.FirstRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goStockCategoryRecord('{{.PreviousRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goStockCategoryRecord('{{.NextRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goStockCategoryRecord('{{.LastRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <span class="legacy-toolbar-separator"></span>
+        <button type="submit" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if not .CanDelete}}disabled{{end}} onclick="return confirm('Delete this record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <span class="legacy-toolbar-spacer"></span>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+      </div>
+      {{else}}
       <button type="submit">Save</button>
       <a class="button secondary" href="{{.Form.RouteBase}}/">Cancel</a>
+      {{end}}
     </div>
   </form>
 
   <div class="form-backdrop-table table-wrap">
-    <div class="form-backdrop-title">
-      <h1>{{.Form.Title}}</h1>
-    </div>
+    <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
+      <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
+      <div class="legacy-strip-controls">
+        <label class="legacy-inline-field">
+          <span>Year:</span>
+          <select name="year">
+            <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
+            <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
+            <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
+          </select>
+        </label>
+        <label class="legacy-inline-field legacy-strip-search">
+          <span>Search:</span>
+          <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
+        </label>
+      </div>
+    </form>
     <table>
       {{if .Form.Table}}
       <thead>
+        {{if eq .Form.Kind "stock-categories"}}
+        <tr>
+          <th>ID ▲</th>
+          <th>Name</th>
+          <th>Group</th>
+          <th>APS Monitor</th>
+          <th>Encoder</th>
+          <th>Last Update</th>
+          <th>Last Update By</th>
+        </tr>
+        {{else}}
         <tr>
           <th>ID</th>
           {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
           <th>Encoder</th>
         </tr>
+        {{end}}
       </thead>
       <tbody>
+        {{if .User.CanWrite}}
+        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+          {{if eq .Form.Kind "stock-categories"}}
+          <td>+</td>
+          <td colspan="6">Add new ...</td>
+          {{else}}
+          <td>Add new ...</td>
+          <td colspan="20"></td>
+          {{end}}
+        </tr>
+        {{end}}
         {{range .Records}}
-        <tr>
+        {{$record := .}}
+        {{if eq $.Form.Kind "stock-categories"}}
+        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
-          {{$record := .}}
+          <td>{{index . "name"}}</td>
+          <td>{{index . "group_name"}}</td>
+          <td>{{index . "aps_monitor"}}</td>
+          <td>{{index . "encoder"}}</td>
+          <td>{{index . "last_update"}}</td>
+          <td>{{index . "updated_by"}}</td>
+        </tr>
+        {{else}}
+        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+          <td>{{index . "id"}}</td>
           {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}
           <td>{{index . "encoder"}}</td>
         </tr>
+        {{end}}
         {{else}}
         <tr><td colspan="20" class="empty">No records yet.</td></tr>
         {{end}}
@@ -117,8 +1463,14 @@
         <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
       </thead>
       <tbody>
+        {{if .User.CanWrite}}
+        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+          <td>Add new ...</td>
+          <td colspan="8"></td>
+        </tr>
+        {{end}}
         {{range .Documents}}
-        <tr>
+        <tr class="data-row" data-record-id="{{.ID}}" data-record-search="{{.EntryID}} {{.EntryDate.Format "2006-01-02"}} {{.Party}} {{.Reference}} {{.DRRef}} {{.Status}} {{.Branch}} {{.Net}} {{.Encoder}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
           <td>{{.EntryID}}</td>
           <td>{{.EntryDate.Format "2006-01-02"}}</td>
           <td>{{.Party}}</td>
@@ -137,4 +1489,970 @@
     </table>
   </div>
 </main>
+{{if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "purchases") (eq .Form.Kind "dr") (eq .Form.Kind "sales") (eq .Form.Kind "stock-transactions") (eq .Form.Kind "ap-credit") (eq .Form.Kind "ar-credit") (eq .Form.Kind "rebates") (eq .Form.Kind "ap-debit") (eq .Form.Kind "ar-debit") (eq .Form.Kind "expenses") (eq .Form.Kind "other-income") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
+{{if .CanDelete}}
+<form id="master-delete-form" method="post" action="{{.Form.RouteBase}}/{{fieldValue .Record "id"}}/delete"></form>
+{{end}}
+<script>
+  (function () {
+    var routeBase = "{{.Form.RouteBase}}";
+    var purchaseStocks = [
+      {{range index .Options "stocks"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ].map(function (stock) {
+      var parts = stock.label.split(" - ");
+      stock.code = (parts.shift() || stock.label).trim();
+      stock.name = parts.join(" - ").trim();
+      return stock;
+    });
+    var purchaseSuppliers = [
+      {{range index .Options "suppliers"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ];
+    var drCustomers = [
+      {{range index .Options "customers"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ];
+    var salesStockGroups = [
+      {{range index .Options "stock_groups"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ].reduce(function (map, item) {
+      map[item.id] = item.label || "Ungrouped";
+      return map;
+    }, {});
+    var expenseCodes = [
+      {{range index .Options "expense_charts"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ];
+    var otherIncomeCodes = [
+      {{range index .Options "other_income_charts"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ];
+    window.goStockCategoryRecord = function (id) {
+      if (id) window.location.href = routeBase + "/" + id + "/edit";
+    };
+    window.goPurchaseRecord = function (direction) {
+      var ids = Array.prototype.slice.call(document.querySelectorAll(".form-backdrop-table .data-row[data-record-id]"))
+        .map(function (row) { return row.getAttribute("data-record-id"); })
+        .filter(Boolean);
+      if (ids.length === 0) return;
+      var current = (window.location.pathname.match(/\/(\d+)\/edit$/) || [])[1] || "";
+      var index = ids.indexOf(current);
+      if (direction === "first") index = ids.length - 1;
+      else if (direction === "last") index = 0;
+      else if (direction === "previous") index = index < 0 ? ids.length - 1 : Math.min(ids.length - 1, index + 1);
+      else if (direction === "next") index = index < 0 ? 0 : Math.max(0, index - 1);
+      window.goStockCategoryRecord(ids[index]);
+    };
+    window.searchStockCategoryRecord = function () {
+      var fields = Array.prototype.slice.call(document.querySelectorAll(".modal-form [name]"))
+        .filter(function (field) {
+          return !field.disabled && field.type !== "hidden" && field.type !== "submit";
+        })
+        .map(function (field) {
+          var value = field.value;
+          if (field.tagName === "SELECT" && field.selectedOptions && field.selectedOptions[0]) {
+            value = (value + " " + field.selectedOptions[0].textContent).trim();
+          }
+          return {
+            key: field.name,
+            value: (field.type === "checkbox" ? (field.checked ? "yes true" : "") : value).trim().toLowerCase()
+          };
+        })
+        .filter(function (field) {
+          return field.value !== "";
+        });
+      if (fields.length === 0) {
+        var search = document.querySelector("#page-query-form input[name='q']");
+        if (search) search.focus();
+        return;
+      }
+      var rows = Array.prototype.slice.call(document.querySelectorAll(".form-backdrop-table .data-row[data-record-id]"));
+      var match = rows.find(function (row) {
+        var rowSearch = (row.getAttribute("data-record-search") || "").toLowerCase();
+        return fields.every(function (field) {
+          return rowSearch.indexOf(field.value) !== -1;
+        });
+      });
+      if (match) {
+        window.goStockCategoryRecord(match.getAttribute("data-record-id"));
+      } else {
+        alert("No matching record found.");
+      }
+    };
+
+    function parseMoney(value) {
+      var number = parseFloat(String(value || "").replace(/,/g, ""));
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatMoney(value) {
+      if (!Number.isFinite(value) || value === 0) return "";
+      return value.toFixed(2);
+    }
+
+    function cellText(cell) {
+      if (!cell) return "";
+      if (cell && "value" in cell) return (cell.value || "").trim();
+      return (cell.textContent || "").trim();
+    }
+
+    function setHidden(row, field, value) {
+      var input = row.querySelector("[data-field-input='" + field + "']");
+      if (input) input.value = value;
+    }
+
+    function findStock(query, field) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return null;
+      return purchaseStocks.find(function (stock) {
+        return String(stock[field] || "").toLowerCase() === query || String(stock.label || "").toLowerCase() === query;
+      }) || purchaseStocks.find(function (stock) {
+        return String(stock[field] || "").toLowerCase().indexOf(query) === 0;
+      }) || null;
+    }
+
+    function syncPurchaseDetailRow(row, sourceCell) {
+      var stockID = row.querySelector("[data-field-input='stock_id']");
+      var codeCell = row.querySelector("[data-field='stock_code']");
+      var nameCell = row.querySelector("[data-field='stock_name']");
+      var qtyCell = row.querySelector("[data-field='qty']");
+      var unitCostCell = row.querySelector("[data-field='unit_cost']");
+      var amountCell = row.querySelector("[data-field='amount']");
+      var stock = null;
+      if (sourceCell && sourceCell.dataset.field === "stock_name") {
+        stock = findStock(cellText(nameCell), "name");
+      } else {
+        stock = findStock(cellText(codeCell), "code");
+      }
+      if (stock) {
+        codeCell.value = stock.code;
+        nameCell.textContent = stock.name;
+        if (stockID) stockID.value = stock.id;
+      } else if (stockID && !cellText(codeCell) && !cellText(nameCell)) {
+        stockID.value = "";
+      }
+      var qty = parseMoney(cellText(qtyCell));
+      var unitCost = parseMoney(cellText(unitCostCell));
+      if (qty && unitCost && (!cellText(amountCell) || sourceCell === qtyCell || sourceCell === unitCostCell)) {
+        amountCell.textContent = formatMoney(qty * unitCost);
+      }
+      setHidden(row, "qty", cellText(qtyCell));
+      setHidden(row, "unit_cost", cellText(unitCostCell));
+      setHidden(row, "amount", cellText(amountCell));
+      updatePurchaseTotals();
+    }
+
+    function syncPurchaseAdjustmentRow(row, sourceCell) {
+      var qtyCell = row.querySelector("[data-field='qty']");
+      var priceCell = row.querySelector("[data-field='price']");
+      var amountCell = row.querySelector("[data-field='amount']");
+      var qty = parseMoney(cellText(qtyCell));
+      var price = parseMoney(cellText(priceCell));
+      if (qty && price && (!cellText(amountCell) || sourceCell === qtyCell || sourceCell === priceCell)) {
+        amountCell.textContent = formatMoney(qty * price);
+      }
+      ["particulars", "qty", "price", "amount"].forEach(function (field) {
+        setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+      });
+      updatePurchaseTotals();
+    }
+
+    function renumberPurchaseDetails() {
+      document.querySelectorAll(".purchase-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        if (no) no.textContent = String(index + 1) + ".";
+      });
+    }
+
+    function sumInputs(selector) {
+      return Array.prototype.slice.call(document.querySelectorAll(selector)).reduce(function (total, input) {
+        return total + parseMoney(input.value);
+      }, 0);
+    }
+
+    function updatePurchaseTotals() {
+      var detailRows = Array.prototype.slice.call(document.querySelectorAll(".purchase-detail-row"));
+      var totalQty = detailRows.reduce(function (total, row) {
+        return total + parseMoney(cellText(row.querySelector("[data-field='qty']")));
+      }, 0);
+      var total = detailRows.reduce(function (sum, row) {
+        return sum + parseMoney(cellText(row.querySelector("[data-field='amount']")));
+      }, 0);
+      var less = sumInputs("input[name='line_discounts_amount']");
+      var add = sumInputs("input[name='line_additionals_amount']");
+      [
+        ["[data-purchase-total-qty]", totalQty],
+        ["[data-purchase-total]", total],
+        ["[data-purchase-less]", less],
+        ["[data-purchase-add]", add],
+        ["[data-purchase-net]", total - less + add]
+      ].forEach(function (item) {
+        var input = document.querySelector(item[0]);
+        if (input) input.value = formatMoney(item[1]);
+      });
+    }
+
+    function hydratePurchaseDetails() {
+      document.querySelectorAll(".purchase-detail-row").forEach(function (row) {
+        var stockID = (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+        var stock = purchaseStocks.find(function (item) { return item.id === stockID; });
+        if (stock) {
+          row.querySelector("[data-field='stock_code']").value = stock.code;
+          row.querySelector("[data-field='stock_name']").textContent = stock.name;
+        }
+        syncPurchaseDetailRow(row);
+      });
+      renumberPurchaseDetails();
+      updatePurchaseTotals();
+    }
+
+    function syncPurchaseSupplier() {
+      var input = document.querySelector("input[name='party_name']");
+      var hidden = document.querySelector("[data-purchase-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = supplier ? supplier.id : "";
+      if (supplier && input.value !== supplier.label) input.value = supplier.label;
+    }
+
+    function hydratePurchaseSupplier() {
+      var input = document.querySelector("input[name='party_name']");
+      var hidden = document.querySelector("[data-purchase-party-id]");
+      if (!input || !hidden) return;
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (supplier) input.value = supplier.label;
+      input.addEventListener("input", syncPurchaseSupplier);
+      input.addEventListener("change", syncPurchaseSupplier);
+      input.addEventListener("blur", syncPurchaseSupplier);
+    }
+
+    function syncDRDetailRow(row, sourceCell) {
+      var stockID = row.querySelector("[data-field-input='stock_id']");
+      var codeCell = row.querySelector("[data-field='stock_code']");
+      var nameCell = row.querySelector("[data-field='stock_name']");
+      var qtyCell = row.querySelector("[data-field='qty']");
+      var stock = null;
+      if (sourceCell && sourceCell.dataset.field === "stock_name") {
+        stock = findStock(cellText(nameCell), "name");
+      } else {
+        stock = findStock(cellText(codeCell), "code");
+      }
+      if (stock) {
+        codeCell.value = stock.code;
+        nameCell.textContent = stock.name;
+        if (stockID) stockID.value = stock.id;
+      } else if (stockID && !cellText(codeCell) && !cellText(nameCell)) {
+        stockID.value = "";
+      }
+      setHidden(row, "qty", cellText(qtyCell));
+    }
+
+    function renumberDRDetails() {
+      document.querySelectorAll(".dr-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        if (no) no.textContent = String(index + 1) + ".";
+      });
+    }
+
+    function hydrateDRDetails() {
+      document.querySelectorAll(".dr-detail-row").forEach(function (row) {
+        var stockID = (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+        var stock = purchaseStocks.find(function (item) { return item.id === stockID; });
+        if (stock) {
+          row.querySelector("[data-field='stock_code']").value = stock.code;
+          row.querySelector("[data-field='stock_name']").textContent = stock.name;
+        }
+        syncDRDetailRow(row);
+      });
+      renumberDRDetails();
+    }
+
+    function syncDRCustomer() {
+      var input = document.querySelector("input[name='customer_name']");
+      var hidden = document.querySelector("[data-dr-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var customer = drCustomers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || drCustomers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = customer ? customer.id : "";
+      if (customer && input.value !== customer.label) input.value = customer.label;
+    }
+
+    function hydrateDRCustomer() {
+      var input = document.querySelector("input[name='customer_name']");
+      var hidden = document.querySelector("[data-dr-party-id]");
+      if (!input || !hidden) return;
+      var customer = drCustomers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (customer) input.value = customer.label;
+      input.addEventListener("input", syncDRCustomer);
+      input.addEventListener("change", syncDRCustomer);
+      input.addEventListener("blur", syncDRCustomer);
+    }
+
+    function syncARCreditCompany() {
+      var input = document.querySelector("input[name='ar_credit_company_name']");
+      var hidden = document.querySelector("[data-ar-credit-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var customer = drCustomers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || drCustomers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = customer ? customer.id : "";
+      if (customer && input.value !== customer.label) input.value = customer.label;
+    }
+
+    function hydrateARCreditCompany() {
+      var input = document.querySelector("input[name='ar_credit_company_name']");
+      var hidden = document.querySelector("[data-ar-credit-party-id]");
+      if (!input || !hidden) return;
+      var customer = drCustomers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (customer) input.value = customer.label;
+      input.addEventListener("input", syncARCreditCompany);
+      input.addEventListener("change", syncARCreditCompany);
+      input.addEventListener("blur", syncARCreditCompany);
+      var form = input.closest("form");
+      if (form) form.addEventListener("submit", syncARCreditCompany);
+    }
+
+    function syncAPDebitCompany() {
+      var input = document.querySelector("input[name='ap_debit_company_name']");
+      var hidden = document.querySelector("[data-ap-debit-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = supplier ? supplier.id : "";
+      if (supplier && input.value !== supplier.label) input.value = supplier.label;
+    }
+
+    function hydrateAPDebitCompany() {
+      var input = document.querySelector("input[name='ap_debit_company_name']");
+      var hidden = document.querySelector("[data-ap-debit-party-id]");
+      if (!input || !hidden) return;
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (supplier) input.value = supplier.label;
+      input.addEventListener("input", syncAPDebitCompany);
+      input.addEventListener("change", syncAPDebitCompany);
+      input.addEventListener("blur", syncAPDebitCompany);
+      var form = input.closest("form");
+      if (form) form.addEventListener("submit", syncAPDebitCompany);
+    }
+
+    function syncAPCreditCompany() {
+      var input = document.querySelector("input[name='ap_credit_company_name']");
+      var hidden = document.querySelector("[data-ap-credit-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || purchaseSuppliers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = supplier ? supplier.id : "";
+      if (supplier && input.value !== supplier.label) input.value = supplier.label;
+    }
+
+    function hydrateAPCreditCompany() {
+      var input = document.querySelector("input[name='ap_credit_company_name']");
+      var hidden = document.querySelector("[data-ap-credit-party-id]");
+      if (!input || !hidden) return;
+      var supplier = purchaseSuppliers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (supplier) input.value = supplier.label;
+      input.addEventListener("input", syncAPCreditCompany);
+      input.addEventListener("change", syncAPCreditCompany);
+      input.addEventListener("blur", syncAPCreditCompany);
+      var form = input.closest("form");
+      if (form) form.addEventListener("submit", syncAPCreditCompany);
+    }
+
+    function syncARDebitCompany() {
+      var input = document.querySelector("input[name='ar_debit_company_name']");
+      var hidden = document.querySelector("[data-ar-debit-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var customer = drCustomers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || drCustomers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = customer ? customer.id : "";
+      if (customer && input.value !== customer.label) input.value = customer.label;
+    }
+
+    function hydrateARDebitCompany() {
+      var input = document.querySelector("input[name='ar_debit_company_name']");
+      var hidden = document.querySelector("[data-ar-debit-party-id]");
+      if (!input || !hidden) return;
+      var customer = drCustomers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (customer) input.value = customer.label;
+      input.addEventListener("input", syncARDebitCompany);
+      input.addEventListener("change", syncARDebitCompany);
+      input.addEventListener("blur", syncARDebitCompany);
+      var form = input.closest("form");
+      if (form) form.addEventListener("submit", syncARDebitCompany);
+    }
+
+    function syncRebatesCompany() {
+      var input = document.querySelector("input[name='rebates_company_name']");
+      var hidden = document.querySelector("[data-rebates-party-id]");
+      if (!input || !hidden) return;
+      var query = input.value.trim().toLowerCase();
+      var customer = drCustomers.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || drCustomers.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      });
+      hidden.value = customer ? customer.id : "";
+      if (customer && input.value !== customer.label) input.value = customer.label;
+    }
+
+    function hydrateRebatesCompany() {
+      var input = document.querySelector("input[name='rebates_company_name']");
+      var hidden = document.querySelector("[data-rebates-party-id]");
+      if (!input || !hidden) return;
+      var customer = drCustomers.find(function (item) {
+        return item.id === hidden.value;
+      });
+      if (customer) input.value = customer.label;
+      input.addEventListener("input", syncRebatesCompany);
+      input.addEventListener("change", syncRebatesCompany);
+      input.addEventListener("blur", syncRebatesCompany);
+      var form = input.closest("form");
+      if (form) form.addEventListener("submit", syncRebatesCompany);
+    }
+
+    function syncSalesDetailRow(row) {
+      var qty = parseMoney(cellText(row.querySelector("[data-field='qty']")));
+      var unitCost = parseMoney(cellText(row.querySelector("[data-field='unit_cost']")));
+      var amountCell = row.querySelector("[data-field='amount']");
+      var discount = parseMoney(cellText(row.querySelector("[data-field='discount']")));
+      var otherDiscount = parseMoney(cellText(row.querySelector("[data-field='other_discount']")));
+      var capital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
+      var amount = parseMoney(cellText(amountCell));
+      if (qty && unitCost && !amount) {
+        amount = qty * unitCost;
+        amountCell.textContent = formatMoney(amount);
+      }
+      var net = amount - discount - otherDiscount;
+      var markup = net - capital;
+      var markupPct = capital ? (markup / capital) * 100 : 0;
+      var netCell = row.querySelector("[data-field='net_amount']");
+      var markupCell = row.querySelector("[data-field='markup']");
+      var markupPctCell = row.querySelector("[data-field='markup_pct']");
+      if (netCell) netCell.textContent = formatMoney(net);
+      if (markupCell && !cellText(markupCell)) markupCell.textContent = formatMoney(markup);
+      if (markupPctCell && !cellText(markupPctCell)) markupPctCell.textContent = formatMoney(markupPct);
+      ["stock_label", "qty", "unit_cost", "amount", "capital", "discount", "other_discount", "markup", "markup_pct"].forEach(function (field) {
+        if (field === "stock_label") {
+          var code = cellText(row.querySelector("[data-field='stock_code']"));
+          var name = cellText(row.querySelector("[data-field='stock_name']"));
+          setHidden(row, field, name ? code + " - " + name : code);
+        } else {
+          setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+        }
+      });
+      var groupInput = row.querySelector("[data-field-input='stock_group']");
+      var stockID = (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+      if (groupInput && !groupInput.value) groupInput.value = salesStockGroups[stockID] || "Ungrouped";
+    }
+
+    function hydrateSalesDetails() {
+      document.querySelectorAll(".sales-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        var label = (row.querySelector("[data-field-input='stock_label']") || {}).value || cellText(row.querySelector("[data-field='stock_code']"));
+        var groupInput = row.querySelector("[data-field-input='stock_group']");
+        var stockID = (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+        var parts = label.split(" - ");
+        var code = (parts.shift() || label).trim();
+        var name = parts.join(" - ").trim();
+        if (no) no.textContent = String(index + 1) + ".";
+        row.querySelector("[data-field='stock_code']").textContent = code;
+        row.querySelector("[data-field='stock_name']").textContent = name;
+        if (groupInput && !groupInput.value) groupInput.value = salesStockGroups[stockID] || "Ungrouped";
+        syncSalesDetailRow(row);
+      });
+      updateSalesTotals();
+    }
+
+    function renderSalesMarkupSummary(groups) {
+      var tbody = document.querySelector("#sales-markup-summary-rows");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      Object.keys(groups).sort().forEach(function (groupName, index) {
+        var group = groups[groupName];
+        var avgMarkup = group.capital ? (group.markup / group.capital) * 100 : 0;
+        var tr = document.createElement("tr");
+        [String(index + 1) + ".", groupName, formatMoney(group.net), formatMoney(group.capital), formatMoney(group.markup), formatMoney(avgMarkup)].forEach(function (value) {
+          var td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSalesTotals() {
+      var rows = Array.prototype.slice.call(document.querySelectorAll(".sales-detail-row"));
+      var totalQty = 0;
+      var gross = 0;
+      var capital = 0;
+      var lineDiscount = 0;
+      var markup = 0;
+      var groups = {};
+      rows.forEach(function (row) {
+        syncSalesDetailRow(row);
+        var groupName = ((row.querySelector("[data-field-input='stock_group']") || {}).value || "Ungrouped").trim() || "Ungrouped";
+        if (!groups[groupName]) groups[groupName] = { net: 0, capital: 0, markup: 0 };
+        var rowNet = parseMoney(cellText(row.querySelector("[data-field='net_amount']")));
+        var rowCapital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
+        var rowMarkup = parseMoney(cellText(row.querySelector("[data-field='markup']")));
+        totalQty += parseMoney(cellText(row.querySelector("[data-field='qty']")));
+        gross += parseMoney(cellText(row.querySelector("[data-field='amount']")));
+        capital += rowCapital;
+        lineDiscount += parseMoney(cellText(row.querySelector("[data-field='discount']"))) + parseMoney(cellText(row.querySelector("[data-field='other_discount']")));
+        markup += rowMarkup;
+        groups[groupName].net += rowNet;
+        groups[groupName].capital += rowCapital;
+        groups[groupName].markup += rowMarkup;
+      });
+      renderSalesMarkupSummary(groups);
+      var deductions = sumInputs("input[name='line_deductions_amount']") || sumInputs("input[name='line_discounts_amount']");
+      var additionals = sumInputs("input[name='line_additionals_amount']");
+      var net = gross - lineDiscount - deductions + additionals;
+      [
+        ["[data-sales-total-qty]", totalQty],
+        ["[data-sales-total-net]", net],
+        ["[data-sales-total]", gross],
+        ["[data-sales-less-a]", deductions],
+        ["[data-sales-less-m]", lineDiscount],
+        ["[data-sales-add]", additionals],
+        ["[data-sales-net]", net]
+      ].forEach(function (item) {
+        var el = document.querySelector(item[0]);
+        if (!el) return;
+        if ("value" in el) el.value = formatMoney(item[1]);
+        else el.textContent = formatMoney(item[1]);
+      });
+    }
+
+    function setSalesTab(tab) {
+      document.querySelectorAll("[data-sales-tab]").forEach(function (button) {
+        button.classList.toggle("is-active", button.dataset.salesTab === tab);
+      });
+      document.querySelectorAll("[data-sales-panel]").forEach(function (panel) {
+        panel.classList.toggle("is-hidden", panel.dataset.salesPanel !== tab);
+      });
+    }
+
+    function findExpenseCode(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return null;
+      return expenseCodes.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || expenseCodes.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      }) || null;
+    }
+
+    function syncExpenseRow(row, sourceCell) {
+      var codeInput = row.querySelector("[data-field='code_label']");
+      var code = findExpenseCode(cellText(codeInput));
+      if (code) {
+        codeInput.value = code.label;
+        setHidden(row, "code_id", code.id);
+      } else if (!cellText(codeInput)) {
+        setHidden(row, "code_id", "");
+      }
+      var cash = parseMoney(cellText(row.querySelector("[data-field='cash']")));
+      var check = parseMoney(cellText(row.querySelector("[data-field='check']")));
+      var totalCell = row.querySelector("[data-field='total']");
+      if ((cash || check) && (!cellText(totalCell) || sourceCell && (sourceCell.dataset.field === "cash" || sourceCell.dataset.field === "check"))) {
+        totalCell.textContent = formatMoney(cash + check);
+      }
+      ["reference", "cash", "check", "total"].forEach(function (field) {
+        setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+      });
+    }
+
+    function updateExpenseTotals() {
+      var cash = 0;
+      var check = 0;
+      var total = 0;
+      document.querySelectorAll(".expense-detail-row").forEach(function (row) {
+        syncExpenseRow(row);
+        cash += parseMoney(cellText(row.querySelector("[data-field='cash']")));
+        check += parseMoney(cellText(row.querySelector("[data-field='check']")));
+        total += parseMoney(cellText(row.querySelector("[data-field='total']")));
+      });
+      [["[data-expense-cash-total]", cash], ["[data-expense-check-total]", check], ["[data-expense-grand-total]", total]].forEach(function (item) {
+        var input = document.querySelector(item[0]);
+        if (input) input.value = formatMoney(item[1]);
+      });
+    }
+
+    function hydrateExpenseRows() {
+      document.querySelectorAll(".expense-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        var codeID = (row.querySelector("[data-field-input='code_id']") || {}).value || "";
+        var code = expenseCodes.find(function (item) { return item.id === codeID; });
+        if (no) no.textContent = String(index + 1) + ".";
+        if (code) row.querySelector("[data-field='code_label']").value = code.label;
+        syncExpenseRow(row);
+      });
+      updateExpenseTotals();
+    }
+
+    window.addExpenseRow = function () {
+      var tbody = document.querySelector("#rows-details");
+      var template = document.querySelector(".expense-detail-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) { cell.textContent = ""; });
+      row.querySelectorAll(".cell-combobox").forEach(function (input) { input.value = ""; });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) { input.value = ""; });
+      tbody.appendChild(row);
+      hydrateExpenseRows();
+      var first = row.querySelector(".cell-combobox, .editable-cell");
+      if (first) first.focus();
+    };
+
+    function findOtherIncomeCode(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return null;
+      return otherIncomeCodes.find(function (item) {
+        return item.label.toLowerCase() === query;
+      }) || otherIncomeCodes.find(function (item) {
+        return item.label.toLowerCase().indexOf(query) === 0;
+      }) || null;
+    }
+
+    function syncOtherIncomeRow(row, sourceCell) {
+      var codeInput = row.querySelector("[data-field='code_label']");
+      var code = findOtherIncomeCode(cellText(codeInput));
+      if (code) {
+        codeInput.value = code.label;
+        setHidden(row, "code_id", code.id);
+      } else if (!cellText(codeInput)) {
+        setHidden(row, "code_id", "");
+      }
+      var cash = parseMoney(cellText(row.querySelector("[data-field='cash']")));
+      var check = parseMoney(cellText(row.querySelector("[data-field='check']")));
+      var totalCell = row.querySelector("[data-field='total']");
+      if ((cash || check) && (!cellText(totalCell) || sourceCell && (sourceCell.dataset.field === "cash" || sourceCell.dataset.field === "check"))) {
+        totalCell.textContent = formatMoney(cash + check);
+      }
+      ["reference", "cash", "check", "total"].forEach(function (field) {
+        setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+      });
+    }
+
+    function updateOtherIncomeTotals() {
+      var cash = 0;
+      var check = 0;
+      var total = 0;
+      document.querySelectorAll(".other-income-detail-row").forEach(function (row) {
+        syncOtherIncomeRow(row);
+        cash += parseMoney(cellText(row.querySelector("[data-field='cash']")));
+        check += parseMoney(cellText(row.querySelector("[data-field='check']")));
+        total += parseMoney(cellText(row.querySelector("[data-field='total']")));
+      });
+      [["[data-other-income-cash-total]", cash], ["[data-other-income-check-total]", check], ["[data-other-income-grand-total]", total]].forEach(function (item) {
+        var input = document.querySelector(item[0]);
+        if (input) input.value = formatMoney(item[1]);
+      });
+    }
+
+    function hydrateOtherIncomeRows() {
+      document.querySelectorAll(".other-income-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        var codeID = (row.querySelector("[data-field-input='code_id']") || {}).value || "";
+        var code = otherIncomeCodes.find(function (item) { return item.id === codeID; });
+        if (no) no.textContent = String(index + 1) + ".";
+        if (code) row.querySelector("[data-field='code_label']").value = code.label;
+        syncOtherIncomeRow(row);
+      });
+      updateOtherIncomeTotals();
+    }
+
+    window.addOtherIncomeRow = function () {
+      var tbody = document.querySelector("#rows-details");
+      var template = document.querySelector(".other-income-detail-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) { cell.textContent = ""; });
+      row.querySelectorAll(".cell-combobox").forEach(function (input) { input.value = ""; });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) { input.value = ""; });
+      tbody.appendChild(row);
+      hydrateOtherIncomeRows();
+      var first = row.querySelector(".cell-combobox, .editable-cell");
+      if (first) first.focus();
+    };
+
+    function syncChecksInRow(row) {
+      if (!row) return;
+      ["number", "date", "bank_name", "amount", "nature"].forEach(function (field) {
+        setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+      });
+    }
+
+    function renumberChecksInRows() {
+      document.querySelectorAll(".checks-in-detail-row").forEach(function (row, index) {
+        var no = row.querySelector(".row-no");
+        if (no) no.textContent = String(index + 1) + ".";
+      });
+    }
+
+    function hydrateChecksInRows() {
+      document.querySelectorAll(".checks-in-detail-row").forEach(syncChecksInRow);
+      renumberChecksInRows();
+    }
+
+    window.addChecksInRow = function () {
+      var tbody = document.querySelector("#rows-checks");
+      var template = document.querySelector(".checks-in-detail-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) { cell.textContent = ""; });
+      row.querySelectorAll(".cell-date").forEach(function (input) { input.value = ""; });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) { input.value = ""; });
+      tbody.appendChild(row);
+      renumberChecksInRows();
+      var first = row.querySelector(".editable-cell, .cell-date");
+      if (first) first.focus();
+    };
+
+    function setPurchaseTab(tab) {
+      document.querySelectorAll("[data-purchase-tab]").forEach(function (button) {
+        button.classList.toggle("is-active", button.dataset.purchaseTab === tab);
+      });
+      var adjustments = document.querySelector(".purchase-summary-grid");
+      var payments = document.querySelector(".purchase-line-payments");
+      if (adjustments) adjustments.classList.toggle("is-hidden", tab !== "adjustments");
+      if (payments) payments.classList.toggle("is-hidden", tab !== "payments");
+    }
+
+    window.addPurchaseDetailRow = function () {
+      var tbody = document.querySelector("#rows-details");
+      var template = document.querySelector(".purchase-detail-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) {
+        cell.textContent = "";
+      });
+      row.querySelectorAll(".cell-combobox").forEach(function (input) {
+        input.value = "";
+      });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
+        input.value = "";
+      });
+      tbody.appendChild(row);
+      renumberPurchaseDetails();
+      updatePurchaseTotals();
+      var first = row.querySelector(".cell-combobox, .editable-cell");
+      if (first) first.focus();
+    };
+
+    window.addPurchaseAdjustmentRow = function (group) {
+      var tbody = document.querySelector("#rows-" + group);
+      var template = tbody && tbody.querySelector(".purchase-adjustment-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) {
+        cell.textContent = "";
+      });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
+        input.value = "";
+      });
+      tbody.appendChild(row);
+      updatePurchaseTotals();
+      var first = row.querySelector(".editable-cell");
+      if (first) first.focus();
+    };
+
+    window.addDRDetailRow = function () {
+      var tbody = document.querySelector("#rows-details");
+      var template = document.querySelector(".dr-detail-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) {
+        cell.textContent = "";
+      });
+      row.querySelectorAll(".cell-combobox").forEach(function (input) {
+        input.value = "";
+      });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
+        input.value = "";
+      });
+      tbody.appendChild(row);
+      renumberDRDetails();
+      var first = row.querySelector(".cell-combobox, .editable-cell");
+      if (first) first.focus();
+    };
+
+    function openStockInPicker(input) {
+      if (!input || typeof input.showPicker !== "function") return;
+      try {
+        input.showPicker();
+      } catch (error) {
+        // Browser may restrict showPicker unless the event is a direct user action.
+      }
+    }
+
+    document.addEventListener("mousedown", function (event) {
+      var input = event.target.closest && event.target.closest(".stock-in-detail-row .cell-combobox");
+      openStockInPicker(input);
+    });
+
+    document.addEventListener("focus", function (event) {
+      if (!event.target.matches(".stock-in-detail-row .cell-combobox")) return;
+      setTimeout(function () { openStockInPicker(event.target); }, 0);
+    }, true);
+
+    document.addEventListener("click", function (event) {
+      var input = event.target.closest && event.target.closest(".stock-in-detail-row .cell-combobox");
+      openStockInPicker(input);
+    });
+
+    document.addEventListener("input", function (event) {
+      var cell = event.target.closest && event.target.closest(".purchase-detail-row .editable-cell, .purchase-detail-row .cell-combobox");
+      if (!cell) return;
+      syncPurchaseDetailRow(cell.closest(".purchase-detail-row"), cell);
+    });
+
+    document.addEventListener("input", function (event) {
+      var cell = event.target.closest && event.target.closest(".dr-detail-row .editable-cell, .dr-detail-row .cell-combobox");
+      if (!cell) return;
+      syncDRDetailRow(cell.closest(".dr-detail-row"), cell);
+    });
+
+    document.addEventListener("input", function (event) {
+      if (event.target.matches("input[name='line_discounts_amount'], input[name='line_additionals_amount']")) {
+        updatePurchaseTotals();
+      }
+      if (event.target.matches("input[name='line_deductions_amount'], input[name='line_additionals_amount']")) {
+        updateSalesTotals();
+      }
+      var adjustmentCell = event.target.closest && event.target.closest(".purchase-adjustment-row .editable-cell");
+      if (adjustmentCell) {
+        syncPurchaseAdjustmentRow(adjustmentCell.closest(".purchase-adjustment-row"), adjustmentCell);
+      }
+      var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
+      if (salesCell) {
+        syncSalesDetailRow(salesCell.closest(".sales-detail-row"));
+        updateSalesTotals();
+      }
+      var expenseCell = event.target.closest && event.target.closest(".expense-detail-row .editable-cell, .expense-detail-row .cell-combobox");
+      if (expenseCell) {
+        syncExpenseRow(expenseCell.closest(".expense-detail-row"), expenseCell);
+        updateExpenseTotals();
+      }
+      var otherIncomeCell = event.target.closest && event.target.closest(".other-income-detail-row .editable-cell, .other-income-detail-row .cell-combobox");
+      if (otherIncomeCell) {
+        syncOtherIncomeRow(otherIncomeCell.closest(".other-income-detail-row"), otherIncomeCell);
+        updateOtherIncomeTotals();
+      }
+      var checksInCell = event.target.closest && event.target.closest(".checks-in-detail-row .editable-cell, .checks-in-detail-row .cell-date");
+      if (checksInCell) {
+        syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
+      }
+    });
+
+    document.addEventListener("blur", function (event) {
+      var cell = event.target.closest && event.target.closest(".purchase-detail-row .editable-cell, .purchase-detail-row .cell-combobox");
+      if (cell) syncPurchaseDetailRow(cell.closest(".purchase-detail-row"), cell);
+      var drCell = event.target.closest && event.target.closest(".dr-detail-row .editable-cell, .dr-detail-row .cell-combobox");
+      if (drCell) syncDRDetailRow(drCell.closest(".dr-detail-row"), drCell);
+      var adjustmentCell = event.target.closest && event.target.closest(".purchase-adjustment-row .editable-cell");
+      if (adjustmentCell) syncPurchaseAdjustmentRow(adjustmentCell.closest(".purchase-adjustment-row"), adjustmentCell);
+      var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
+      if (salesCell) {
+        syncSalesDetailRow(salesCell.closest(".sales-detail-row"));
+        updateSalesTotals();
+      }
+      var expenseCell = event.target.closest && event.target.closest(".expense-detail-row .editable-cell, .expense-detail-row .cell-combobox");
+      if (expenseCell) {
+        syncExpenseRow(expenseCell.closest(".expense-detail-row"), expenseCell);
+        updateExpenseTotals();
+      }
+      var otherIncomeCell = event.target.closest && event.target.closest(".other-income-detail-row .editable-cell, .other-income-detail-row .cell-combobox");
+      if (otherIncomeCell) {
+        syncOtherIncomeRow(otherIncomeCell.closest(".other-income-detail-row"), otherIncomeCell);
+        updateOtherIncomeTotals();
+      }
+      var checksInCell = event.target.closest && event.target.closest(".checks-in-detail-row .editable-cell, .checks-in-detail-row .cell-date");
+      if (checksInCell) syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
+    }, true);
+
+    hydratePurchaseDetails();
+    hydratePurchaseSupplier();
+    hydrateDRDetails();
+    hydrateDRCustomer();
+    hydrateARCreditCompany();
+    hydrateAPDebitCompany();
+    hydrateAPCreditCompany();
+    hydrateARDebitCompany();
+    hydrateRebatesCompany();
+    hydrateExpenseRows();
+    hydrateOtherIncomeRows();
+    hydrateChecksInRows();
+    hydrateSalesDetails();
+    updatePurchaseTotals();
+    updateSalesTotals();
+    setPurchaseTab("adjustments");
+    setSalesTab("markup");
+
+    document.querySelectorAll("[data-purchase-tab]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        setPurchaseTab(button.dataset.purchaseTab);
+      });
+    });
+
+    document.querySelectorAll("[data-sales-tab]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        setSalesTab(button.dataset.salesTab);
+      });
+    });
+
+    document.querySelectorAll("[data-form-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var action = button.getAttribute("data-form-action");
+        if (action === "new") window.location.href = routeBase + "/new";
+        if (action === "open-list") window.location.href = routeBase + "/";
+      });
+    });
+  })();
+</script>
+{{end}}
 {{template "foot" .}}
