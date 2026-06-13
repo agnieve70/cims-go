@@ -163,6 +163,9 @@ func (s *PostgresStore) GetMaster(ctx context.Context, form models.FormDefinitio
 		}
 		cols = append(cols, fmt.Sprintf("coalesce(m.%s::text, '') as %s", field.Column, field.Key))
 	}
+	if form.Kind == "stocks" {
+		cols = append(cols, "coalesce((select coalesce(round(sum(sl.qty_delta)), 0)::bigint::text from stock_ledger sl where sl.stock_id = m.id), '0') as soh")
+	}
 	cols = append(cols, "coalesce(u.display_name, '') as encoder", "to_char(m.updated_at at time zone 'Asia/Manila', 'YYYY-MM-DD HH12:MI:SS AM') as last_update", "coalesce(uu.display_name, '') as updated_by")
 	sql := fmt.Sprintf(`
 		select %s
@@ -1883,7 +1886,8 @@ func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelect
 		         select sum(dc.consumed_qty)
 		         from dr_consumptions dc
 		         where dc.dr_line_id = dl.id
-		       ), 0)))::bigint::text
+		       ), 0)))::bigint::text,
+		       coalesce(st.latest_cost::text, '0')
 		from document_lines dl
 		left join stocks st on st.id = dl.stock_id
 		where dl.document_id=$1
@@ -1905,7 +1909,8 @@ func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelect
 		var stockLabel string
 		var stockGroup string
 		var qty string
-		if err := rows.Scan(&drLineID, &stockID, &stockLabel, &stockGroup, &qty); err != nil {
+		var latestCost string
+		if err := rows.Scan(&drLineID, &stockID, &stockLabel, &stockGroup, &qty, &latestCost); err != nil {
 			return DRSelection{}, err
 		}
 		row["dr_line_id"] = drLineID
@@ -1913,6 +1918,8 @@ func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelect
 		row["stock_label"] = stockLabel
 		row["stock_group"] = stockGroup
 		row["qty"] = qty
+		row["unit_cost"] = latestCost
+		row["capital"] = latestCost
 		selection.Rows = append(selection.Rows, row)
 	}
 	if err := rows.Err(); err != nil {
@@ -2262,7 +2269,7 @@ func optionQuery(source string) string {
 	case "dr_documents":
 		return `
 			select d.id::text,
-			       d.entry_id || ' - ' || coalesce(nullif(c.company,''), c.code, '') || ' - ' || coalesce(d.reference, 'DR')
+			       coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' || coalesce(nullif(c.company,''), c.code, '')
 			from documents d
 			left join customers c on c.id = d.party_id
 			where d.kind='dr'
@@ -2291,6 +2298,12 @@ func optionQuery(source string) string {
 				where coalesce(name, '') <> ''
 			) options
 			order by value`
+	case "stock_categories":
+		return `
+			select distinct name, name
+			from stock_categories
+			where coalesce(name, '') <> ''
+			order by name`
 	case "expense_charts":
 		return `select id::text, code || ' - ' || name from expense_charts order by code`
 	case "other_income_charts":

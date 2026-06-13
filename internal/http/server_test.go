@@ -42,7 +42,14 @@ func (s *fakeStore) ListMaster(_ context.Context, _ models.FormDefinition, searc
 }
 
 func (s *fakeStore) GetMaster(context.Context, models.FormDefinition, int64) (models.Record, error) {
-	return models.Record{"id": "1", "code": "BR-01", "name": "Main"}, nil
+	return models.Record{
+		"id":             "1",
+		"code":           "ST-01",
+		"name":           "Test Stock",
+		"category_group": "Feeds",
+		"unit":           "bag",
+		"min_inventory":  "10",
+	}, nil
 }
 
 func (s *fakeStore) SaveMaster(context.Context, models.FormDefinition, int64, map[string]string, models.User) (int64, error) {
@@ -57,7 +64,18 @@ func (s *fakeStore) ListDocuments(_ context.Context, kind string, search string,
 	s.lastDocKind = kind
 	s.lastDocSearch = search
 	s.lastDocYear = year
-	return nil, nil
+	return []models.DocumentListItem{{
+		ID:        1,
+		EntryID:   "ENT-1",
+		EntryDate: time.Date(2026, time.January, 5, 0, 0, 0, 0, time.UTC),
+		Party:     "Supplier A",
+		Reference: "REF-1",
+		DRRef:     "DR-1",
+		Status:    "Open",
+		Branch:    "Main",
+		Net:       "123.45",
+		Encoder:   "Admin",
+	}}, nil
 }
 
 func (s *fakeStore) GetDocument(context.Context, models.FormDefinition, int64) (models.Record, map[string][]models.Record, error) {
@@ -346,8 +364,15 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 	}, nil
 }
 
-func (s *fakeStore) Options(context.Context, string) ([]models.Option, error) {
-	return []models.Option{{Value: "1", Label: "Main"}}, nil
+func (s *fakeStore) Options(_ context.Context, source string) ([]models.Option, error) {
+	switch source {
+	case "stock_categories":
+		return []models.Option{{Value: "Feeds", Label: "Feeds"}}, nil
+	case "stock_category_groups":
+		return []models.Option{{Value: "Legacy Group", Label: "Legacy Group"}}, nil
+	default:
+		return []models.Option{{Value: "1", Label: "Main"}}, nil
+	}
 }
 
 func TestDashboardRequiresLogin(t *testing.T) {
@@ -496,6 +521,213 @@ func TestSalesFormLoadsSelectedDRRows(t *testing.T) {
 	if !strings.Contains(body, `name="line_details_qty" value="4" readonly`) {
 		t.Fatalf("body missing readonly DR qty row")
 	}
+	if !strings.Contains(body, `data-sales-edit-stock-out`) {
+		t.Fatalf("body missing sales stock out edit trigger")
+	}
+	if !strings.Contains(body, `data-sales-stock-out-editor-frame`) {
+		t.Fatalf("body missing embedded stock out editor frame")
+	}
+}
+
+func TestPurchaseFormIncludesStockPicker(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/purchases/new", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `data-purchase-party-select`) {
+		t.Fatalf("body missing purchase supplier select")
+	}
+	if !strings.Contains(body, `data-purchase-supplier-browse`) || !strings.Contains(body, `data-purchase-supplier-picker`) {
+		t.Fatalf("body missing purchase supplier browse modal")
+	}
+	if !strings.Contains(body, `data-purchase-stock-trigger`) {
+		t.Fatalf("body missing purchase stock trigger input")
+	}
+	if !strings.Contains(body, `data-purchase-stock-picker`) || !strings.Contains(body, `data-purchase-stock-picker-results`) {
+		t.Fatalf("body missing purchase stock picker modal")
+	}
+	if strings.Contains(body, `purchase-supplier-options`) {
+		t.Fatalf("body still contains purchase supplier datalist")
+	}
+	if strings.Contains(body, `purchase-stock-code-options`) {
+		t.Fatalf("body still contains purchase stock datalist")
+	}
+}
+
+func TestStockFormUsesCategorySelect(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/masters/stocks/new", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `<span>Category:</span>`) {
+		t.Fatalf("body missing category label")
+	}
+	if !strings.Contains(body, `name="category_group"`) || !strings.Contains(body, `<select name="category_group">`) {
+		t.Fatalf("body missing category select")
+	}
+	if !strings.Contains(body, `Select category`) {
+		t.Fatalf("body missing category placeholder option")
+	}
+	if !strings.Contains(body, `value="Feeds"`) || !strings.Contains(body, `>Feeds</option>`) {
+		t.Fatalf("body missing stock category option")
+	}
+	if !strings.Contains(body, `legacy-record-row legacy-record-row-split`) {
+		t.Fatalf("body missing split row for unit and latest cost")
+	}
+	if !strings.Contains(body, `legacy-record-field-split`) {
+		t.Fatalf("body missing split field class for unit and latest cost")
+	}
+	if !strings.Contains(body, `<span>SOH:</span>`) {
+		t.Fatalf("body missing SOH field label")
+	}
+	if !strings.Contains(body, `name="latest_cost" type="number" step="0.01" value="" readonly tabindex="-1" aria-readonly="true"`) {
+		t.Fatalf("body missing readonly latest cost field")
+	}
+	if !strings.Contains(body, `value="" readonly tabindex="-1" aria-readonly="true"`) {
+		t.Fatalf("body missing readonly stock-derived field")
+	}
+	if !strings.Contains(body, `aria-readonly="true"`) {
+		t.Fatalf("body missing readonly stock-derived field")
+	}
+	if !strings.Contains(body, `aria-label="First record" onclick="goStockCategoryRecord('1')" disabled`) {
+		t.Fatalf("body missing disabled first-record button")
+	}
+	if !strings.Contains(body, `aria-label="Previous record" onclick="goStockCategoryRecord('1')" disabled`) {
+		t.Fatalf("body missing disabled previous-record button")
+	}
+	if !strings.Contains(body, `aria-label="Next record" onclick="goStockCategoryRecord('1')" disabled`) {
+		t.Fatalf("body missing disabled next-record button")
+	}
+	if !strings.Contains(body, `aria-label="Last record" onclick="goStockCategoryRecord('1')" disabled`) {
+		t.Fatalf("body missing disabled last-record button")
+	}
+	if !strings.Contains(body, `aria-label="Delete current record" form="master-delete-form" disabled`) {
+		t.Fatalf("body missing disabled delete button")
+	}
+	if !strings.Contains(body, `aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()" disabled`) {
+		t.Fatalf("body missing disabled search button")
+	}
+	if !strings.Contains(body, `aria-label="Open list" data-form-action="open-list" disabled`) {
+		t.Fatalf("body missing disabled open-list button")
+	}
+	if strings.Contains(body, `Category Group:`) {
+		t.Fatalf("body still contains category group label")
+	}
+	if strings.Contains(body, `list-category_group`) {
+		t.Fatalf("body still contains category datalist")
+	}
+	if strings.Contains(body, `Legacy Group`) {
+		t.Fatalf("body still contains stock category group options")
+	}
+}
+
+func TestEmbeddedStockEditRendersPopupMode(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/masters/stocks/1/edit?embedded=1", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `data-embedded="true"`) {
+		t.Fatalf("body missing embedded form marker")
+	}
+	if !strings.Contains(body, `action="/masters/stocks/1?embedded=1"`) {
+		t.Fatalf("body missing embedded save action")
+	}
+	if !strings.Contains(body, `data-embedded-close`) {
+		t.Fatalf("body missing embedded close trigger")
+	}
+	if strings.Contains(body, `class="form-backdrop-table table-wrap"`) {
+		t.Fatalf("body should not render backdrop list in embedded mode")
+	}
+	if strings.Contains(body, `class="navrail"`) {
+		t.Fatalf("body should not render topbar in embedded mode")
+	}
+}
+
+func TestEmbeddedStockSaveRedirectsBackToEdit(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := strings.NewReader("code=ST-01&name=Updated+Stock&category_group=Feeds&unit=bag&description=test&min_inventory=12")
+	req := httptest.NewRequest(http.MethodPost, "/masters/stocks/1?embedded=1", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/masters/stocks/1/edit?embedded=1&saved=1" {
+		t.Fatalf("Location = %q, want embedded edit redirect", got)
+	}
+}
+
+func TestEmbeddedTransactionSaveRedirectsBackToEdit(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := strings.NewReader("party_id=1&entry_date=2026-05-26&dr_number=DR-CUST-026&dr_date=2026-05-26&remarks=test")
+	req := httptest.NewRequest(http.MethodPost, "/transactions/dr/155?embedded=1", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/transactions/dr/1/edit?embedded=1&saved=1" {
+		t.Fatalf("Location = %q, want embedded edit redirect", got)
+	}
 }
 
 func TestMasterListPassesSearchAndYear(t *testing.T) {
@@ -520,6 +752,36 @@ func TestMasterListPassesSearchAndYear(t *testing.T) {
 	}
 	if store.lastMasterYear != 2025 {
 		t.Fatalf("master year = %d, want 2025", store.lastMasterYear)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `class="data-row"`) || !strings.Contains(body, `ondblclick="window.location='`) {
+		t.Fatalf("body missing master double-click row open behavior")
+	}
+	if strings.Contains(body, `class="data-row" tabindex="0" onclick="window.location='`) {
+		t.Fatalf("body still uses single-click row open behavior")
+	}
+}
+
+func TestExistingMasterEditStartsInViewModeMarkup(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/masters/branches/1/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `class="form-shell modal-form" data-existing-record="true"`) {
+		t.Fatalf("body missing existing-record marker")
 	}
 }
 
@@ -548,6 +810,13 @@ func TestTransactionListPassesSearchAndYear(t *testing.T) {
 	}
 	if store.lastDocYear != 2025 {
 		t.Fatalf("doc year = %d, want 2025", store.lastDocYear)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `class="data-row"`) || !strings.Contains(body, `ondblclick="window.location='`) {
+		t.Fatalf("body missing transaction double-click row open behavior")
+	}
+	if strings.Contains(body, `class="data-row" tabindex="0" onclick="window.location='`) {
+		t.Fatalf("body still uses single-click row open behavior")
 	}
 }
 

@@ -350,11 +350,16 @@ func (a *App) saveMaster(w http.ResponseWriter, r *http.Request, id int64) {
 		a.renderFormError(w, r, form, values, nil, err)
 		return
 	}
-	if _, err := a.store.SaveMaster(r.Context(), form, id, values, user); err != nil {
+	savedID, err := a.store.SaveMaster(r.Context(), form, id, values, user)
+	if err != nil {
 		a.renderFormError(w, r, form, values, nil, err)
 		return
 	}
 	a.invalidateOptions()
+	if isEmbeddedForm(r) {
+		http.Redirect(w, r, withQueryParam(form.RouteBase+"/"+strconv.FormatInt(savedID, 10)+"/edit", "embedded", "1", "saved", "1"), http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, form.RouteBase+"/", http.StatusSeeOther)
 }
 
@@ -426,16 +431,21 @@ func (a *App) saveTransaction(w http.ResponseWriter, r *http.Request, id int64) 
 		a.renderFormError(w, r, form, values, lineRowsFromInput(lines), err)
 		return
 	}
-	if _, err := a.store.SaveDocument(r.Context(), form, id, repositories.DocumentInput{
+	savedID, err := a.store.SaveDocument(r.Context(), form, id, repositories.DocumentInput{
 		Kind:      form.Kind,
 		Values:    values,
 		LineInput: lines,
 		User:      user,
-	}); err != nil {
+	})
+	if err != nil {
 		a.renderFormError(w, r, form, values, lineRowsFromInput(lines), err)
 		return
 	}
 	a.invalidateOptions()
+	if isEmbeddedForm(r) {
+		http.Redirect(w, r, withQueryParam(form.RouteBase+"/"+strconv.FormatInt(savedID, 10)+"/edit", "embedded", "1", "saved", "1"), http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, form.RouteBase+"/", http.StatusSeeOther)
 }
 
@@ -453,14 +463,20 @@ func (a *App) lineRow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) renderForm(w http.ResponseWriter, r *http.Request, form models.FormDefinition, record models.Record, action string, lineRows map[string][]models.Record) {
+	embedded := isEmbeddedForm(r)
+	if embedded {
+		action = withQueryParam(action, "embedded", "1")
+	}
 	data := viewData{
-		Title:     form.Title,
-		Form:      form,
-		Record:    record,
-		Action:    action,
-		CanDelete: record["id"] != "",
-		Options:   a.optionsForForm(r.Context(), form),
-		LineRows:  lineRows,
+		Title:         form.Title,
+		Form:          form,
+		Record:        record,
+		Action:        action,
+		CanDelete:     record["id"] != "",
+		Options:       a.optionsForForm(r.Context(), form),
+		LineRows:      lineRows,
+		Embedded:      embedded,
+		EmbeddedSaved: embedded && r.URL.Query().Get("saved") == "1",
 	}
 	a.addFormBackdrop(r, &data)
 	a.render(w, r, "form.gohtml", data)
@@ -468,15 +484,22 @@ func (a *App) renderForm(w http.ResponseWriter, r *http.Request, form models.For
 
 func (a *App) renderFormError(w http.ResponseWriter, r *http.Request, form models.FormDefinition, values models.Record, lineRows map[string][]models.Record, err error) {
 	w.WriteHeader(http.StatusBadRequest)
+	embedded := isEmbeddedForm(r)
+	action := r.URL.Path
+	if embedded {
+		action = withQueryParam(action, "embedded", "1")
+	}
 	data := viewData{
-		Title:     form.Title,
-		Form:      form,
-		Record:    values,
-		Action:    r.URL.Path,
-		Error:     err.Error(),
-		CanDelete: values["id"] != "",
-		Options:   a.optionsForForm(r.Context(), form),
-		LineRows:  lineRows,
+		Title:         form.Title,
+		Form:          form,
+		Record:        values,
+		Action:        action,
+		Error:         err.Error(),
+		CanDelete:     values["id"] != "",
+		Options:       a.optionsForForm(r.Context(), form),
+		LineRows:      lineRows,
+		Embedded:      embedded,
+		EmbeddedSaved: embedded && r.URL.Query().Get("saved") == "1",
 	}
 	a.addFormBackdrop(r, &data)
 	a.render(w, r, "form.gohtml", data)
@@ -763,6 +786,30 @@ func fieldValue(record models.Record, key string) string {
 	return record[key]
 }
 
+func isEmbeddedForm(r *http.Request) bool {
+	return r.URL.Query().Get("embedded") == "1"
+}
+
+func withQueryParam(path string, keyValues ...string) string {
+	if len(keyValues) == 0 {
+		return path
+	}
+	separator := "?"
+	if strings.Contains(path, "?") {
+		separator = "&"
+	}
+	var builder strings.Builder
+	builder.WriteString(path)
+	for index := 0; index+1 < len(keyValues); index += 2 {
+		builder.WriteString(separator)
+		builder.WriteString(keyValues[index])
+		builder.WriteString("=")
+		builder.WriteString(keyValues[index+1])
+		separator = "&"
+	}
+	return builder.String()
+}
+
 func optionCode(options map[string][]models.Option, source string, id string) string {
 	label := optionLabel(options, source, id)
 	parts := strings.SplitN(label, " - ", 2)
@@ -803,6 +850,8 @@ type viewData struct {
 	Action                             string
 	IsMaster                           bool
 	CanDelete                          bool
+	Embedded                           bool
+	EmbeddedSaved                      bool
 	Search                             string
 	Year                               int
 	FirstRecordID                      string

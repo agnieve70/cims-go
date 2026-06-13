@@ -1,13 +1,62 @@
 {{template "head" .}}
+{{if not .Embedded}}
 {{template "topbar" .}}
-<main class="page form-page">
-  <form method="post" action="{{.Action}}" class="form-shell modal-form">
+{{end}}
+{{define "direct_adjustment_row"}}
+<tr class="purchase-adjustment-row" data-adjustment-group="{{.LineGroup.Key}}">
+  <td class="editable-cell" contenteditable="true" data-field="particulars">{{fieldValue .Record "particulars"}}</td>
+  <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue .Record "qty"}}</td>
+  <td class="editable-cell number-cell" contenteditable="true" data-field="price">{{fieldValue .Record "price"}}</td>
+  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue .Record "amount"}}</td>
+  <td class="hidden-col">
+    <input type="hidden" name="{{lineName .LineGroup.Key "particulars"}}" data-field-input="particulars" value="{{fieldValue .Record "particulars"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "qty"}}" data-field-input="qty" value="{{fieldValue .Record "qty"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "price"}}" data-field-input="price" value="{{fieldValue .Record "price"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "amount"}}" data-field-input="amount" value="{{fieldValue .Record "amount"}}">
+  </td>
+</tr>
+{{end}}
+{{define "direct_payment_row"}}
+<tr class="purchase-payment-row">
+  <td class="editable-cell" contenteditable="true" data-field="number">{{fieldValue .Record "number"}}</td>
+  <td><input class="cell-date" type="date" data-field="date" value="{{fieldValue .Record "date"}}"></td>
+  <td class="editable-cell" contenteditable="true" data-field="bank_name">{{fieldValue .Record "bank_name"}}</td>
+  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue .Record "amount"}}</td>
+  <td class="editable-cell" contenteditable="true" data-field="nature">{{fieldValue .Record "nature"}}</td>
+  <td class="hidden-col">
+    <input type="hidden" name="{{lineName .LineGroup.Key "number"}}" data-field-input="number" value="{{fieldValue .Record "number"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "date"}}" data-field-input="date" value="{{fieldValue .Record "date"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "bank_name"}}" data-field-input="bank_name" value="{{fieldValue .Record "bank_name"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "amount"}}" data-field-input="amount" value="{{fieldValue .Record "amount"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "nature"}}" data-field-input="nature" value="{{fieldValue .Record "nature"}}">
+  </td>
+</tr>
+{{end}}
+{{define "direct_checks_row"}}
+<tr class="checks-in-detail-row">
+  <td class="row-no"></td>
+  <td class="editable-cell" contenteditable="true" data-field="number">{{fieldValue .Record "number"}}</td>
+  <td><input class="cell-date" type="date" data-field="date" value="{{fieldValue .Record "date"}}"></td>
+  <td class="editable-cell" contenteditable="true" data-field="bank_name">{{fieldValue .Record "bank_name"}}</td>
+  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue .Record "amount"}}</td>
+  <td class="editable-cell" contenteditable="true" data-field="nature">{{fieldValue .Record "nature"}}</td>
+  <td class="hidden-col">
+    <input type="hidden" name="{{lineName .LineGroup.Key "number"}}" data-field-input="number" value="{{fieldValue .Record "number"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "date"}}" data-field-input="date" value="{{fieldValue .Record "date"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "bank_name"}}" data-field-input="bank_name" value="{{fieldValue .Record "bank_name"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "amount"}}" data-field-input="amount" value="{{fieldValue .Record "amount"}}">
+    <input type="hidden" name="{{lineName .LineGroup.Key "nature"}}" data-field-input="nature" value="{{fieldValue .Record "nature"}}">
+  </td>
+</tr>
+{{end}}
+<main class="page form-page{{if .Embedded}} form-page-embedded{{end}}">
+  <form method="post" action="{{.Action}}" class="form-shell modal-form{{if .Embedded}} modal-form-embedded{{end}}" data-existing-record="{{if .CanDelete}}true{{else}}false{{end}}" data-form-kind="{{.Form.Kind}}" data-embedded="{{if .Embedded}}true{{else}}false{{end}}" data-embedded-saved="{{if .EmbeddedSaved}}true{{else}}false{{end}}">
     <div class="modal-titlebar">
       <div class="modal-title">
         <span class="modal-icon" aria-hidden="true"></span>
         <strong>{{.Form.Title}}</strong>
       </div>
-      <a class="modal-close" href="{{.Form.RouteBase}}/" aria-label="Close">×</a>
+      <a class="modal-close" href="{{if .Embedded}}#{{else}}{{.Form.RouteBase}}/{{end}}" aria-label="Close" {{if .Embedded}}data-embedded-close{{end}}>×</a>
     </div>
     <div class="modal-body">
       {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
@@ -38,13 +87,13 @@
         <label class="purchase-field purchase-supplier">
           <span>Supplier:</span>
           <span class="purchase-supplier-control">
-            <input name="party_name" list="purchase-supplier-options" value="" autocomplete="off" required>
-            <input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-purchase-party-id>
-            <datalist id="purchase-supplier-options">
+            <select name="party_id" data-purchase-party-select required>
+              <option value="">Select supplier</option>
               {{range index $.Options "suppliers"}}
-                <option value="{{.Label}}"></option>
+                <option value="{{.Value}}" {{if eq (fieldValue $.Record "party_id") .Value}}selected{{end}}>{{.Label}}</option>
               {{end}}
-            </datalist>
+            </select>
+            <button type="button" class="purchase-supplier-browse" data-purchase-supplier-browse>Browse</button>
           </span>
         </label>
         <label class="purchase-field purchase-date">
@@ -52,20 +101,40 @@
           <input name="purchase_date" type="date" value="{{fieldValue $.Record "purchase_date"}}">
         </label>
       </section>
+      <div class="purchase-supplier-picker is-hidden" data-purchase-supplier-picker aria-hidden="true">
+        <div class="purchase-supplier-picker-backdrop" data-purchase-supplier-picker-close></div>
+        <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-supplier-picker-title">
+          <div class="purchase-supplier-picker-titlebar">
+            <h3 id="purchase-supplier-picker-title">Supplier List</h3>
+            <button type="button" class="purchase-supplier-picker-close" data-purchase-supplier-picker-close aria-label="Close">×</button>
+          </div>
+          <div class="purchase-supplier-picker-body">
+            <label class="purchase-supplier-picker-search">
+              <span>Search:</span>
+              <input type="search" data-purchase-supplier-picker-search placeholder="Type supplier name">
+            </label>
+            <div class="purchase-supplier-picker-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Supplier</th>
+                  </tr>
+                </thead>
+                <tbody data-purchase-supplier-picker-results></tbody>
+              </table>
+              <p class="purchase-supplier-picker-empty is-hidden" data-purchase-supplier-picker-empty>No matching supplier found.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{$detailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section purchase-line-details">
         <div class="section-head">
           <h2>{{$detailsGroup.Label}}</h2>
-          <button type="button" onclick="addPurchaseDetailRow()">Add Row</button>
         </div>
         <div class="table-wrap modal-table">
           <table class="editable-grid purchase-details-grid">
-            <datalist id="purchase-stock-code-options">
-              {{range index $.Options "stocks"}}
-                <option value="{{.Label}}"></option>
-              {{end}}
-            </datalist>
             <thead>
               <tr>
                 <th>No.</th>
@@ -80,13 +149,13 @@
               {{$rows := index $.LineRows "details"}}
               {{if $rows}}
                 {{range $rows}}
-                <tr class="purchase-detail-row">
+                <tr class="purchase-detail-row" data-stock-picker-row="purchase">
                   <td class="row-no"></td>
-                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter"></td>
                   <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                   <td class="hidden-col">
                     <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
                     <input type="hidden" name="line_details_qty" value="{{fieldValue . "qty"}}" readonly data-field-input="qty">
@@ -96,27 +165,13 @@
                 </tr>
                 {{end}}
               {{else}}
-                <tr class="purchase-detail-row">
+                <tr class="purchase-detail-row" data-stock-picker-row="purchase">
                   <td class="row-no"></td>
-                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter"></td>
                   <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
-                  <td class="hidden-col">
-                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
-                    <input type="hidden" name="line_details_qty" data-field-input="qty">
-                    <input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost">
-                    <input type="hidden" name="line_details_amount" data-field-input="amount">
-                  </td>
-                </tr>
-                <tr class="purchase-detail-row">
-                  <td class="row-no"></td>
-                  <td class="stock-code-cell"><input class="cell-combobox" list="purchase-stock-code-options" data-field="stock_code" autocomplete="off"></td>
-                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount"></td>
                   <td class="hidden-col">
                     <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
                     <input type="hidden" name="line_details_qty" data-field-input="qty">
@@ -127,6 +182,33 @@
               {{end}}
             </tbody>
           </table>
+        </div>
+        <div class="purchase-stock-picker is-hidden" data-purchase-stock-picker aria-hidden="true">
+          <div class="purchase-stock-picker-backdrop" data-purchase-stock-picker-close></div>
+          <div class="purchase-stock-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-stock-picker-title">
+            <div class="purchase-stock-picker-titlebar">
+              <h3 id="purchase-stock-picker-title">Stock List</h3>
+              <button type="button" class="purchase-stock-picker-close" data-purchase-stock-picker-close aria-label="Close">×</button>
+            </div>
+            <div class="purchase-stock-picker-body">
+              <label class="purchase-stock-picker-search">
+                <span>Search:</span>
+                <input type="search" data-purchase-stock-picker-search placeholder="Type stock code or stock name">
+              </label>
+              <div class="purchase-stock-picker-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Stock Code</th>
+                      <th>Stock Name</th>
+                    </tr>
+                  </thead>
+                  <tbody data-purchase-stock-picker-results></tbody>
+                </table>
+                <p class="purchase-stock-picker-empty is-hidden" data-purchase-stock-picker-empty>No matching stock found.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -143,7 +225,6 @@
           <section class="purchase-adjustment purchase-discounts">
             <div class="section-head">
               <h2>{{$discountGroup.Label}}</h2>
-              <button type="button" onclick="addPurchaseAdjustmentRow('discounts')">Add Row</button>
             </div>
             <div class="table-wrap modal-table">
               <table class="editable-grid purchase-adjustment-grid">
@@ -158,7 +239,7 @@
                       <td class="editable-cell" contenteditable="true" data-field="particulars">{{fieldValue . "particulars"}}</td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="price">{{fieldValue . "price"}}</td>
-                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                      <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                       <td class="hidden-col">
                         <input type="hidden" name="line_discounts_particulars" data-field-input="particulars" value="{{fieldValue . "particulars"}}">
                         <input type="hidden" name="line_discounts_qty" data-field-input="qty" value="{{fieldValue . "qty"}}">
@@ -172,7 +253,7 @@
                       <td class="editable-cell" contenteditable="true" data-field="particulars"></td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="price"></td>
-                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                      <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount"></td>
                       <td class="hidden-col">
                         <input type="hidden" name="line_discounts_particulars" data-field-input="particulars">
                         <input type="hidden" name="line_discounts_qty" data-field-input="qty">
@@ -188,7 +269,6 @@
           <section class="purchase-adjustment purchase-additionals">
             <div class="section-head">
               <h2>{{$additionalGroup.Label}}</h2>
-              <button type="button" onclick="addPurchaseAdjustmentRow('additionals')">Add Row</button>
             </div>
             <div class="table-wrap modal-table">
               <table class="editable-grid purchase-adjustment-grid">
@@ -203,7 +283,7 @@
                       <td class="editable-cell" contenteditable="true" data-field="particulars">{{fieldValue . "particulars"}}</td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="price">{{fieldValue . "price"}}</td>
-                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                      <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                       <td class="hidden-col">
                         <input type="hidden" name="line_additionals_particulars" data-field-input="particulars" value="{{fieldValue . "particulars"}}">
                         <input type="hidden" name="line_additionals_qty" data-field-input="qty" value="{{fieldValue . "qty"}}">
@@ -217,7 +297,7 @@
                       <td class="editable-cell" contenteditable="true" data-field="particulars"></td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
                       <td class="editable-cell number-cell" contenteditable="true" data-field="price"></td>
-                      <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                      <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount"></td>
                       <td class="hidden-col">
                         <input type="hidden" name="line_additionals_particulars" data-field-input="particulars">
                         <input type="hidden" name="line_additionals_qty" data-field-input="qty">
@@ -242,21 +322,46 @@
       <section class="line-section modal-line-section purchase-line-section purchase-line-payments">
         <div class="section-head">
           <h2>{{$paymentGroup.Label}}</h2>
-          <button type="button" hx-get="/line-row/{{$paymentGroup.Key}}" hx-target="#rows-{{$paymentGroup.Key}}" hx-swap="beforeend">Add Row</button>
         </div>
         <div class="table-wrap modal-table">
-          <table>
+          <table class="editable-grid purchase-payment-grid">
             <thead>
-              <tr>{{range $paymentGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr>
+              <tr><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr>
             </thead>
             <tbody id="rows-{{$paymentGroup.Key}}">
               {{$rows := index $.LineRows $paymentGroup.Key}}
               {{if $rows}}
                 {{range $rows}}
-                  {{template "line_row.gohtml" dictRow $paymentGroup $.Options .}}
+                  <tr class="purchase-payment-row">
+                    <td class="editable-cell" contenteditable="true" data-field="number">{{fieldValue . "number"}}</td>
+                    <td><input class="cell-date" type="date" data-field="date" value="{{fieldValue . "date"}}"></td>
+                    <td class="editable-cell" contenteditable="true" data-field="bank_name">{{fieldValue . "bank_name"}}</td>
+                    <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                    <td class="editable-cell" contenteditable="true" data-field="nature">{{fieldValue . "nature"}}</td>
+                    <td class="hidden-col">
+                      <input type="hidden" name="line_payments_number" data-field-input="number" value="{{fieldValue . "number"}}">
+                      <input type="hidden" name="line_payments_date" data-field-input="date" value="{{fieldValue . "date"}}">
+                      <input type="hidden" name="line_payments_bank_name" data-field-input="bank_name" value="{{fieldValue . "bank_name"}}">
+                      <input type="hidden" name="line_payments_amount" data-field-input="amount" value="{{fieldValue . "amount"}}">
+                      <input type="hidden" name="line_payments_nature" data-field-input="nature" value="{{fieldValue . "nature"}}">
+                    </td>
+                  </tr>
                 {{end}}
               {{else}}
-                {{template "line_row.gohtml" dictLine $paymentGroup $.Options}}
+                <tr class="purchase-payment-row">
+                  <td class="editable-cell" contenteditable="true" data-field="number"></td>
+                  <td><input class="cell-date" type="date" data-field="date"></td>
+                  <td class="editable-cell" contenteditable="true" data-field="bank_name"></td>
+                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td>
+                  <td class="editable-cell" contenteditable="true" data-field="nature"></td>
+                  <td class="hidden-col">
+                    <input type="hidden" name="line_payments_number" data-field-input="number">
+                    <input type="hidden" name="line_payments_date" data-field-input="date">
+                    <input type="hidden" name="line_payments_bank_name" data-field-input="bank_name">
+                    <input type="hidden" name="line_payments_amount" data-field-input="amount">
+                    <input type="hidden" name="line_payments_nature" data-field-input="nature">
+                  </td>
+                </tr>
               {{end}}
             </tbody>
           </table>
@@ -268,35 +373,23 @@
           <span>Entry ID:</span>
           <input value="{{fieldValue $.Record "id"}}" readonly>
         </label>
-        <label class="sales-field sales-customer">
-          <span>Customer:</span>
-          <select name="party_id" required>
-            <option value="">Select</option>
-            {{$currentParty := fieldValue $.Record "party_id"}}
-            {{range index $.Options "customers"}}
-              <option value="{{.Value}}" {{if eq .Value $currentParty}}selected{{end}}>{{.Label}}</option>
-            {{end}}
-          </select>
-        </label>
+        <input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}">
         <label class="sales-field sales-entry-date">
           <span>Entry Date:</span>
           <input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required>
         </label>
-        <label class="sales-field sales-cash">
-          <span class="purchase-checkbox-copy">
-            <input type="checkbox" name="cash" {{if truthy (fieldValue $.Record "cash")}}checked{{end}}>
-            <span>Cash</span>
-          </span>
-        </label>
         <label class="sales-field sales-dr-file">
-          <span>DR File:</span>
-          <select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')">
-            <option value="">Select</option>
-            {{$currentDR := fieldValue $.Record "dr_document_id"}}
-            {{range index $.Options "dr_documents"}}
-              <option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>
-            {{end}}
-          </select>
+          <span>SO Number:</span>
+          <span class="purchase-supplier-control">
+            <select name="dr_document_id" required data-sales-dr-select>
+              <option value="">Select SO Number</option>
+              {{$currentDR := fieldValue $.Record "dr_document_id"}}
+              {{range index $.Options "dr_documents"}}
+                <option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>
+              {{end}}
+            </select>
+            <button type="button" class="purchase-supplier-browse" data-sales-dr-browse>Browse</button>
+          </span>
         </label>
         <label class="sales-field sales-sales-date">
           <span>Sales Date:</span>
@@ -315,12 +408,35 @@
           <textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea>
         </label>
       </section>
+      <div class="purchase-supplier-picker is-hidden" data-sales-dr-picker aria-hidden="true">
+        <div class="purchase-supplier-picker-backdrop" data-sales-dr-picker-close></div>
+        <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="sales-dr-picker-title">
+          <div class="purchase-supplier-picker-titlebar">
+            <h3 id="sales-dr-picker-title">Stock Out List</h3>
+            <button type="button" class="purchase-supplier-picker-close" data-sales-dr-picker-close aria-label="Close">×</button>
+          </div>
+          <div class="purchase-supplier-picker-body">
+            <label class="purchase-supplier-picker-search">
+              <span>Search:</span>
+              <input type="search" data-sales-dr-picker-search placeholder="Type SO number or customer name">
+            </label>
+            <div class="purchase-supplier-picker-table-wrap">
+              <table>
+                <thead><tr><th>SO Number</th><th>Customer</th></tr></thead>
+                <tbody data-sales-dr-picker-results></tbody>
+              </table>
+              <p class="purchase-supplier-picker-empty is-hidden" data-sales-dr-picker-empty>No matching Stock Out found.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{$salesDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section sales-line-details">
         <div class="section-head">
           <h2>{{$salesDetailsGroup.Label}}</h2>
-          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+          <button type="button" class="section-inline-action" data-sales-edit-stock-out disabled>Edit Stock Out File</button>
+          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}
         </div>
         <div class="table-wrap modal-table">
           <table class="editable-grid sales-details-grid">
@@ -333,19 +449,19 @@
               {{$rows := index $.LineRows "details"}}
               {{if $rows}}
                 {{range $rows}}
-                <tr class="sales-detail-row">
+                <tr class="sales-detail-row" data-sales-detail-row>
                   <td class="row-no"></td>
                   <td class="editable-cell" contenteditable="true" data-field="stock_code">{{fieldValue . "stock_label"}}</td>
                   <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="discount">{{fieldValue . "discount"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="other_discount">{{fieldValue . "other_discount"}}</td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="net_amount"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="capital">{{fieldValue . "capital"}}</td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="markup">{{fieldValue . "markup"}}</td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="net_amount"></td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="capital">{{fieldValue . "capital"}}</td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="markup">{{fieldValue . "markup"}}</td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
                   <td class="hidden-col">
                     <input type="hidden" name="line_details_dr_line_id" data-field-input="dr_line_id" value="{{fieldValue . "dr_line_id"}}">
                     <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
@@ -363,12 +479,22 @@
                 </tr>
                 {{end}}
               {{else}}
-                <tr><td colspan="12" class="empty">Select a DR file to load detail quantities.</td></tr>
+                <tr><td colspan="12" class="empty">Select a Stock Out file to load detail quantities.</td></tr>
               {{end}}
             </tbody>
           </table>
         </div>
       </section>
+      <div class="embedded-record-modal is-hidden" data-sales-stock-out-editor aria-hidden="true">
+        <div class="embedded-record-modal-backdrop" data-sales-stock-out-editor-close></div>
+        <div class="embedded-record-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="sales-stock-out-editor-title">
+          <div class="embedded-record-modal-titlebar">
+            <h3 id="sales-stock-out-editor-title">Edit Stock Out File</h3>
+            <button type="button" class="embedded-record-modal-close" data-sales-stock-out-editor-close aria-label="Close">×</button>
+          </div>
+          <iframe class="embedded-record-modal-frame" data-sales-stock-out-editor-frame title="Stock Out File Editor" loading="lazy"></iframe>
+        </div>
+      </div>
 
       {{$deductionGroup := index .Form.LineGroups 1}}
       {{$salesAdditionalGroup := index .Form.LineGroups 2}}
@@ -400,19 +526,19 @@
         </div>
         <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
           <section class="purchase-adjustment">
-            <div class="section-head"><h2>{{$deductionGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$deductionGroup.Key}}" hx-target="#rows-{{$deductionGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
-            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-deductions">{{$rows := index $.LineRows $deductionGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $deductionGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $deductionGroup $.Options}}{{end}}</tbody></table></div>
+            <div class="section-head"><h2>{{$deductionGroup.Label}}</h2></div>
+            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-deductions">{{$rows := index $.LineRows $deductionGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $deductionGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $deductionGroup $.Options}}{{end}}</tbody></table></div>
           </section>
           <section class="purchase-adjustment">
-            <div class="section-head"><h2>{{$salesAdditionalGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$salesAdditionalGroup.Key}}" hx-target="#rows-{{$salesAdditionalGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
-            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $salesAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $salesAdditionalGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $salesAdditionalGroup $.Options}}{{end}}</tbody></table></div>
+            <div class="section-head"><h2>{{$salesAdditionalGroup.Label}}</h2></div>
+            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $salesAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $salesAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $salesAdditionalGroup $.Options}}{{end}}</tbody></table></div>
           </section>
         </div>
       </section>
 
       <section class="line-section modal-line-section purchase-line-section sales-line-payments is-hidden" data-sales-panel="payments">
-        <div class="section-head"><h2>{{$salesPaymentGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$salesPaymentGroup.Key}}" hx-target="#rows-{{$salesPaymentGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
-        <div class="table-wrap modal-table"><table><thead><tr>{{range $salesPaymentGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead><tbody id="rows-{{$salesPaymentGroup.Key}}">{{$rows := index $.LineRows $salesPaymentGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $salesPaymentGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $salesPaymentGroup $.Options}}{{end}}</tbody></table></div>
+        <div class="section-head"><h2>{{$salesPaymentGroup.Label}}</h2></div>
+        <div class="table-wrap modal-table"><table class="editable-grid purchase-payment-grid"><thead><tr><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead><tbody id="rows-{{$salesPaymentGroup.Key}}">{{$rows := index $.LineRows $salesPaymentGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_payment_row" dictRow $salesPaymentGroup $.Options .}}{{end}}{{else}}{{template "direct_payment_row" dictLine $salesPaymentGroup $.Options}}{{end}}</tbody></table></div>
       </section>
       {{else if eq .Form.Kind "stock-transactions"}}
       <section class="transfer-legacy-form">
@@ -422,14 +548,14 @@
         <label class="transfer-field transfer-id"><span>Transfer ID:</span><input name="transfer_id" value="{{fieldValue $.Record "transfer_id"}}"></label>
         <label class="transfer-field transfer-transaction"><span>Transaction:</span><input name="transaction" value="{{fieldValue $.Record "transaction"}}"></label>
         <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-        <label class="transfer-field transfer-dr-file"><span>DR File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{range index $.Options "dr_documents"}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-dr-file"><span>Stock Out File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{range index $.Options "dr_documents"}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
         <label class="transfer-field transfer-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
         <label class="transfer-field transfer-updated-by"><span>Last Update By:</span><input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true"></label>
       </section>
 
       {{$transferDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section sales-line-details">
-        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}</div>
+        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}</div>
         <div class="table-wrap modal-table">
           <table class="editable-grid sales-details-grid">
             <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th><th>Capital</th><th>Markup</th><th>MU %</th></tr></thead>
@@ -442,10 +568,10 @@
                 <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
                 <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                 <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
-                <td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td>
-                <td class="editable-cell number-cell" contenteditable="true" data-field="capital">{{fieldValue . "capital"}}</td>
-                <td class="editable-cell number-cell" contenteditable="true" data-field="markup">{{fieldValue . "markup"}}</td>
-                <td class="editable-cell number-cell" contenteditable="true" data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
+                <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
+                <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="capital">{{fieldValue . "capital"}}</td>
+                <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="markup">{{fieldValue . "markup"}}</td>
+                <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="markup_pct">{{fieldValue . "markup_pct"}}</td>
                 <td class="hidden-col">
                   <input type="hidden" name="line_details_dr_line_id" data-field-input="dr_line_id" value="{{fieldValue . "dr_line_id"}}">
                   <input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}">
@@ -461,7 +587,7 @@
                   <input type="hidden" name="line_details_markup_pct" data-field-input="markup_pct" value="{{fieldValue . "markup_pct"}}">
                 </td>
               </tr>
-              {{end}}{{else}}<tr><td colspan="9" class="empty">Select a DR file to load detail quantities.</td></tr>{{end}}
+              {{end}}{{else}}<tr><td colspan="9" class="empty">Select a Stock Out file to load detail quantities.</td></tr>{{end}}
             </tbody>
           </table>
         </div>
@@ -479,8 +605,8 @@
           <section class="sales-totals"><label>Total:<input readonly data-sales-total></label><label>Less:<input readonly data-sales-less-a></label><label>Add:<input readonly data-sales-add></label><label>Net:<input readonly data-sales-net></label></section>
         </div>
         <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
-          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferDiscountGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$transferDiscountGroup.Key}}" hx-target="#rows-{{$transferDiscountGroup.Key}}" hx-swap="beforeend">Add Row</button></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-discounts">{{$rows := index $.LineRows $transferDiscountGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $transferDiscountGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $transferDiscountGroup $.Options}}{{end}}</tbody></table></div></section>
-          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferAdditionalGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$transferAdditionalGroup.Key}}" hx-target="#rows-{{$transferAdditionalGroup.Key}}" hx-swap="beforeend">Add Row</button></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $transferAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $transferAdditionalGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $transferAdditionalGroup $.Options}}{{end}}</tbody></table></div></section>
+          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferDiscountGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-discounts">{{$rows := index $.LineRows $transferDiscountGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferDiscountGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferDiscountGroup $.Options}}{{end}}</tbody></table></div></section>
+          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferAdditionalGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $transferAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferAdditionalGroup $.Options}}{{end}}</tbody></table></div></section>
         </div>
       </section>
       {{else if eq .Form.Kind "ap-credit"}}
@@ -497,13 +623,13 @@
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section credit-line-checks">
-        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
-          <table>
-            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+          <table class="editable-grid checks-in-details-grid">
+            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
             <tbody id="rows-{{$creditChecksGroup.Key}}">
               {{$rows := index $.LineRows $creditChecksGroup.Key}}
-              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+              {{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $creditChecksGroup $.Options}}{{end}}
             </tbody>
           </table>
         </div>
@@ -522,13 +648,13 @@
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section credit-line-checks">
-        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
-          <table>
-            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+          <table class="editable-grid checks-in-details-grid">
+            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
             <tbody id="rows-{{$creditChecksGroup.Key}}">
               {{$rows := index $.LineRows $creditChecksGroup.Key}}
-              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+              {{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $creditChecksGroup $.Options}}{{end}}
             </tbody>
           </table>
         </div>
@@ -547,13 +673,13 @@
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section credit-line-checks">
-        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2><button type="button" hx-get="/line-row/{{$creditChecksGroup.Key}}" hx-target="#rows-{{$creditChecksGroup.Key}}" hx-swap="beforeend">Add Row</button></div>
+        <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
-          <table>
-            <thead><tr>{{range $creditChecksGroup.Columns}}{{if .Hidden}}<th class="hidden-col"></th>{{else}}<th>{{.Label}}</th>{{end}}{{end}}</tr></thead>
+          <table class="editable-grid checks-in-details-grid">
+            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
             <tbody id="rows-{{$creditChecksGroup.Key}}">
               {{$rows := index $.LineRows $creditChecksGroup.Key}}
-              {{if $rows}}{{range $rows}}{{template "line_row.gohtml" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{template "line_row.gohtml" dictLine $creditChecksGroup $.Options}}{{end}}
+              {{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $creditChecksGroup $.Options}}{{end}}
             </tbody>
           </table>
         </div>
@@ -586,7 +712,7 @@
 
       {{$expenseDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section expense-line-details">
-        <div class="section-head"><h2>{{$expenseDetailsGroup.Label}}</h2><button type="button" onclick="addExpenseRow()">Add Row</button></div>
+        <div class="section-head"><h2>{{$expenseDetailsGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
           <table class="editable-grid expense-details-grid">
             <datalist id="expense-code-options">{{range index $.Options "expense_charts"}}<option value="{{.Label}}"></option>{{end}}</datalist>
@@ -611,8 +737,6 @@
               </tr>
               {{end}}{{else}}
               <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
-              <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
-              <tr class="expense-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="expense-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
               {{end}}
             </tbody>
           </table>
@@ -630,7 +754,7 @@
 
       {{$otherIncomeDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section other-income-line-details">
-        <div class="section-head"><h2>{{$otherIncomeDetailsGroup.Label}}</h2><button type="button" onclick="addOtherIncomeRow()">Add Row</button></div>
+        <div class="section-head"><h2>{{$otherIncomeDetailsGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
           <table class="editable-grid other-income-details-grid">
             <datalist id="other-income-code-options">{{range index $.Options "other_income_charts"}}<option value="{{.Label}}"></option>{{end}}</datalist>
@@ -640,8 +764,6 @@
               {{if $rows}}{{range $rows}}
               <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference">{{fieldValue . "reference"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="cash">{{fieldValue . "cash"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="check">{{fieldValue . "check"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="total">{{fieldValue . "total"}}</td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id" value="{{fieldValue . "code_id"}}"><input type="hidden" name="line_details_reference" data-field-input="reference" value="{{fieldValue . "reference"}}"><input type="hidden" name="line_details_cash" data-field-input="cash" value="{{fieldValue . "cash"}}"><input type="hidden" name="line_details_check" data-field-input="check" value="{{fieldValue . "check"}}"><input type="hidden" name="line_details_total" data-field-input="total" value="{{fieldValue . "total"}}"></td></tr>
               {{end}}{{else}}
-              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
-              <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
               <tr class="other-income-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="other-income-code-options" data-field="code_label" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="reference"></td><td class="editable-cell number-cell" contenteditable="true" data-field="cash"></td><td class="editable-cell number-cell" contenteditable="true" data-field="check"></td><td class="editable-cell number-cell" contenteditable="true" data-field="total"></td><td class="hidden-col"><input type="hidden" name="line_details_code_id" data-field-input="code_id"><input type="hidden" name="line_details_reference" data-field-input="reference"><input type="hidden" name="line_details_cash" data-field-input="cash"><input type="hidden" name="line_details_check" data-field-input="check"><input type="hidden" name="line_details_total" data-field-input="total"></td></tr>
               {{end}}
             </tbody>
@@ -659,23 +781,48 @@
 
       {{$stockInDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section stock-in-line-details">
-        <div class="section-head"><h2>{{$stockInDetailsGroup.Label}}</h2><button type="button" onclick="addPurchaseDetailRow()">Add Row</button></div>
+        <div class="section-head"><h2>{{$stockInDetailsGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
-          <datalist id="stock-in-stock-code-options">{{range index $.Options "stocks"}}<option value="{{.Label}}"></option>{{end}}</datalist>
           <table class="editable-grid stock-in-details-grid">
             <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th></tr></thead>
             <tbody id="rows-details">
               {{$rows := index $.LineRows "details"}}
               {{if $rows}}
                 {{range $rows}}
-                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off" value="{{optionCode $.Options "stocks" (fieldValue . "stock_id")}}"></td><td class="editable-cell" contenteditable="true" data-field="stock_name">{{optionName $.Options "stocks" (fieldValue . "stock_id")}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="amount">{{fieldValue . "amount"}}</td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}"><input type="hidden" name="line_details_qty" data-field-input="qty" value="{{fieldValue . "qty"}}"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}"><input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}"></td></tr>
+                <tr class="purchase-detail-row stock-in-detail-row" data-stock-picker-row="purchase"><td class="row-no"></td><td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter" value="{{optionCode $.Options "stocks" (fieldValue . "stock_id")}}"></td><td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name">{{optionName $.Options "stocks" (fieldValue . "stock_id")}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td><td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id" value="{{fieldValue . "stock_id"}}"><input type="hidden" name="line_details_qty" data-field-input="qty" value="{{fieldValue . "qty"}}"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost" value="{{fieldValue . "unit_cost"}}"><input type="hidden" name="line_details_amount" data-field-input="amount" value="{{fieldValue . "amount"}}"></td></tr>
                 {{end}}
               {{else}}
-                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="stock_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id"><input type="hidden" name="line_details_qty" data-field-input="qty"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost"><input type="hidden" name="line_details_amount" data-field-input="amount"></td></tr>
-                <tr class="purchase-detail-row stock-in-detail-row"><td class="row-no"></td><td><input class="cell-combobox" list="stock-in-stock-code-options" data-field="stock_code" autocomplete="off"></td><td class="editable-cell" contenteditable="true" data-field="stock_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id"><input type="hidden" name="line_details_qty" data-field-input="qty"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost"><input type="hidden" name="line_details_amount" data-field-input="amount"></td></tr>
+                <tr class="purchase-detail-row stock-in-detail-row" data-stock-picker-row="purchase"><td class="row-no"></td><td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter"></td><td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td><td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost"></td><td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount"></td><td class="hidden-col"><input type="hidden" name="line_details_stock_id" data-field-input="stock_id"><input type="hidden" name="line_details_qty" data-field-input="qty"><input type="hidden" name="line_details_unit_cost" data-field-input="unit_cost"><input type="hidden" name="line_details_amount" data-field-input="amount"></td></tr>
               {{end}}
             </tbody>
           </table>
+        </div>
+        <div class="purchase-stock-picker is-hidden" data-purchase-stock-picker aria-hidden="true">
+          <div class="purchase-stock-picker-backdrop" data-purchase-stock-picker-close></div>
+          <div class="purchase-stock-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-stock-picker-title">
+            <div class="purchase-stock-picker-titlebar">
+              <h3 id="purchase-stock-picker-title">Stock List</h3>
+              <button type="button" class="purchase-stock-picker-close" data-purchase-stock-picker-close aria-label="Close">×</button>
+            </div>
+            <div class="purchase-stock-picker-body">
+              <label class="purchase-stock-picker-search">
+                <span>Search:</span>
+                <input type="search" data-purchase-stock-picker-search placeholder="Type stock code or stock name">
+              </label>
+              <div class="purchase-stock-picker-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Stock Code</th>
+                      <th>Stock Name</th>
+                    </tr>
+                  </thead>
+                  <tbody data-purchase-stock-picker-results></tbody>
+                </table>
+                <p class="purchase-stock-picker-empty is-hidden" data-purchase-stock-picker-empty>No matching stock found.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       {{else if eq .Form.Kind "checks-in"}}
@@ -688,7 +835,7 @@
 
       {{$checksInGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section checks-in-line-details">
-        <div class="section-head"><h2>{{$checksInGroup.Label}}</h2><button type="button" onclick="addChecksInRow()">Add Row</button></div>
+        <div class="section-head"><h2>{{$checksInGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
           <table class="editable-grid checks-in-details-grid">
             <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
@@ -700,8 +847,6 @@
                 {{end}}
               {{else}}
                 <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
-                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
-                <tr class="checks-in-detail-row"><td class="row-no"></td><td class="editable-cell" contenteditable="true" data-field="number"></td><td><input class="cell-date" type="date" data-field="date"></td><td class="editable-cell" contenteditable="true" data-field="bank_name"></td><td class="editable-cell number-cell" contenteditable="true" data-field="amount"></td><td class="editable-cell" contenteditable="true" data-field="nature"></td><td class="hidden-col"><input type="hidden" name="line_checks_number" data-field-input="number"><input type="hidden" name="line_checks_date" data-field-input="date"><input type="hidden" name="line_checks_bank_name" data-field-input="bank_name"><input type="hidden" name="line_checks_amount" data-field-input="amount"><input type="hidden" name="line_checks_nature" data-field-input="nature"></td></tr>
               {{end}}
             </tbody>
           </table>
@@ -711,20 +856,49 @@
       <section class="dr-legacy-form">
         <label class="dr-field dr-customer">
           <span>Customer:</span>
-          <input name="customer_name" list="dr-customer-options" value="" autocomplete="off" required>
-          <input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-dr-party-id>
-          <datalist id="dr-customer-options">
-            {{range index $.Options "customers"}}
-              <option value="{{.Label}}"></option>
-            {{end}}
-          </datalist>
+          <span class="purchase-supplier-control">
+            <select name="party_id" data-dr-party-select required>
+              <option value="">Select customer</option>
+              {{$currentDRCustomer := fieldValue $.Record "party_id"}}
+              {{range index $.Options "customers"}}
+                <option value="{{.Value}}" {{if eq .Value $currentDRCustomer}}selected{{end}}>{{.Label}}</option>
+              {{end}}
+            </select>
+            <button type="button" class="purchase-supplier-browse" data-dr-customer-browse>Browse</button>
+          </span>
         </label>
+        <div class="purchase-supplier-picker is-hidden" data-dr-customer-picker aria-hidden="true">
+          <div class="purchase-supplier-picker-backdrop" data-dr-customer-picker-close></div>
+          <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="dr-customer-picker-title">
+            <div class="purchase-supplier-picker-titlebar">
+              <h3 id="dr-customer-picker-title">Customer List</h3>
+              <button type="button" class="purchase-supplier-picker-close" data-dr-customer-picker-close aria-label="Close">×</button>
+            </div>
+            <div class="purchase-supplier-picker-body">
+              <label class="purchase-supplier-picker-search">
+                <span>Search:</span>
+                <input type="search" data-dr-customer-picker-search placeholder="Type customer name">
+              </label>
+              <div class="purchase-supplier-picker-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                    </tr>
+                  </thead>
+                  <tbody data-dr-customer-picker-results></tbody>
+                </table>
+                <p class="purchase-supplier-picker-empty is-hidden" data-dr-customer-picker-empty>No matching customer found.</p>
+              </div>
+            </div>
+          </div>
+        </div>
         <label class="dr-field dr-entry-date">
           <span>Entry Date:</span>
           <input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required>
         </label>
         <label class="dr-field dr-number">
-          <span>DR Number:</span>
+          <span>SO Number:</span>
           <input name="reference" value="{{fieldValue $.Record "reference"}}">
         </label>
         <label class="dr-field dr-date">
@@ -741,15 +915,9 @@
       <section class="line-section modal-line-section purchase-line-section dr-line-section">
         <div class="section-head">
           <h2>{{$drDetailsGroup.Label}}</h2>
-          <button type="button" onclick="addDRDetailRow()">Add Row</button>
         </div>
         <div class="table-wrap modal-table">
           <table class="editable-grid dr-details-grid">
-            <datalist id="dr-stock-code-options">
-              {{range index $.Options "stocks"}}
-                <option value="{{.Label}}"></option>
-              {{end}}
-            </datalist>
             <thead>
               <tr>
                 <th>No.</th>
@@ -762,9 +930,9 @@
               {{$rows := index $.LineRows "details"}}
               {{if $rows}}
                 {{range $rows}}
-                <tr class="dr-detail-row">
+                <tr class="dr-detail-row" data-stock-picker-row="dr">
                   <td class="row-no"></td>
-                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter"></td>
                   <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
                   <td class="hidden-col">
@@ -774,29 +942,9 @@
                 </tr>
                 {{end}}
               {{else}}
-                <tr class="dr-detail-row">
+                <tr class="dr-detail-row" data-stock-picker-row="dr">
                   <td class="row-no"></td>
-                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
-                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
-                  <td class="hidden-col">
-                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
-                    <input type="hidden" name="line_details_qty" data-field-input="qty">
-                  </td>
-                </tr>
-                <tr class="dr-detail-row">
-                  <td class="row-no"></td>
-                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
-                  <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
-                  <td class="hidden-col">
-                    <input type="hidden" name="line_details_stock_id" data-field-input="stock_id">
-                    <input type="hidden" name="line_details_qty" data-field-input="qty">
-                  </td>
-                </tr>
-                <tr class="dr-detail-row">
-                  <td class="row-no"></td>
-                  <td><input class="cell-combobox" list="dr-stock-code-options" data-field="stock_code" autocomplete="off"></td>
+                  <td class="stock-code-cell"><input class="cell-combobox" data-field="stock_code" data-purchase-stock-trigger autocomplete="off" placeholder="Press Enter"></td>
                   <td class="editable-cell stock-name-cell" contenteditable="true" data-field="stock_name"></td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="qty"></td>
                   <td class="hidden-col">
@@ -807,6 +955,33 @@
               {{end}}
             </tbody>
           </table>
+        </div>
+        <div class="purchase-stock-picker is-hidden" data-purchase-stock-picker aria-hidden="true">
+          <div class="purchase-stock-picker-backdrop" data-purchase-stock-picker-close></div>
+          <div class="purchase-stock-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-stock-picker-title">
+            <div class="purchase-stock-picker-titlebar">
+              <h3 id="purchase-stock-picker-title">Stock List</h3>
+              <button type="button" class="purchase-stock-picker-close" data-purchase-stock-picker-close aria-label="Close">×</button>
+            </div>
+            <div class="purchase-stock-picker-body">
+              <label class="purchase-stock-picker-search">
+                <span>Search:</span>
+                <input type="search" data-purchase-stock-picker-search placeholder="Type stock code or stock name">
+              </label>
+              <div class="purchase-stock-picker-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Stock Code</th>
+                      <th>Stock Name</th>
+                    </tr>
+                  </thead>
+                  <tbody data-purchase-stock-picker-results></tbody>
+                </table>
+                <p class="purchase-stock-picker-empty is-hidden" data-purchase-stock-picker-empty>No matching stock found.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       {{else if eq .Form.Kind "stock-categories"}}
@@ -863,30 +1038,38 @@
           <input name="name" value="{{fieldValue $.Record "name"}}" required>
         </label>
         <label class="legacy-record-field">
-          <span>Category Group:</span>
-          <input name="category_group" list="list-category_group" value="{{fieldValue $.Record "category_group"}}">
-          <datalist id="list-category_group">
-            {{range index $.Options "stock_category_groups"}}
-              <option value="{{.Value}}">{{.Label}}</option>
+          <span>Category:</span>
+          <select name="category_group">
+            <option value="">Select category</option>
+            {{range index $.Options "stock_categories"}}
+              <option value="{{.Value}}" {{if eq .Value (fieldValue $.Record "category_group")}}selected{{end}}>{{.Label}}</option>
             {{end}}
-          </datalist>
+          </select>
         </label>
-        <label class="legacy-record-field">
-          <span>Unit:</span>
-          <input name="unit" type="number" step="1" value="{{fieldValue $.Record "unit"}}">
-        </label>
+        <div class="legacy-record-row legacy-record-row-split">
+          <label class="legacy-record-field legacy-record-field-split">
+            <span>Unit:</span>
+            <input name="unit" value="{{fieldValue $.Record "unit"}}">
+          </label>
+          <label class="legacy-record-field legacy-record-date legacy-record-field-split">
+            <span>Latest Cost:</span>
+            <input name="latest_cost" type="number" step="0.01" value="{{fieldValue $.Record "latest_cost"}}" readonly tabindex="-1" aria-readonly="true">
+          </label>
+        </div>
         <label class="legacy-record-field">
           <span>Description:</span>
           <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
         </label>
-        <label class="legacy-record-field legacy-record-date">
-          <span>Latest Cost:</span>
-          <input name="latest_cost" type="number" step="0.01" value="{{fieldValue $.Record "latest_cost"}}">
-        </label>
-        <label class="legacy-record-field legacy-record-date">
-          <span>Min. Inventory:</span>
-          <input name="min_inventory" type="number" step="1" value="{{fieldValue $.Record "min_inventory"}}">
-        </label>
+        <div class="legacy-record-row legacy-record-row-split">
+          <label class="legacy-record-field legacy-record-date legacy-record-field-split">
+            <span>Min. Inventory:</span>
+            <input name="min_inventory" type="number" step="1" value="{{fieldValue $.Record "min_inventory"}}">
+          </label>
+          <label class="legacy-record-field legacy-record-date legacy-record-field-split">
+            <span>SOH:</span>
+            <input value="{{fieldValue $.Record "soh"}}" readonly tabindex="-1" aria-readonly="true">
+          </label>
+        </div>
         <label class="legacy-record-field">
           <span>Encoder:</span>
           <input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true">
@@ -985,19 +1168,19 @@
         </label>
         <label class="legacy-record-field">
           <span>Supplier Code:</span>
-          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+          <input name="code" value="{{fieldValue $.Record "code"}}">
         </label>
         <label class="legacy-record-field">
           <span>Company:</span>
-          <input name="company" value="{{fieldValue $.Record "company"}}">
+          <input name="company" value="{{fieldValue $.Record "company"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Lastname:</span>
-          <input name="lastname" value="{{fieldValue $.Record "lastname"}}">
+          <input name="lastname" value="{{fieldValue $.Record "lastname"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Firstname:</span>
-          <input name="firstname" value="{{fieldValue $.Record "firstname"}}">
+          <input name="firstname" value="{{fieldValue $.Record "firstname"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Middle Name:</span>
@@ -1010,10 +1193,6 @@
         <label class="legacy-record-field">
           <span>Address:</span>
           <textarea name="address" rows="3">{{fieldValue $.Record "address"}}</textarea>
-        </label>
-        <label class="legacy-record-field legacy-record-date">
-          <span>Balance:</span>
-          <input name="balance" type="number" step="0.01" value="{{fieldValue $.Record "balance"}}">
         </label>
         <label class="legacy-record-field">
           <span>Encoder:</span>
@@ -1036,19 +1215,19 @@
         </label>
         <label class="legacy-record-field">
           <span>Client Code:</span>
-          <input name="code" value="{{fieldValue $.Record "code"}}" required>
+          <input name="code" value="{{fieldValue $.Record "code"}}">
         </label>
         <label class="legacy-record-field">
           <span>Company:</span>
-          <input name="company" value="{{fieldValue $.Record "company"}}">
+          <input name="company" value="{{fieldValue $.Record "company"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Lastname:</span>
-          <input name="lastname" value="{{fieldValue $.Record "lastname"}}">
+          <input name="lastname" value="{{fieldValue $.Record "lastname"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Firstname:</span>
-          <input name="firstname" value="{{fieldValue $.Record "firstname"}}">
+          <input name="firstname" value="{{fieldValue $.Record "firstname"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Middle Name:</span>
@@ -1061,10 +1240,6 @@
         <label class="legacy-record-field">
           <span>Address:</span>
           <textarea name="address" rows="3">{{fieldValue $.Record "address"}}</textarea>
-        </label>
-        <label class="legacy-record-field legacy-record-date">
-          <span>Balance:</span>
-          <input name="balance" type="number" step="0.01" value="{{fieldValue $.Record "balance"}}">
         </label>
         <label class="legacy-record-field">
           <span>Credit Term:</span>
@@ -1112,10 +1287,6 @@
           <span>Name:</span>
           <input name="name" value="{{fieldValue $.Record "name"}}" required>
         </label>
-        <label class="legacy-record-field">
-          <span>Description:</span>
-          <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
-        </label>
         <label class="legacy-record-field legacy-monitor-field">
           <span></span>
           <span class="legacy-checkbox-copy">
@@ -1129,6 +1300,10 @@
             <input type="checkbox" name="daily_sales_only" {{if truthy (fieldValue $.Record "daily_sales_only")}}checked{{end}}>
             <span>For Daily Sales and Collection Report Only</span>
           </span>
+        </label>
+        <label class="legacy-record-field">
+          <span>Description:</span>
+          <textarea name="description" rows="3">{{fieldValue $.Record "description"}}</textarea>
         </label>
         <label class="legacy-record-field">
           <span>Encoder:</span>
@@ -1184,9 +1359,9 @@
           <div class="section-head">
             <h2>{{.Label}}</h2>
             {{if and (eq $.Form.Kind "sales") (eq .Key "details")}}
-              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}
             {{else if and (eq $.Form.Kind "stock-transactions") (eq .Key "details")}}
-              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a DR file first.</span>{{end}}
+              {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}
             {{else}}
               <button type="button" hx-get="/line-row/{{.Key}}" hx-target="#rows-{{.Key}}" hx-swap="beforeend">Add Row</button>
             {{end}}
@@ -1203,7 +1378,7 @@
                     {{template "line_row.gohtml" dictRow $group $.Options .}}
                   {{end}}
                 {{else if and (or (eq $.Form.Kind "sales") (eq $.Form.Kind "stock-transactions")) (eq .Key "details")}}
-                  <tr><td colspan="20" class="empty">Select a DR file to load detail quantities.</td></tr>
+                  <tr><td colspan="20" class="empty">Select a Stock Out file to load detail quantities.</td></tr>
                 {{else}}
                   {{template "line_row.gohtml" dictLine $group $.Options}}
                   {{template "line_row.gohtml" dictLine $group $.Options}}
@@ -1364,18 +1539,20 @@
       </div>
       {{else if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "other-income-chart")}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
+        {{if and .CanDelete (not .Embedded)}}
         <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
+        {{end}}
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
-        <button type="button" title="First" aria-label="First record" onclick="goStockCategoryRecord('{{.FirstRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
-        <button type="button" title="Previous" aria-label="Previous record" onclick="goStockCategoryRecord('{{.PreviousRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
-        <button type="button" title="Next" aria-label="Next record" onclick="goStockCategoryRecord('{{.NextRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
-        <button type="button" title="Last" aria-label="Last record" onclick="goStockCategoryRecord('{{.LastRecordID}}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="First" aria-label="First record" onclick="goStockCategoryRecord('{{.FirstRecordID}}')" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Previous" aria-label="Previous record" onclick="goStockCategoryRecord('{{.PreviousRecordID}}')" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6l-8 6 8 6z"/></svg></button>
+        <button type="button" title="Next" aria-label="Next record" onclick="goStockCategoryRecord('{{.NextRecordID}}')" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
+        <button type="button" title="Last" aria-label="Last record" onclick="goStockCategoryRecord('{{.LastRecordID}}')" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
-        <button type="submit" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if not .CanDelete}}disabled{{end}} onclick="return confirm('Delete this record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        <button type="submit" class="legacy-toolbar-delete" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if or (not .CanDelete) .Embedded}}disabled{{end}} onclick="return confirm('Delete this record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
-        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
+        <button type="button" title="Open" aria-label="Open list" data-form-action="open-list" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
       </div>
       {{else}}
       <button type="submit">Save</button>
@@ -1384,6 +1561,7 @@
     </div>
   </form>
 
+  {{if not .Embedded}}
   <div class="form-backdrop-table table-wrap">
     <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
       <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
@@ -1438,7 +1616,7 @@
         {{range .Records}}
         {{$record := .}}
         {{if eq $.Form.Kind "stock-categories"}}
-        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
           <td>{{index . "name"}}</td>
           <td>{{index . "group_name"}}</td>
@@ -1448,7 +1626,7 @@
           <td>{{index . "updated_by"}}</td>
         </tr>
         {{else}}
-        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+        <tr class="data-row" data-record-id="{{index . "id"}}" data-record-search="{{range $.Form.Fields}} {{fieldValue $record .Key}}{{end}}" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
           {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}
           <td>{{index . "encoder"}}</td>
@@ -1470,7 +1648,7 @@
         </tr>
         {{end}}
         {{range .Documents}}
-        <tr class="data-row" data-record-id="{{.ID}}" data-record-search="{{.EntryID}} {{.EntryDate.Format "2006-01-02"}} {{.Party}} {{.Reference}} {{.DRRef}} {{.Status}} {{.Branch}} {{.Net}} {{.Encoder}}" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
+        <tr class="data-row" data-record-id="{{.ID}}" data-record-search="{{.EntryID}} {{.EntryDate.Format "2006-01-02"}} {{.Party}} {{.Reference}} {{.DRRef}} {{.Status}} {{.Branch}} {{.Net}} {{.Encoder}}" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
           <td>{{.EntryID}}</td>
           <td>{{.EntryDate.Format "2006-01-02"}}</td>
           <td>{{.Party}}</td>
@@ -1488,14 +1666,21 @@
       {{end}}
     </table>
   </div>
+  {{end}}
 </main>
 {{if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "purchases") (eq .Form.Kind "dr") (eq .Form.Kind "sales") (eq .Form.Kind "stock-transactions") (eq .Form.Kind "ap-credit") (eq .Form.Kind "ar-credit") (eq .Form.Kind "rebates") (eq .Form.Kind "ap-debit") (eq .Form.Kind "ar-debit") (eq .Form.Kind "expenses") (eq .Form.Kind "other-income") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
 {{if .CanDelete}}
 <form id="master-delete-form" method="post" action="{{.Form.RouteBase}}/{{fieldValue .Record "id"}}/delete"></form>
 {{end}}
-<script>
+  <script>
   (function () {
     var routeBase = "{{.Form.RouteBase}}";
+    var page = document.querySelector(".form-page");
+    var formShell = document.querySelector(".form-shell.modal-form");
+    var formBody = formShell && formShell.querySelector(".modal-body");
+    var embeddedMode = !!(formShell && formShell.dataset.embedded === "true");
+    var embeddedSaved = !!(formShell && formShell.dataset.embeddedSaved === "true");
+    var existingRecord = !!(formShell && !embeddedMode && (formShell.dataset.existingRecord === "true" || /\/\d+\/edit$/.test(window.location.pathname)));
     var purchaseStocks = [
       {{range index .Options "stocks"}}
       { id: "{{.Value}}", label: "{{.Label}}" },
@@ -1516,6 +1701,16 @@
       { id: "{{.Value}}", label: "{{.Label}}" },
       {{end}}
     ];
+    var drDocuments = [
+      {{range index .Options "dr_documents"}}
+      { id: "{{.Value}}", label: "{{.Label}}" },
+      {{end}}
+    ].map(function (document) {
+      var parts = String(document.label || "").split(" - ");
+      document.soNumber = (parts.shift() || document.label || "").trim();
+      document.customer = parts.join(" - ").trim();
+      return document;
+    });
     var salesStockGroups = [
       {{range index .Options "stock_groups"}}
       { id: "{{.Value}}", label: "{{.Label}}" },
@@ -1587,14 +1782,224 @@
       }
     };
 
+    function restoreElementTabIndex(element) {
+      if (!element) return;
+      if (Object.prototype.hasOwnProperty.call(element.dataset, "originalTabindex")) {
+        element.setAttribute("tabindex", element.dataset.originalTabindex);
+      } else {
+        element.removeAttribute("tabindex");
+      }
+    }
+
+    function rememberFormModeState() {
+      if (!formBody) return;
+      formBody.querySelectorAll("input, select, textarea, button").forEach(function (element) {
+        if (!Object.prototype.hasOwnProperty.call(element.dataset, "originalDisabled")) {
+          element.dataset.originalDisabled = element.disabled ? "true" : "false";
+        }
+        if (!Object.prototype.hasOwnProperty.call(element.dataset, "originalReadonly")) {
+          element.dataset.originalReadonly = element.readOnly ? "true" : "false";
+        }
+        if (element.hasAttribute("tabindex") && !Object.prototype.hasOwnProperty.call(element.dataset, "originalTabindex")) {
+          element.dataset.originalTabindex = element.getAttribute("tabindex");
+        }
+      });
+      formBody.querySelectorAll("[contenteditable]").forEach(function (element) {
+        if (!Object.prototype.hasOwnProperty.call(element.dataset, "originalContenteditable")) {
+          element.dataset.originalContenteditable = element.getAttribute("contenteditable") || "true";
+        }
+        if (element.hasAttribute("tabindex") && !Object.prototype.hasOwnProperty.call(element.dataset, "originalTabindex")) {
+          element.dataset.originalTabindex = element.getAttribute("tabindex");
+        }
+      });
+    }
+
+    function setFormBodyLocked(locked) {
+      if (!formBody) return;
+      formBody.querySelectorAll("input, select, textarea").forEach(function (element) {
+        var type = String(element.type || "").toLowerCase();
+        var originalDisabled = element.dataset.originalDisabled === "true";
+        var originalReadonly = element.dataset.originalReadonly === "true";
+        if (type === "hidden" || type === "submit" || type === "button" || type === "reset") {
+          return;
+        }
+        if (locked) {
+          if (!originalDisabled && !originalReadonly) {
+            element.disabled = true;
+            element.setAttribute("tabindex", "-1");
+          }
+        } else {
+          element.disabled = originalDisabled;
+          if (!originalDisabled && !originalReadonly) {
+            restoreElementTabIndex(element);
+          }
+        }
+      });
+      formBody.querySelectorAll("button").forEach(function (button) {
+        var originalDisabled = button.dataset.originalDisabled === "true";
+        var keepEnabledWhileLocked = button.matches("[data-purchase-tab], [data-sales-tab], [data-sales-edit-stock-out]");
+        button.disabled = locked && !keepEnabledWhileLocked ? true : originalDisabled;
+        if (locked && !keepEnabledWhileLocked) button.setAttribute("tabindex", "-1");
+        else restoreElementTabIndex(button);
+      });
+      formBody.querySelectorAll("[contenteditable]").forEach(function (element) {
+        var originalValue = element.dataset.originalContenteditable || "true";
+        element.setAttribute("contenteditable", locked ? "false" : originalValue);
+        if (locked) element.setAttribute("tabindex", "-1");
+        else restoreElementTabIndex(element);
+      });
+    }
+
+    function setToolbarLinkDisabled(link, disabled) {
+      if (!link) return;
+      link.classList.toggle("is-disabled", disabled);
+      link.setAttribute("aria-disabled", disabled ? "true" : "false");
+      if (disabled) {
+        link.setAttribute("tabindex", "-1");
+      } else {
+        restoreElementTabIndex(link);
+      }
+    }
+
+    function setToolbarMode(toolbar, editing) {
+      if (!toolbar) return;
+      var saveButton = toolbar.querySelector("[data-form-mode-save]");
+      var editButton = toolbar.querySelector("[data-form-mode-control='edit']");
+      var closeButton = toolbar.querySelector("[data-form-mode-control='close-edit']");
+      Array.prototype.forEach.call(toolbar.querySelectorAll("button"), function (button) {
+        if (!Object.prototype.hasOwnProperty.call(button.dataset, "toolbarOriginalDisabled")) {
+          button.dataset.toolbarOriginalDisabled = button.disabled ? "true" : "false";
+        }
+        if (button.hasAttribute("tabindex") && !Object.prototype.hasOwnProperty.call(button.dataset, "originalTabindex")) {
+          button.dataset.originalTabindex = button.getAttribute("tabindex");
+        }
+      });
+      Array.prototype.forEach.call(toolbar.querySelectorAll("a.button"), function (link) {
+        if (link.hasAttribute("tabindex") && !Object.prototype.hasOwnProperty.call(link.dataset, "originalTabindex")) {
+          link.dataset.originalTabindex = link.getAttribute("tabindex");
+        }
+      });
+      Array.prototype.forEach.call(toolbar.querySelectorAll("button"), function (button) {
+        if (button === saveButton || button === editButton || button === closeButton) return;
+        if (editing) {
+          button.disabled = true;
+          button.setAttribute("tabindex", "-1");
+        } else {
+          button.disabled = button.dataset.toolbarOriginalDisabled === "true";
+          restoreElementTabIndex(button);
+        }
+      });
+      Array.prototype.forEach.call(toolbar.querySelectorAll("a.button"), function (link) {
+        setToolbarLinkDisabled(link, editing);
+      });
+      if (saveButton) {
+        var saveOriginalDisabled = saveButton.dataset.toolbarOriginalDisabled === "true";
+        saveButton.disabled = editing ? saveOriginalDisabled : true;
+        if (!editing) saveButton.setAttribute("tabindex", "-1");
+        else restoreElementTabIndex(saveButton);
+      }
+      if (editButton) {
+        editButton.hidden = editing;
+        editButton.disabled = editing;
+        editButton.style.display = editing ? "none" : "";
+        if (editing) editButton.setAttribute("tabindex", "-1");
+        else restoreElementTabIndex(editButton);
+      }
+      if (closeButton) {
+        closeButton.hidden = !editing;
+        closeButton.disabled = !editing;
+        closeButton.style.display = !editing ? "none" : "";
+        if (!editing) closeButton.setAttribute("tabindex", "-1");
+        else restoreElementTabIndex(closeButton);
+      }
+      if (page) page.classList.toggle("is-editing", editing);
+      if (formShell) formShell.dataset.formMode = editing ? "edit" : "view";
+    }
+
+    function createToolbarModeButtons() {
+      if (!existingRecord) return;
+      document.querySelectorAll(".legacy-form-toolbar").forEach(function (toolbar) {
+        if (toolbar.querySelector("[data-form-mode-control='edit']")) return;
+        var saveButton = toolbar.querySelector("button[type='submit'][aria-label='Save']");
+        if (!saveButton) return;
+        saveButton.setAttribute("data-form-mode-save", "");
+
+        var editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.title = "Edit";
+        editButton.setAttribute("aria-label", "Edit form");
+        editButton.setAttribute("data-form-mode-control", "edit");
+        editButton.className = "legacy-toolbar-edit";
+        editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 9-9-3.5-3.5-9 9L4 20z"/><path d="M13.5 6.5l3.5 3.5"/><path d="M15 4l3 3"/></svg>';
+        editButton.addEventListener("click", function () {
+          setFormBodyLocked(false);
+          setToolbarMode(toolbar, true);
+        });
+
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.title = "Close Edit";
+        closeButton.setAttribute("aria-label", "Close edit mode");
+        closeButton.setAttribute("data-form-mode-control", "close-edit");
+        closeButton.className = "legacy-toolbar-close-edit";
+        closeButton.hidden = true;
+        closeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+        closeButton.addEventListener("click", function () {
+          window.location.reload();
+        });
+
+        saveButton.insertAdjacentElement("afterend", closeButton);
+        saveButton.insertAdjacentElement("afterend", editButton);
+      });
+    }
+
+    function setNewRecordToolbarMode() {
+      if (existingRecord) return;
+      document.querySelectorAll(".legacy-form-toolbar").forEach(function (toolbar) {
+        var saveButton = toolbar.querySelector("button[type='submit'][aria-label='Save']");
+        var newButton = toolbar.querySelector("[data-form-action='new']");
+        if (newButton) {
+          newButton.hidden = true;
+          newButton.disabled = true;
+          newButton.style.display = "none";
+          newButton.setAttribute("tabindex", "-1");
+        }
+        Array.prototype.forEach.call(toolbar.querySelectorAll("button"), function (button) {
+          if (button === saveButton || button === newButton) return;
+          button.disabled = true;
+          button.setAttribute("tabindex", "-1");
+        });
+        Array.prototype.forEach.call(toolbar.querySelectorAll("a.button"), function (link) {
+          setToolbarLinkDisabled(link, true);
+        });
+      });
+    }
+
     function parseMoney(value) {
-      var number = parseFloat(String(value || "").replace(/,/g, ""));
+      var number = parseFloat(String(value || "").replace(/[,%]/g, ""));
       return Number.isFinite(number) ? number : 0;
     }
 
     function formatMoney(value) {
       if (!Number.isFinite(value) || value === 0) return "";
       return value.toFixed(2);
+    }
+
+    function formatPercent(value) {
+      if (!Number.isFinite(value) || value === 0) return "";
+      return (value * 100).toFixed(2) + "%";
+    }
+
+    function formatZeroMoney(value) {
+      var number = Number.isFinite(value) ? value : parseMoney(value);
+      if (!Number.isFinite(number) || number === 0) return "0";
+      return number.toFixed(2);
+    }
+
+    function formatZeroPercent(value) {
+      var number = Number.isFinite(value) ? value : parseMoney(value);
+      if (!Number.isFinite(number) || number === 0) return "0";
+      return (number * 100).toFixed(2) + "%";
     }
 
     function cellText(cell) {
@@ -1618,6 +2023,37 @@
       }) || null;
     }
 
+    function findExactStock(query, field) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return null;
+      return purchaseStocks.find(function (stock) {
+        return String(stock[field] || "").toLowerCase() === query || String(stock.label || "").toLowerCase() === query;
+      }) || null;
+    }
+
+    function isBlankStockPickerRow(row) {
+      if (!row) return true;
+      return ["stock_id", "stock_code", "stock_name", "qty", "unit_cost", "amount"].every(function (field) {
+        if (field === "stock_id") {
+          return !cellText(row.querySelector("[data-field-input='stock_id']"));
+        }
+        return !cellText(row.querySelector("[data-field='" + field + "']"));
+      });
+    }
+
+    function clearStockPickerRow(row) {
+      if (!row) return;
+      row.querySelectorAll(".editable-cell").forEach(function (cell) {
+        cell.textContent = "";
+      });
+      row.querySelectorAll(".cell-combobox").forEach(function (input) {
+        input.value = "";
+      });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
+        input.value = "";
+      });
+    }
+
     function syncPurchaseDetailRow(row, sourceCell) {
       var stockID = row.querySelector("[data-field-input='stock_id']");
       var codeCell = row.querySelector("[data-field='stock_code']");
@@ -1627,16 +2063,23 @@
       var amountCell = row.querySelector("[data-field='amount']");
       var stock = null;
       if (sourceCell && sourceCell.dataset.field === "stock_name") {
-        stock = findStock(cellText(nameCell), "name");
+        stock = findExactStock(cellText(nameCell), "name");
       } else {
-        stock = findStock(cellText(codeCell), "code");
+        stock = findExactStock(cellText(codeCell), "code");
       }
       if (stock) {
         codeCell.value = stock.code;
         nameCell.textContent = stock.name;
         if (stockID) stockID.value = stock.id;
-      } else if (stockID && !cellText(codeCell) && !cellText(nameCell)) {
-        stockID.value = "";
+      } else {
+        if (stockID) stockID.value = "";
+        if (!cellText(codeCell) && !cellText(nameCell)) {
+          if (stockID) stockID.value = "";
+        } else if (sourceCell && sourceCell.dataset.field === "stock_code") {
+          nameCell.textContent = "";
+        } else if (sourceCell && sourceCell.dataset.field === "stock_name" && !cellText(nameCell)) {
+          codeCell.value = "";
+        }
       }
       var qty = parseMoney(cellText(qtyCell));
       var unitCost = parseMoney(cellText(unitCostCell));
@@ -1662,6 +2105,7 @@
         setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
       });
       updatePurchaseTotals();
+      updateSalesTotals();
     }
 
     function renumberPurchaseDetails() {
@@ -1711,33 +2155,473 @@
       });
       renumberPurchaseDetails();
       updatePurchaseTotals();
+      ensureStockPickerBlankRow("purchase");
+    }
+
+    function hydratePurchaseAdjustments() {
+      document.querySelectorAll(".purchase-adjustment-row").forEach(function (row) {
+        syncPurchaseAdjustmentRow(row);
+      });
+      updatePurchaseTotals();
+    }
+
+    function findPurchaseSupplierByID(id) {
+      return purchaseSuppliers.find(function (item) {
+        return item.id === String(id || "");
+      }) || null;
     }
 
     function syncPurchaseSupplier() {
-      var input = document.querySelector("input[name='party_name']");
-      var hidden = document.querySelector("[data-purchase-party-id]");
-      if (!input || !hidden) return;
-      var query = input.value.trim().toLowerCase();
-      var supplier = purchaseSuppliers.find(function (item) {
-        return item.label.toLowerCase() === query;
-      }) || purchaseSuppliers.find(function (item) {
-        return item.label.toLowerCase().indexOf(query) === 0;
-      });
-      hidden.value = supplier ? supplier.id : "";
-      if (supplier && input.value !== supplier.label) input.value = supplier.label;
+      var select = document.querySelector("[data-purchase-party-select]");
+      if (!select) return null;
+      return findPurchaseSupplierByID(select.value);
     }
 
     function hydratePurchaseSupplier() {
-      var input = document.querySelector("input[name='party_name']");
-      var hidden = document.querySelector("[data-purchase-party-id]");
-      if (!input || !hidden) return;
-      var supplier = purchaseSuppliers.find(function (item) {
-        return item.id === hidden.value;
+      var select = document.querySelector("[data-purchase-party-select]");
+      if (!select) return;
+      if (select.value && !findPurchaseSupplierByID(select.value)) {
+        select.value = "";
+      }
+      select.addEventListener("change", syncPurchaseSupplier);
+    }
+
+    var purchaseSupplierPickerState = {
+      root: document.querySelector("[data-purchase-supplier-picker]"),
+      search: document.querySelector("[data-purchase-supplier-picker-search]"),
+      results: document.querySelector("[data-purchase-supplier-picker-results]"),
+      empty: document.querySelector("[data-purchase-supplier-picker-empty]"),
+      matches: [],
+      selectedIndex: -1
+    };
+
+    if (purchaseSupplierPickerState.root) {
+      purchaseSupplierPickerState.root.classList.add("is-hidden");
+      purchaseSupplierPickerState.root.setAttribute("aria-hidden", "true");
+    }
+
+    function filterPurchaseSuppliers(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return purchaseSuppliers.slice();
+      return purchaseSuppliers.filter(function (supplier) {
+        return String(supplier.label || "").toLowerCase().indexOf(query) !== -1;
       });
-      if (supplier) input.value = supplier.label;
-      input.addEventListener("input", syncPurchaseSupplier);
-      input.addEventListener("change", syncPurchaseSupplier);
-      input.addEventListener("blur", syncPurchaseSupplier);
+    }
+
+    function highlightPurchaseSupplierPickerRow(index) {
+      purchaseSupplierPickerState.selectedIndex = index;
+      if (!purchaseSupplierPickerState.results) return;
+      Array.prototype.forEach.call(purchaseSupplierPickerState.results.querySelectorAll("tr"), function (row, rowIndex) {
+        row.classList.toggle("is-active", rowIndex === index);
+        row.tabIndex = rowIndex === index ? 0 : -1;
+        row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+      });
+    }
+
+    function focusPurchaseSupplierPickerRow(index) {
+      if (!purchaseSupplierPickerState.results || index < 0) return;
+      highlightPurchaseSupplierPickerRow(index);
+      var row = purchaseSupplierPickerState.results.querySelector("[data-supplier-index='" + String(index) + "']");
+      if (!row) return;
+      row.focus();
+      if (typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderPurchaseSupplierPicker(query) {
+      if (!purchaseSupplierPickerState.results) return;
+      purchaseSupplierPickerState.matches = filterPurchaseSuppliers(query);
+      purchaseSupplierPickerState.results.innerHTML = "";
+      purchaseSupplierPickerState.matches.forEach(function (supplier, index) {
+        var row = document.createElement("tr");
+        row.setAttribute("data-purchase-supplier-option", "");
+        row.setAttribute("data-supplier-index", String(index));
+        row.tabIndex = -1;
+
+        var name = document.createElement("td");
+        name.textContent = supplier.label;
+        row.appendChild(name);
+
+        purchaseSupplierPickerState.results.appendChild(row);
+      });
+      if (purchaseSupplierPickerState.empty) {
+        purchaseSupplierPickerState.empty.classList.toggle("is-hidden", purchaseSupplierPickerState.matches.length !== 0);
+      }
+      highlightPurchaseSupplierPickerRow(purchaseSupplierPickerState.matches.length ? 0 : -1);
+    }
+
+    function closePurchaseSupplierPicker() {
+      if (!purchaseSupplierPickerState.root) return;
+      purchaseSupplierPickerState.root.classList.add("is-hidden");
+      purchaseSupplierPickerState.root.setAttribute("aria-hidden", "true");
+      purchaseSupplierPickerState.matches = [];
+      purchaseSupplierPickerState.selectedIndex = -1;
+      var button = document.querySelector("[data-purchase-supplier-browse]");
+      if (button) button.focus();
+    }
+
+    function applyPurchaseSupplierSelection(supplier) {
+      if (!supplier) return;
+      var select = document.querySelector("[data-purchase-party-select]");
+      if (select) {
+        select.value = supplier.id;
+        syncPurchaseSupplier();
+      }
+      closePurchaseSupplierPicker();
+    }
+
+    function openPurchaseSupplierPicker() {
+      if (!purchaseSupplierPickerState.root) return;
+      purchaseSupplierPickerState.root.classList.remove("is-hidden");
+      purchaseSupplierPickerState.root.setAttribute("aria-hidden", "false");
+      if (purchaseSupplierPickerState.search) {
+        purchaseSupplierPickerState.search.value = "";
+        renderPurchaseSupplierPicker("");
+        purchaseSupplierPickerState.search.focus();
+      } else {
+        renderPurchaseSupplierPicker("");
+      }
+    }
+
+    var drCustomerPickerState = {
+      root: document.querySelector("[data-dr-customer-picker]"),
+      search: document.querySelector("[data-dr-customer-picker-search]"),
+      results: document.querySelector("[data-dr-customer-picker-results]"),
+      empty: document.querySelector("[data-dr-customer-picker-empty]"),
+      matches: [],
+      selectedIndex: -1
+    };
+
+    if (drCustomerPickerState.root) {
+      drCustomerPickerState.root.classList.add("is-hidden");
+      drCustomerPickerState.root.setAttribute("aria-hidden", "true");
+    }
+
+    function filterDRCustomers(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return drCustomers.slice();
+      return drCustomers.filter(function (customer) {
+        return String(customer.label || "").toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    function highlightDRCustomerPickerRow(index) {
+      drCustomerPickerState.selectedIndex = index;
+      if (!drCustomerPickerState.results) return;
+      Array.prototype.forEach.call(drCustomerPickerState.results.querySelectorAll("tr"), function (row, rowIndex) {
+        row.classList.toggle("is-active", rowIndex === index);
+        row.tabIndex = rowIndex === index ? 0 : -1;
+        row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+      });
+    }
+
+    function focusDRCustomerPickerRow(index) {
+      if (!drCustomerPickerState.results || index < 0) return;
+      highlightDRCustomerPickerRow(index);
+      var row = drCustomerPickerState.results.querySelector("[data-customer-index='" + String(index) + "']");
+      if (!row) return;
+      row.focus();
+      if (typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderDRCustomerPicker(query) {
+      if (!drCustomerPickerState.results) return;
+      drCustomerPickerState.matches = filterDRCustomers(query);
+      drCustomerPickerState.results.innerHTML = "";
+      drCustomerPickerState.matches.forEach(function (customer, index) {
+        var row = document.createElement("tr");
+        row.setAttribute("data-dr-customer-option", "");
+        row.setAttribute("data-customer-index", String(index));
+        row.tabIndex = -1;
+
+        var name = document.createElement("td");
+        name.textContent = customer.label;
+        row.appendChild(name);
+
+        drCustomerPickerState.results.appendChild(row);
+      });
+      if (drCustomerPickerState.empty) {
+        drCustomerPickerState.empty.classList.toggle("is-hidden", drCustomerPickerState.matches.length !== 0);
+      }
+      highlightDRCustomerPickerRow(drCustomerPickerState.matches.length ? 0 : -1);
+    }
+
+    function closeDRCustomerPicker() {
+      if (!drCustomerPickerState.root) return;
+      drCustomerPickerState.root.classList.add("is-hidden");
+      drCustomerPickerState.root.setAttribute("aria-hidden", "true");
+      drCustomerPickerState.matches = [];
+      drCustomerPickerState.selectedIndex = -1;
+      var button = document.querySelector("[data-dr-customer-browse]");
+      if (button) button.focus();
+    }
+
+    function applyDRCustomerSelection(customer) {
+      if (!customer) return;
+      var select = document.querySelector("[data-dr-party-select]");
+      if (select) {
+        select.value = customer.id;
+        syncDRCustomer();
+      }
+      closeDRCustomerPicker();
+    }
+
+    function openDRCustomerPicker() {
+      if (!drCustomerPickerState.root) return;
+      drCustomerPickerState.root.classList.remove("is-hidden");
+      drCustomerPickerState.root.setAttribute("aria-hidden", "false");
+      if (drCustomerPickerState.search) {
+        drCustomerPickerState.search.value = "";
+        renderDRCustomerPicker("");
+        drCustomerPickerState.search.focus();
+      } else {
+        renderDRCustomerPicker("");
+      }
+    }
+
+    var salesDRPickerState = {
+      root: document.querySelector("[data-sales-dr-picker]"),
+      search: document.querySelector("[data-sales-dr-picker-search]"),
+      results: document.querySelector("[data-sales-dr-picker-results]"),
+      empty: document.querySelector("[data-sales-dr-picker-empty]"),
+      matches: [],
+      selectedIndex: -1
+    };
+
+    if (salesDRPickerState.root) {
+      salesDRPickerState.root.classList.add("is-hidden");
+      salesDRPickerState.root.setAttribute("aria-hidden", "true");
+    }
+
+    function navigateToSalesDRSelection(id) {
+      window.location = window.location.pathname + (id ? "?dr_document_id=" + encodeURIComponent(id) : "");
+    }
+
+    function filterSalesDRDocuments(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return drDocuments.slice();
+      return drDocuments.filter(function (document) {
+        return String(document.soNumber || "").toLowerCase().indexOf(query) !== -1 ||
+          String(document.customer || "").toLowerCase().indexOf(query) !== -1 ||
+          String(document.label || "").toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    function highlightSalesDRPickerRow(index) {
+      salesDRPickerState.selectedIndex = index;
+      if (!salesDRPickerState.results) return;
+      Array.prototype.forEach.call(salesDRPickerState.results.querySelectorAll("tr"), function (row, rowIndex) {
+        row.classList.toggle("is-active", rowIndex === index);
+        row.tabIndex = rowIndex === index ? 0 : -1;
+        row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+      });
+    }
+
+    function focusSalesDRPickerRow(index) {
+      if (!salesDRPickerState.results || index < 0) return;
+      highlightSalesDRPickerRow(index);
+      var row = salesDRPickerState.results.querySelector("[data-sales-dr-index='" + String(index) + "']");
+      if (!row) return;
+      row.focus();
+      if (typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderSalesDRPicker(query) {
+      if (!salesDRPickerState.results) return;
+      salesDRPickerState.matches = filterSalesDRDocuments(query);
+      salesDRPickerState.results.innerHTML = "";
+      salesDRPickerState.matches.forEach(function (drDocument, index) {
+        var row = window.document.createElement("tr");
+        row.setAttribute("data-sales-dr-option", "");
+        row.setAttribute("data-sales-dr-index", String(index));
+        row.tabIndex = -1;
+
+        var number = window.document.createElement("td");
+        number.textContent = drDocument.soNumber || drDocument.label;
+        row.appendChild(number);
+
+        var customer = window.document.createElement("td");
+        customer.textContent = drDocument.customer || "";
+        row.appendChild(customer);
+
+        salesDRPickerState.results.appendChild(row);
+      });
+      if (salesDRPickerState.empty) {
+        salesDRPickerState.empty.classList.toggle("is-hidden", salesDRPickerState.matches.length !== 0);
+      }
+      highlightSalesDRPickerRow(salesDRPickerState.matches.length ? 0 : -1);
+    }
+
+    function closeSalesDRPicker() {
+      if (!salesDRPickerState.root) return;
+      salesDRPickerState.root.classList.add("is-hidden");
+      salesDRPickerState.root.setAttribute("aria-hidden", "true");
+      salesDRPickerState.matches = [];
+      salesDRPickerState.selectedIndex = -1;
+      var button = document.querySelector("[data-sales-dr-browse]");
+      if (button) button.focus();
+    }
+
+    function applySalesDRSelection(drDocument) {
+      if (!drDocument) return;
+      var select = document.querySelector("[data-sales-dr-select]");
+      if (select) select.value = drDocument.id;
+      closeSalesDRPicker();
+      navigateToSalesDRSelection(drDocument.id);
+    }
+
+    function openSalesDRPicker() {
+      if (!salesDRPickerState.root) return;
+      salesDRPickerState.root.classList.remove("is-hidden");
+      salesDRPickerState.root.setAttribute("aria-hidden", "false");
+      if (salesDRPickerState.search) {
+        salesDRPickerState.search.value = "";
+        renderSalesDRPicker("");
+        salesDRPickerState.search.focus();
+      } else {
+        renderSalesDRPicker("");
+      }
+    }
+
+    var purchaseStockPickerState = {
+      root: document.querySelector("[data-purchase-stock-picker]"),
+      search: document.querySelector("[data-purchase-stock-picker-search]"),
+      tableWrap: document.querySelector(".purchase-stock-picker-table-wrap"),
+      results: document.querySelector("[data-purchase-stock-picker-results]"),
+      empty: document.querySelector("[data-purchase-stock-picker-empty]"),
+      matches: [],
+      selectedIndex: -1,
+      activeInput: null,
+      activeRow: null
+    };
+
+    if (purchaseStockPickerState.root) {
+      purchaseStockPickerState.root.classList.add("is-hidden");
+      purchaseStockPickerState.root.setAttribute("aria-hidden", "true");
+    }
+
+    if (purchaseStockPickerState.tableWrap) {
+      purchaseStockPickerState.tableWrap.tabIndex = -1;
+      purchaseStockPickerState.tableWrap.setAttribute("role", "listbox");
+    }
+
+    function caretToEnd(target) {
+      if (!target || !target.isContentEditable) return;
+      var selection = window.getSelection && window.getSelection();
+      if (!selection) return;
+      var range = document.createRange();
+      range.selectNodeContents(target);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function filterPurchaseStocks(query) {
+      query = String(query || "").trim().toLowerCase();
+      if (!query) return purchaseStocks.slice();
+      return purchaseStocks.filter(function (stock) {
+        return [stock.code, stock.name, stock.label].some(function (value) {
+          return String(value || "").toLowerCase().indexOf(query) !== -1;
+        });
+      });
+    }
+
+    function highlightPurchaseStockPickerRow(index) {
+      purchaseStockPickerState.selectedIndex = index;
+      if (!purchaseStockPickerState.results) return;
+      Array.prototype.forEach.call(purchaseStockPickerState.results.querySelectorAll("tr"), function (row, rowIndex) {
+        row.classList.toggle("is-active", rowIndex === index);
+        row.tabIndex = rowIndex === index ? 0 : -1;
+        row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+      });
+    }
+
+    function focusPurchaseStockPickerRow(index) {
+      if (!purchaseStockPickerState.results || index < 0) return;
+      highlightPurchaseStockPickerRow(index);
+      var row = purchaseStockPickerState.results.querySelector("[data-stock-index='" + String(index) + "']");
+      if (!row) return;
+      row.focus();
+      if (typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderPurchaseStockPicker(query) {
+      if (!purchaseStockPickerState.results) return;
+      purchaseStockPickerState.matches = filterPurchaseStocks(query);
+      purchaseStockPickerState.results.innerHTML = "";
+      purchaseStockPickerState.matches.forEach(function (stock, index) {
+        var row = document.createElement("tr");
+        row.setAttribute("data-purchase-stock-option", "");
+        row.setAttribute("data-stock-index", String(index));
+        row.setAttribute("role", "option");
+        row.tabIndex = -1;
+
+        var code = document.createElement("td");
+        code.textContent = stock.code;
+        row.appendChild(code);
+
+        var name = document.createElement("td");
+        name.textContent = stock.name;
+        row.appendChild(name);
+
+        purchaseStockPickerState.results.appendChild(row);
+      });
+      if (purchaseStockPickerState.empty) {
+        purchaseStockPickerState.empty.classList.toggle("is-hidden", purchaseStockPickerState.matches.length !== 0);
+      }
+      highlightPurchaseStockPickerRow(purchaseStockPickerState.matches.length ? 0 : -1);
+    }
+
+    function closePurchaseStockPicker() {
+      if (!purchaseStockPickerState.root) return;
+      purchaseStockPickerState.root.classList.add("is-hidden");
+      purchaseStockPickerState.root.setAttribute("aria-hidden", "true");
+      var input = purchaseStockPickerState.activeInput;
+      purchaseStockPickerState.activeInput = null;
+      purchaseStockPickerState.activeRow = null;
+      purchaseStockPickerState.matches = [];
+      purchaseStockPickerState.selectedIndex = -1;
+      if (input) input.focus();
+    }
+
+    function applyPurchaseStockSelection(stock) {
+      if (!stock || !purchaseStockPickerState.activeRow) return;
+      var row = purchaseStockPickerState.activeRow;
+      var codeCell = row.querySelector("[data-field='stock_code']");
+      var nameCell = row.querySelector("[data-field='stock_name']");
+      if (codeCell) codeCell.value = stock.code;
+      if (nameCell) nameCell.textContent = stock.name;
+      setHidden(row, "stock_id", stock.id);
+      syncStockPickerRow(row, codeCell);
+      closePurchaseStockPicker();
+      var qtyCell = row.querySelector("[data-field='qty']");
+      if (qtyCell) {
+        qtyCell.focus();
+        caretToEnd(qtyCell);
+      }
+    }
+
+    function openPurchaseStockPicker(input) {
+      if (!purchaseStockPickerState.root || !input) return;
+      purchaseStockPickerState.activeInput = input;
+      purchaseStockPickerState.activeRow = input.closest("[data-stock-picker-row]");
+      purchaseStockPickerState.root.classList.remove("is-hidden");
+      purchaseStockPickerState.root.setAttribute("aria-hidden", "false");
+      if (purchaseStockPickerState.search) {
+        purchaseStockPickerState.search.value = cellText(input);
+        renderPurchaseStockPicker(purchaseStockPickerState.search.value);
+        purchaseStockPickerState.search.focus();
+        purchaseStockPickerState.search.select();
+      } else {
+        renderPurchaseStockPicker(cellText(input));
+      }
     }
 
     function syncDRDetailRow(row, sourceCell) {
@@ -1779,33 +2663,24 @@
         syncDRDetailRow(row);
       });
       renumberDRDetails();
+      ensureStockPickerBlankRow("dr");
     }
 
     function syncDRCustomer() {
-      var input = document.querySelector("input[name='customer_name']");
-      var hidden = document.querySelector("[data-dr-party-id]");
-      if (!input || !hidden) return;
-      var query = input.value.trim().toLowerCase();
-      var customer = drCustomers.find(function (item) {
-        return item.label.toLowerCase() === query;
-      }) || drCustomers.find(function (item) {
-        return item.label.toLowerCase().indexOf(query) === 0;
-      });
-      hidden.value = customer ? customer.id : "";
-      if (customer && input.value !== customer.label) input.value = customer.label;
+      var select = document.querySelector("[data-dr-party-select]");
+      if (!select) return null;
+      return drCustomers.find(function (item) {
+        return item.id === String(select.value || "");
+      }) || null;
     }
 
     function hydrateDRCustomer() {
-      var input = document.querySelector("input[name='customer_name']");
-      var hidden = document.querySelector("[data-dr-party-id]");
-      if (!input || !hidden) return;
-      var customer = drCustomers.find(function (item) {
-        return item.id === hidden.value;
-      });
-      if (customer) input.value = customer.label;
-      input.addEventListener("input", syncDRCustomer);
-      input.addEventListener("change", syncDRCustomer);
-      input.addEventListener("blur", syncDRCustomer);
+      var select = document.querySelector("[data-dr-party-select]");
+      if (!select) return;
+      if (select.value && !syncDRCustomer()) {
+        select.value = "";
+      }
+      select.addEventListener("change", syncDRCustomer);
     }
 
     function syncARCreditCompany() {
@@ -1959,26 +2834,36 @@
       var amountCell = row.querySelector("[data-field='amount']");
       var discount = parseMoney(cellText(row.querySelector("[data-field='discount']")));
       var otherDiscount = parseMoney(cellText(row.querySelector("[data-field='other_discount']")));
-      var capital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
-      var amount = parseMoney(cellText(amountCell));
-      if (qty && unitCost && !amount) {
+      var capitalCell = row.querySelector("[data-field='capital']");
+      var capitalInput = row.querySelector("[data-field-input='capital']");
+      var capital = parseMoney((capitalInput && capitalInput.value) || cellText(capitalCell));
+      var totalCapital = qty && capital ? qty * capital : capital;
+      var amount = 0;
+      if (amountCell && (qty || unitCost)) {
         amount = qty * unitCost;
         amountCell.textContent = formatMoney(amount);
+      } else {
+        amount = parseMoney(cellText(amountCell));
       }
       var net = amount - discount - otherDiscount;
-      var markup = net - capital;
-      var markupPct = capital ? (markup / capital) * 100 : 0;
+      var markup = net - totalCapital;
+      var markupPct = totalCapital ? markup / totalCapital : 0;
       var netCell = row.querySelector("[data-field='net_amount']");
       var markupCell = row.querySelector("[data-field='markup']");
       var markupPctCell = row.querySelector("[data-field='markup_pct']");
       if (netCell) netCell.textContent = formatMoney(net);
-      if (markupCell && !cellText(markupCell)) markupCell.textContent = formatMoney(markup);
-      if (markupPctCell && !cellText(markupPctCell)) markupPctCell.textContent = formatMoney(markupPct);
+      if (capitalCell) capitalCell.textContent = formatMoney(totalCapital);
+      if (markupCell) markupCell.textContent = formatZeroMoney(markup);
+      if (markupPctCell) markupPctCell.textContent = formatZeroPercent(markupPct);
       ["stock_label", "qty", "unit_cost", "amount", "capital", "discount", "other_discount", "markup", "markup_pct"].forEach(function (field) {
         if (field === "stock_label") {
           var code = cellText(row.querySelector("[data-field='stock_code']"));
           var name = cellText(row.querySelector("[data-field='stock_name']"));
           setHidden(row, field, name ? code + " - " + name : code);
+        } else if (field === "capital") {
+          setHidden(row, field, formatMoney(capital));
+        } else if (field === "markup_pct") {
+          setHidden(row, field, cellText(row.querySelector("[data-field='markup_pct']")).replace("%", ""));
         } else {
           setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
         }
@@ -2000,10 +2885,15 @@
         if (no) no.textContent = String(index + 1) + ".";
         row.querySelector("[data-field='stock_code']").textContent = code;
         row.querySelector("[data-field='stock_name']").textContent = name;
+        ["discount", "other_discount"].forEach(function (field) {
+          var cell = row.querySelector("[data-field='" + field + "']");
+          if (cell && !cellText(cell)) cell.textContent = "0";
+        });
         if (groupInput && !groupInput.value) groupInput.value = salesStockGroups[stockID] || "Ungrouped";
         syncSalesDetailRow(row);
       });
       updateSalesTotals();
+      ensureSelectedSalesDetailRow();
     }
 
     function renderSalesMarkupSummary(groups) {
@@ -2012,9 +2902,9 @@
       tbody.innerHTML = "";
       Object.keys(groups).sort().forEach(function (groupName, index) {
         var group = groups[groupName];
-        var avgMarkup = group.capital ? (group.markup / group.capital) * 100 : 0;
+        var avgMarkup = group.capital ? group.markup / group.capital : 0;
         var tr = document.createElement("tr");
-        [String(index + 1) + ".", groupName, formatMoney(group.net), formatMoney(group.capital), formatMoney(group.markup), formatMoney(avgMarkup)].forEach(function (value) {
+        [String(index + 1) + ".", groupName, formatMoney(group.net), formatMoney(group.capital), formatZeroMoney(group.markup), formatZeroPercent(avgMarkup)].forEach(function (value) {
           var td = document.createElement("td");
           td.textContent = value;
           tr.appendChild(td);
@@ -2037,7 +2927,7 @@
         if (!groups[groupName]) groups[groupName] = { net: 0, capital: 0, markup: 0 };
         var rowNet = parseMoney(cellText(row.querySelector("[data-field='net_amount']")));
         var rowCapital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
-        var rowMarkup = parseMoney(cellText(row.querySelector("[data-field='markup']")));
+        var rowMarkup = rowNet - rowCapital;
         totalQty += parseMoney(cellText(row.querySelector("[data-field='qty']")));
         gross += parseMoney(cellText(row.querySelector("[data-field='amount']")));
         capital += rowCapital;
@@ -2074,6 +2964,153 @@
       document.querySelectorAll("[data-sales-panel]").forEach(function (panel) {
         panel.classList.toggle("is-hidden", panel.dataset.salesPanel !== tab);
       });
+    }
+
+    function notifyEmbeddedParent(message) {
+      if (!embeddedMode || !window.parent || window.parent === window) return;
+      window.parent.postMessage(message, window.location.origin);
+    }
+
+    function closeEmbeddedForm() {
+      if (embeddedMode) {
+        notifyEmbeddedParent({ type: "cims-embedded-close", kind: formShell ? formShell.dataset.formKind : "" });
+        return;
+      }
+      window.location.href = routeBase + "/";
+    }
+
+    function embeddedDocumentNumericID() {
+      var match = window.location.pathname.match(/\/(\d+)\/edit$/);
+      return match ? match[1] : "";
+    }
+
+    var salesStockEditorState = {
+      root: document.querySelector("[data-sales-stock-out-editor]"),
+      frame: document.querySelector("[data-sales-stock-out-editor-frame]"),
+      trigger: document.querySelector("[data-sales-edit-stock-out]"),
+      activeRow: null
+    };
+    if (salesStockEditorState.root && salesStockEditorState.root.parentElement !== document.body) {
+      document.body.appendChild(salesStockEditorState.root);
+    }
+
+    function salesDetailRows() {
+      return Array.prototype.slice.call(document.querySelectorAll(".sales-detail-row"));
+    }
+
+    function salesDetailStockID(row) {
+      return row && (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+    }
+
+    function selectedSalesDRDocumentID() {
+      var select = document.querySelector("[data-sales-dr-select]");
+      return select ? select.value : "";
+    }
+
+    function setSalesEditStockButtonState() {
+      if (!salesStockEditorState.trigger) return;
+      salesStockEditorState.trigger.disabled = !selectedSalesDRDocumentID();
+    }
+
+    function selectSalesDetailRow(row) {
+      salesStockEditorState.activeRow = row || null;
+      salesDetailRows().forEach(function (detailRow) {
+        detailRow.classList.toggle("is-selected", detailRow === salesStockEditorState.activeRow);
+      });
+      setSalesEditStockButtonState();
+    }
+
+    function ensureSelectedSalesDetailRow() {
+      var rows = salesDetailRows();
+      if (!rows.length) {
+        selectSalesDetailRow(null);
+        return;
+      }
+      if (salesStockEditorState.activeRow && rows.indexOf(salesStockEditorState.activeRow) !== -1) {
+        setSalesEditStockButtonState();
+        return;
+      }
+      var defaultRow = rows.find(function (row) {
+        return !!salesDetailStockID(row);
+      }) || rows[0];
+      selectSalesDetailRow(defaultRow);
+    }
+
+    function closeSalesStockEditor() {
+      if (!salesStockEditorState.root) return;
+      salesStockEditorState.root.classList.add("is-hidden");
+      salesStockEditorState.root.setAttribute("aria-hidden", "true");
+      if (salesStockEditorState.frame) {
+        salesStockEditorState.frame.removeAttribute("src");
+      }
+      if (salesStockEditorState.trigger) {
+        salesStockEditorState.trigger.focus();
+      }
+    }
+
+    function openSalesStockEditor() {
+      var drDocumentID = selectedSalesDRDocumentID();
+      if (!drDocumentID || !salesStockEditorState.root || !salesStockEditorState.frame) return;
+      salesStockEditorState.root.classList.remove("is-hidden");
+      salesStockEditorState.root.setAttribute("aria-hidden", "false");
+      salesStockEditorState.frame.src = "/transactions/dr/" + encodeURIComponent(drDocumentID) + "/edit?embedded=1";
+    }
+
+    function resizeSalesStockEditorFrame() {
+      if (!salesStockEditorState.frame) return;
+      try {
+        var frameDocument = salesStockEditorState.frame.contentDocument;
+        if (!frameDocument || !frameDocument.body) return;
+        var contentHeight = Math.max(
+          frameDocument.body.scrollHeight,
+          frameDocument.documentElement ? frameDocument.documentElement.scrollHeight : 0
+        );
+        var maxHeight = Math.max(320, window.innerHeight - 110);
+        salesStockEditorState.frame.style.height = Math.min(contentHeight, maxHeight) + "px";
+      } catch (error) {
+        // Same-origin iframe today; keep the CSS fallback if that ever changes.
+      }
+    }
+
+    function upsertSalesStockReference(stock) {
+      if (!stock || !stock.id) return;
+      var label = [stock.code, stock.name].filter(Boolean).join(" - ");
+      var existingStock = purchaseStocks.find(function (item) {
+        return item.id === String(stock.id);
+      });
+      if (existingStock) {
+        existingStock.code = stock.code || existingStock.code || "";
+        existingStock.name = stock.name || existingStock.name || "";
+        existingStock.label = label || existingStock.label || "";
+      } else {
+        purchaseStocks.push({
+          id: String(stock.id),
+          code: stock.code || "",
+          name: stock.name || "",
+          label: label
+        });
+      }
+      salesStockGroups[String(stock.id)] = stock.categoryLabel || stock.categoryGroup || salesStockGroups[String(stock.id)] || "Ungrouped";
+    }
+
+    function applyUpdatedSalesStock(stock) {
+      if (!stock || !stock.id) return;
+      upsertSalesStockReference(stock);
+      salesDetailRows().forEach(function (row) {
+        if (salesDetailStockID(row) !== String(stock.id)) return;
+        var codeCell = row.querySelector("[data-field='stock_code']");
+        var nameCell = row.querySelector("[data-field='stock_name']");
+        var groupInput = row.querySelector("[data-field-input='stock_group']");
+        if (codeCell) codeCell.textContent = stock.code || "";
+        if (nameCell) nameCell.textContent = stock.name || "";
+        if (groupInput) {
+          groupInput.value = stock.categoryLabel || stock.categoryGroup || "Ungrouped";
+        }
+        setHidden(row, "stock_label", [stock.code, stock.name].filter(Boolean).join(" - "));
+        syncSalesDetailRow(row);
+      });
+      updateSalesTotals();
+      setSalesEditStockButtonState();
     }
 
     function findExpenseCode(query) {
@@ -2134,7 +3171,8 @@
       updateExpenseTotals();
     }
 
-    window.addExpenseRow = function () {
+    window.addExpenseRow = function (options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-details");
       var template = document.querySelector(".expense-detail-row");
       if (!tbody || !template) return;
@@ -2145,7 +3183,8 @@
       tbody.appendChild(row);
       hydrateExpenseRows();
       var first = row.querySelector(".cell-combobox, .editable-cell");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
     function findOtherIncomeCode(query) {
@@ -2206,7 +3245,8 @@
       updateOtherIncomeTotals();
     }
 
-    window.addOtherIncomeRow = function () {
+    window.addOtherIncomeRow = function (options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-details");
       var template = document.querySelector(".other-income-detail-row");
       if (!tbody || !template) return;
@@ -2217,7 +3257,8 @@
       tbody.appendChild(row);
       hydrateOtherIncomeRows();
       var first = row.querySelector(".cell-combobox, .editable-cell");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
     function syncChecksInRow(row) {
@@ -2226,6 +3267,32 @@
         setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
       });
     }
+
+    function syncPurchasePaymentRow(row) {
+      if (!row) return;
+      ["number", "date", "bank_name", "amount", "nature"].forEach(function (field) {
+        setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
+      });
+    }
+
+    function hydratePurchasePaymentRows() {
+      document.querySelectorAll(".purchase-payment-row").forEach(syncPurchasePaymentRow);
+    }
+
+    window.addPurchasePaymentRow = function (options) {
+      options = options || {};
+      var tbody = document.querySelector("#rows-payments");
+      var template = document.querySelector(".purchase-payment-row");
+      if (!tbody || !template) return;
+      var row = template.cloneNode(true);
+      row.querySelectorAll(".editable-cell").forEach(function (cell) { cell.textContent = ""; });
+      row.querySelectorAll(".cell-date").forEach(function (input) { input.value = ""; });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) { input.value = ""; });
+      tbody.appendChild(row);
+      var first = row.querySelector(".editable-cell, .cell-date");
+      if (first && !options.silent) first.focus();
+      return row;
+    };
 
     function renumberChecksInRows() {
       document.querySelectorAll(".checks-in-detail-row").forEach(function (row, index) {
@@ -2239,7 +3306,8 @@
       renumberChecksInRows();
     }
 
-    window.addChecksInRow = function () {
+    window.addChecksInRow = function (options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-checks");
       var template = document.querySelector(".checks-in-detail-row");
       if (!tbody || !template) return;
@@ -2250,7 +3318,8 @@
       tbody.appendChild(row);
       renumberChecksInRows();
       var first = row.querySelector(".editable-cell, .cell-date");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
     function setPurchaseTab(tab) {
@@ -2263,28 +3332,173 @@
       if (payments) payments.classList.toggle("is-hidden", tab !== "payments");
     }
 
-    window.addPurchaseDetailRow = function () {
+    function focusEditableGridTarget(target) {
+      if (!target) return;
+      target.focus();
+      if (target.isContentEditable) {
+        var selection = window.getSelection && window.getSelection();
+        if (selection) {
+          var range = document.createRange();
+          range.selectNodeContents(target);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        return;
+      }
+      if (typeof target.select === "function" && target.type !== "date") {
+        target.select();
+      }
+    }
+
+    function getEditableGridTarget(target) {
+      var gridTarget = target && target.closest && target.closest(".editable-cell, .cell-combobox, .cell-date");
+      if (gridTarget && gridTarget.hasAttribute("data-readonly-cell")) return null;
+      return gridTarget;
+    }
+
+    function getEditableGridRow(target) {
+      if (!target || !target.closest) return null;
+      return target.closest("[data-stock-picker-row], .purchase-adjustment-row, .purchase-payment-row, .sales-detail-row, .expense-detail-row, .other-income-detail-row, .checks-in-detail-row");
+    }
+
+    function getEditableGridTargets(row) {
+      if (!row) return [];
+      return Array.prototype.filter.call(row.querySelectorAll(".cell-combobox, .editable-cell, .cell-date"), function (target) {
+        return !target.hidden && !target.disabled && !target.hasAttribute("data-readonly-cell") && !target.closest(".hidden-col");
+      });
+    }
+
+    function getEditableGridRowSelector(row) {
+      if (!row) return "";
+      if (row.hasAttribute("data-stock-picker-row")) {
+        return "[data-stock-picker-row='" + row.getAttribute("data-stock-picker-row") + "']";
+      }
+      if (row.classList.contains("purchase-adjustment-row")) {
+        return ".purchase-adjustment-row[data-adjustment-group='" + row.getAttribute("data-adjustment-group") + "']";
+      }
+      if (row.classList.contains("purchase-payment-row")) return ".purchase-payment-row";
+      if (row.classList.contains("sales-detail-row")) return ".sales-detail-row";
+      if (row.classList.contains("expense-detail-row")) return ".expense-detail-row";
+      if (row.classList.contains("other-income-detail-row")) return ".other-income-detail-row";
+      if (row.classList.contains("checks-in-detail-row")) return ".checks-in-detail-row";
+      return "";
+    }
+
+    function syncEditableGridRow(row, target) {
+      if (!row) return;
+      if (row.hasAttribute("data-stock-picker-row")) {
+        syncStockPickerRow(row, target);
+        return;
+      }
+      if (row.classList.contains("purchase-adjustment-row")) {
+        syncPurchaseAdjustmentRow(row, target);
+        return;
+      }
+      if (row.classList.contains("purchase-payment-row")) {
+        syncPurchasePaymentRow(row);
+        return;
+      }
+      if (row.classList.contains("sales-detail-row")) {
+        syncSalesDetailRow(row);
+        updateSalesTotals();
+        return;
+      }
+      if (row.classList.contains("expense-detail-row")) {
+        syncExpenseRow(row, target);
+        updateExpenseTotals();
+        return;
+      }
+      if (row.classList.contains("other-income-detail-row")) {
+        syncOtherIncomeRow(row, target);
+        updateOtherIncomeTotals();
+        return;
+      }
+      if (row.classList.contains("checks-in-detail-row")) {
+        syncChecksInRow(row);
+      }
+    }
+
+    function appendEditableGridRow(row) {
+      if (!row) return null;
+      if (row.hasAttribute("data-stock-picker-row")) {
+        ensureStockPickerBlankRow(row.getAttribute("data-stock-picker-row") || "purchase");
+        return null;
+      }
+      if (row.classList.contains("purchase-adjustment-row")) {
+        return window.addPurchaseAdjustmentRow(row.getAttribute("data-adjustment-group"), { silent: true });
+      }
+      if (row.classList.contains("purchase-payment-row")) {
+        return window.addPurchasePaymentRow({ silent: true });
+      }
+      if (row.classList.contains("expense-detail-row")) {
+        return window.addExpenseRow({ silent: true });
+      }
+      if (row.classList.contains("other-income-detail-row")) {
+        return window.addOtherIncomeRow({ silent: true });
+      }
+      if (row.classList.contains("checks-in-detail-row")) {
+        return window.addChecksInRow({ silent: true });
+      }
+      return null;
+    }
+
+    function findNextEditableGridRow(row) {
+      var selector = getEditableGridRowSelector(row);
+      if (!selector) return null;
+      var rows = Array.prototype.slice.call(document.querySelectorAll(selector));
+      var index = rows.indexOf(row);
+      if (index === -1) return null;
+      if (rows[index + 1]) return rows[index + 1];
+      var appended = appendEditableGridRow(row);
+      if (appended) return appended;
+      rows = Array.prototype.slice.call(document.querySelectorAll(selector));
+      return rows[index + 1] || null;
+    }
+
+    function moveToNextEditableGridTarget(target) {
+      var currentTarget = getEditableGridTarget(target);
+      var row = getEditableGridRow(currentTarget);
+      if (!currentTarget || !row) return false;
+      syncEditableGridRow(row, currentTarget);
+      if (row.classList.contains("sales-detail-row") && currentTarget.getAttribute("data-field") === "discount") {
+        var otherDiscountCell = row.querySelector("[data-field='other_discount']");
+        if (otherDiscountCell && !otherDiscountCell.hasAttribute("data-readonly-cell")) {
+          focusEditableGridTarget(otherDiscountCell);
+          return true;
+        }
+      }
+      var targets = getEditableGridTargets(row);
+      var currentIndex = targets.indexOf(currentTarget);
+      if (currentIndex === -1) return false;
+      if (targets[currentIndex + 1]) {
+        focusEditableGridTarget(targets[currentIndex + 1]);
+        return true;
+      }
+      var nextRow = findNextEditableGridRow(row);
+      if (!nextRow) return false;
+      var nextTargets = getEditableGridTargets(nextRow);
+      if (!nextTargets.length) return false;
+      focusEditableGridTarget(nextTargets[0]);
+      return true;
+    }
+
+    window.addPurchaseDetailRow = function (options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-details");
       var template = document.querySelector(".purchase-detail-row");
       if (!tbody || !template) return;
       var row = template.cloneNode(true);
-      row.querySelectorAll(".editable-cell").forEach(function (cell) {
-        cell.textContent = "";
-      });
-      row.querySelectorAll(".cell-combobox").forEach(function (input) {
-        input.value = "";
-      });
-      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
-        input.value = "";
-      });
+      clearStockPickerRow(row);
       tbody.appendChild(row);
       renumberPurchaseDetails();
       updatePurchaseTotals();
       var first = row.querySelector(".cell-combobox, .editable-cell");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
-    window.addPurchaseAdjustmentRow = function (group) {
+    window.addPurchaseAdjustmentRow = function (group, options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-" + group);
       var template = tbody && tbody.querySelector(".purchase-adjustment-row");
       if (!tbody || !template) return;
@@ -2298,63 +3512,90 @@
       tbody.appendChild(row);
       updatePurchaseTotals();
       var first = row.querySelector(".editable-cell");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
-    window.addDRDetailRow = function () {
+    window.addDRDetailRow = function (options) {
+      options = options || {};
       var tbody = document.querySelector("#rows-details");
       var template = document.querySelector(".dr-detail-row");
       if (!tbody || !template) return;
       var row = template.cloneNode(true);
-      row.querySelectorAll(".editable-cell").forEach(function (cell) {
-        cell.textContent = "";
-      });
-      row.querySelectorAll(".cell-combobox").forEach(function (input) {
-        input.value = "";
-      });
-      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
-        input.value = "";
-      });
+      clearStockPickerRow(row);
       tbody.appendChild(row);
       renumberDRDetails();
       var first = row.querySelector(".cell-combobox, .editable-cell");
-      if (first) first.focus();
+      if (first && !options.silent) first.focus();
+      return row;
     };
 
-    function openStockInPicker(input) {
-      if (!input || typeof input.showPicker !== "function") return;
-      try {
-        input.showPicker();
-      } catch (error) {
-        // Browser may restrict showPicker unless the event is a direct user action.
-      }
+    function appendStockPickerRow(kind, options) {
+      if (kind === "dr") return window.addDRDetailRow(options);
+      return window.addPurchaseDetailRow(options);
     }
 
-    document.addEventListener("mousedown", function (event) {
-      var input = event.target.closest && event.target.closest(".stock-in-detail-row .cell-combobox");
-      openStockInPicker(input);
-    });
+    function ensureStockPickerBlankRow(kind) {
+      var rows = Array.prototype.slice.call(document.querySelectorAll("[data-stock-picker-row='" + kind + "']"));
+      if (!rows.length) return;
+      var hasBlankRow = rows.some(isBlankStockPickerRow);
+      if (!hasBlankRow) appendStockPickerRow(kind, { silent: true });
+    }
 
-    document.addEventListener("focus", function (event) {
-      if (!event.target.matches(".stock-in-detail-row .cell-combobox")) return;
-      setTimeout(function () { openStockInPicker(event.target); }, 0);
-    }, true);
+    function syncStockPickerRow(row, sourceCell) {
+      if (!row) return;
+      var kind = row.getAttribute("data-stock-picker-row") || "purchase";
+      if (kind === "dr") syncDRDetailRow(row, sourceCell);
+      else syncPurchaseDetailRow(row, sourceCell);
+      if (!isBlankStockPickerRow(row)) ensureStockPickerBlankRow(kind);
+    }
 
     document.addEventListener("click", function (event) {
-      var input = event.target.closest && event.target.closest(".stock-in-detail-row .cell-combobox");
-      openStockInPicker(input);
+      var button = event.target.closest && event.target.closest("[data-purchase-supplier-browse]");
+      if (!button) return;
+      openPurchaseSupplierPicker();
+    });
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest("[data-dr-customer-browse]");
+      if (!button) return;
+      openDRCustomerPicker();
+    });
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest("[data-sales-dr-browse]");
+      if (!button) return;
+      openSalesDRPicker();
+    });
+
+    document.addEventListener("change", function (event) {
+      var select = event.target.closest && event.target.closest("[data-sales-dr-select]");
+      if (!select) return;
+      navigateToSalesDRSelection(select.value);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      var input = event.target.closest && event.target.closest("[data-purchase-stock-trigger]");
+      if (!input || event.key !== "Enter") return;
+      event.preventDefault();
+      openPurchaseStockPicker(input);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+      var target = getEditableGridTarget(event.target);
+      if (!target || target.matches("[data-purchase-stock-trigger]")) return;
+      if (!getEditableGridRow(target)) return;
+      event.preventDefault();
+      moveToNextEditableGridTarget(target);
     });
 
     document.addEventListener("input", function (event) {
-      var cell = event.target.closest && event.target.closest(".purchase-detail-row .editable-cell, .purchase-detail-row .cell-combobox");
-      if (!cell) return;
-      syncPurchaseDetailRow(cell.closest(".purchase-detail-row"), cell);
-    });
-
-    document.addEventListener("input", function (event) {
-      var cell = event.target.closest && event.target.closest(".dr-detail-row .editable-cell, .dr-detail-row .cell-combobox");
-      if (!cell) return;
-      syncDRDetailRow(cell.closest(".dr-detail-row"), cell);
+      var stockCell = event.target.closest && event.target.closest("[data-stock-picker-row] .editable-cell, [data-stock-picker-row] .cell-combobox");
+      if (stockCell) {
+        syncStockPickerRow(stockCell.closest("[data-stock-picker-row]"), stockCell);
+        return;
+      }
     });
 
     document.addEventListener("input", function (event) {
@@ -2367,6 +3608,10 @@
       var adjustmentCell = event.target.closest && event.target.closest(".purchase-adjustment-row .editable-cell");
       if (adjustmentCell) {
         syncPurchaseAdjustmentRow(adjustmentCell.closest(".purchase-adjustment-row"), adjustmentCell);
+      }
+      var paymentCell = event.target.closest && event.target.closest(".purchase-payment-row .editable-cell, .purchase-payment-row .cell-date");
+      if (paymentCell) {
+        syncPurchasePaymentRow(paymentCell.closest(".purchase-payment-row"));
       }
       var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
       if (salesCell) {
@@ -2390,12 +3635,12 @@
     });
 
     document.addEventListener("blur", function (event) {
-      var cell = event.target.closest && event.target.closest(".purchase-detail-row .editable-cell, .purchase-detail-row .cell-combobox");
-      if (cell) syncPurchaseDetailRow(cell.closest(".purchase-detail-row"), cell);
-      var drCell = event.target.closest && event.target.closest(".dr-detail-row .editable-cell, .dr-detail-row .cell-combobox");
-      if (drCell) syncDRDetailRow(drCell.closest(".dr-detail-row"), drCell);
+      var stockCell = event.target.closest && event.target.closest("[data-stock-picker-row] .editable-cell, [data-stock-picker-row] .cell-combobox");
+      if (stockCell) syncStockPickerRow(stockCell.closest("[data-stock-picker-row]"), stockCell);
       var adjustmentCell = event.target.closest && event.target.closest(".purchase-adjustment-row .editable-cell");
       if (adjustmentCell) syncPurchaseAdjustmentRow(adjustmentCell.closest(".purchase-adjustment-row"), adjustmentCell);
+      var paymentCell = event.target.closest && event.target.closest(".purchase-payment-row .editable-cell, .purchase-payment-row .cell-date");
+      if (paymentCell) syncPurchasePaymentRow(paymentCell.closest(".purchase-payment-row"));
       var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
       if (salesCell) {
         syncSalesDetailRow(salesCell.closest(".sales-detail-row"));
@@ -2415,7 +3660,377 @@
       if (checksInCell) syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
     }, true);
 
+    if (purchaseSupplierPickerState.search) {
+      purchaseSupplierPickerState.search.addEventListener("input", function () {
+        renderPurchaseSupplierPicker(purchaseSupplierPickerState.search.value);
+      });
+      purchaseSupplierPickerState.search.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closePurchaseSupplierPicker();
+          return;
+        }
+        if (event.key === "Tab") {
+          if (!purchaseSupplierPickerState.matches.length) return;
+          event.preventDefault();
+          focusPurchaseSupplierPickerRow(0);
+          return;
+        }
+        if (!purchaseSupplierPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusPurchaseSupplierPickerRow(Math.min(purchaseSupplierPickerState.selectedIndex + 1, purchaseSupplierPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusPurchaseSupplierPickerRow(Math.max(purchaseSupplierPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyPurchaseSupplierSelection(purchaseSupplierPickerState.matches[purchaseSupplierPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    if (purchaseSupplierPickerState.results) {
+      purchaseSupplierPickerState.results.addEventListener("click", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-supplier-option]");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-supplier-index"), 10);
+        applyPurchaseSupplierSelection(purchaseSupplierPickerState.matches[index]);
+      });
+      purchaseSupplierPickerState.results.addEventListener("keydown", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-supplier-option]");
+        if (!row) return;
+        event.stopPropagation();
+        var index = parseInt(row.getAttribute("data-supplier-index"), 10);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closePurchaseSupplierPicker();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusPurchaseSupplierPickerRow(Math.min(index + 1, purchaseSupplierPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusPurchaseSupplierPickerRow(Math.max(index - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyPurchaseSupplierSelection(purchaseSupplierPickerState.matches[index]);
+        }
+      });
+      purchaseSupplierPickerState.results.addEventListener("focusin", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-supplier-option]");
+        if (!row) return;
+        highlightPurchaseSupplierPickerRow(parseInt(row.getAttribute("data-supplier-index"), 10));
+      });
+      purchaseSupplierPickerState.results.addEventListener("mousemove", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-supplier-option]");
+        if (!row) return;
+        highlightPurchaseSupplierPickerRow(parseInt(row.getAttribute("data-supplier-index"), 10));
+      });
+    }
+
+    document.querySelectorAll("[data-purchase-supplier-picker-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closePurchaseSupplierPicker();
+      });
+    });
+
+    if (drCustomerPickerState.search) {
+      drCustomerPickerState.search.addEventListener("input", function () {
+        renderDRCustomerPicker(drCustomerPickerState.search.value);
+      });
+      drCustomerPickerState.search.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeDRCustomerPicker();
+          return;
+        }
+        if (event.key === "Tab") {
+          if (!drCustomerPickerState.matches.length) return;
+          event.preventDefault();
+          focusDRCustomerPickerRow(0);
+          return;
+        }
+        if (!drCustomerPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusDRCustomerPickerRow(Math.min(drCustomerPickerState.selectedIndex + 1, drCustomerPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusDRCustomerPickerRow(Math.max(drCustomerPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyDRCustomerSelection(drCustomerPickerState.matches[drCustomerPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    if (drCustomerPickerState.results) {
+      drCustomerPickerState.results.addEventListener("click", function (event) {
+        var row = event.target.closest && event.target.closest("[data-dr-customer-option]");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-customer-index"), 10);
+        applyDRCustomerSelection(drCustomerPickerState.matches[index]);
+      });
+      drCustomerPickerState.results.addEventListener("keydown", function (event) {
+        var row = event.target.closest && event.target.closest("[data-dr-customer-option]");
+        if (!row) return;
+        event.stopPropagation();
+        var index = parseInt(row.getAttribute("data-customer-index"), 10);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeDRCustomerPicker();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusDRCustomerPickerRow(Math.min(index + 1, drCustomerPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusDRCustomerPickerRow(Math.max(index - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyDRCustomerSelection(drCustomerPickerState.matches[index]);
+        }
+      });
+      drCustomerPickerState.results.addEventListener("focusin", function (event) {
+        var row = event.target.closest && event.target.closest("[data-dr-customer-option]");
+        if (!row) return;
+        highlightDRCustomerPickerRow(parseInt(row.getAttribute("data-customer-index"), 10));
+      });
+      drCustomerPickerState.results.addEventListener("mousemove", function (event) {
+        var row = event.target.closest && event.target.closest("[data-dr-customer-option]");
+        if (!row) return;
+        highlightDRCustomerPickerRow(parseInt(row.getAttribute("data-customer-index"), 10));
+      });
+    }
+
+    document.querySelectorAll("[data-dr-customer-picker-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closeDRCustomerPicker();
+      });
+    });
+
+    if (salesDRPickerState.search) {
+      salesDRPickerState.search.addEventListener("input", function () {
+        renderSalesDRPicker(salesDRPickerState.search.value);
+      });
+      salesDRPickerState.search.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeSalesDRPicker();
+          return;
+        }
+        if (event.key === "Tab") {
+          if (!salesDRPickerState.matches.length) return;
+          event.preventDefault();
+          focusSalesDRPickerRow(0);
+          return;
+        }
+        if (!salesDRPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusSalesDRPickerRow(Math.min(salesDRPickerState.selectedIndex + 1, salesDRPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusSalesDRPickerRow(Math.max(salesDRPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applySalesDRSelection(salesDRPickerState.matches[salesDRPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    if (salesDRPickerState.results) {
+      salesDRPickerState.results.addEventListener("click", function (event) {
+        var row = event.target.closest && event.target.closest("[data-sales-dr-option]");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-sales-dr-index"), 10);
+        applySalesDRSelection(salesDRPickerState.matches[index]);
+      });
+      salesDRPickerState.results.addEventListener("keydown", function (event) {
+        var row = event.target.closest && event.target.closest("[data-sales-dr-option]");
+        if (!row) return;
+        event.stopPropagation();
+        var index = parseInt(row.getAttribute("data-sales-dr-index"), 10);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeSalesDRPicker();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusSalesDRPickerRow(Math.min(index + 1, salesDRPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusSalesDRPickerRow(Math.max(index - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applySalesDRSelection(salesDRPickerState.matches[index]);
+        }
+      });
+      salesDRPickerState.results.addEventListener("focusin", function (event) {
+        var row = event.target.closest && event.target.closest("[data-sales-dr-option]");
+        if (!row) return;
+        highlightSalesDRPickerRow(parseInt(row.getAttribute("data-sales-dr-index"), 10));
+      });
+      salesDRPickerState.results.addEventListener("mousemove", function (event) {
+        var row = event.target.closest && event.target.closest("[data-sales-dr-option]");
+        if (!row) return;
+        highlightSalesDRPickerRow(parseInt(row.getAttribute("data-sales-dr-index"), 10));
+      });
+    }
+
+    document.querySelectorAll("[data-sales-dr-picker-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closeSalesDRPicker();
+      });
+    });
+
+    if (purchaseStockPickerState.search) {
+      purchaseStockPickerState.search.addEventListener("input", function () {
+        renderPurchaseStockPicker(purchaseStockPickerState.search.value);
+      });
+      purchaseStockPickerState.search.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closePurchaseStockPicker();
+          return;
+        }
+        if (event.key === "Tab") {
+          if (!purchaseStockPickerState.matches.length) return;
+          event.preventDefault();
+          focusPurchaseStockPickerRow(0);
+          return;
+        }
+        if (!purchaseStockPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          highlightPurchaseStockPickerRow(Math.min(purchaseStockPickerState.selectedIndex + 1, purchaseStockPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          highlightPurchaseStockPickerRow(Math.max(purchaseStockPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyPurchaseStockSelection(purchaseStockPickerState.matches[purchaseStockPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    if (purchaseStockPickerState.results) {
+      purchaseStockPickerState.results.setAttribute("aria-label", "Stock search results");
+      purchaseStockPickerState.results.addEventListener("keydown", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-stock-option]");
+        if (!row) return;
+        event.stopPropagation();
+        var index = parseInt(row.getAttribute("data-stock-index"), 10);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closePurchaseStockPicker();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusPurchaseStockPickerRow(Math.min(index + 1, purchaseStockPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusPurchaseStockPickerRow(Math.max(index - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyPurchaseStockSelection(purchaseStockPickerState.matches[index]);
+          return;
+        }
+      });
+      purchaseStockPickerState.results.addEventListener("click", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-stock-option]");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-stock-index"), 10);
+        applyPurchaseStockSelection(purchaseStockPickerState.matches[index]);
+      });
+      purchaseStockPickerState.results.addEventListener("focusin", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-stock-option]");
+        if (!row) return;
+        highlightPurchaseStockPickerRow(parseInt(row.getAttribute("data-stock-index"), 10));
+      });
+      purchaseStockPickerState.results.addEventListener("mousemove", function (event) {
+        var row = event.target.closest && event.target.closest("[data-purchase-stock-option]");
+        if (!row) return;
+        highlightPurchaseStockPickerRow(parseInt(row.getAttribute("data-stock-index"), 10));
+      });
+    }
+
+    if (purchaseStockPickerState.tableWrap) {
+      purchaseStockPickerState.tableWrap.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closePurchaseStockPicker();
+          return;
+        }
+        if (event.key === "Tab" && event.shiftKey) {
+          event.preventDefault();
+          if (purchaseStockPickerState.search) purchaseStockPickerState.search.focus();
+          return;
+        }
+        if (!purchaseStockPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusPurchaseStockPickerRow(Math.min(purchaseStockPickerState.selectedIndex + 1, purchaseStockPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusPurchaseStockPickerRow(Math.max(purchaseStockPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyPurchaseStockSelection(purchaseStockPickerState.matches[purchaseStockPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    document.querySelectorAll("[data-purchase-stock-picker-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closePurchaseStockPicker();
+      });
+    });
+
     hydratePurchaseDetails();
+    hydratePurchaseAdjustments();
+    hydratePurchasePaymentRows();
     hydratePurchaseSupplier();
     hydrateDRDetails();
     hydrateDRCustomer();
@@ -2432,6 +4047,15 @@
     updateSalesTotals();
     setPurchaseTab("adjustments");
     setSalesTab("markup");
+    rememberFormModeState();
+    createToolbarModeButtons();
+    setNewRecordToolbarMode();
+    if (existingRecord) {
+      setFormBodyLocked(true);
+      document.querySelectorAll(".legacy-form-toolbar").forEach(function (toolbar) {
+        setToolbarMode(toolbar, false);
+      });
+    }
 
     document.querySelectorAll("[data-purchase-tab]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2444,6 +4068,70 @@
         setSalesTab(button.dataset.salesTab);
       });
     });
+
+    if (salesStockEditorState.trigger) {
+      salesStockEditorState.trigger.addEventListener("click", openSalesStockEditor);
+    }
+    if (salesStockEditorState.frame) {
+      salesStockEditorState.frame.addEventListener("load", resizeSalesStockEditorFrame);
+    }
+    window.addEventListener("resize", resizeSalesStockEditorFrame);
+
+    salesDetailRows().forEach(function (row) {
+      row.addEventListener("click", function () {
+        selectSalesDetailRow(row);
+      });
+    });
+
+    document.querySelectorAll("[data-sales-stock-out-editor-close]").forEach(function (button) {
+      button.addEventListener("click", closeSalesStockEditor);
+    });
+
+    window.addEventListener("message", function (event) {
+      if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
+      if (event.data.type === "cims-stock-saved") {
+        applyUpdatedSalesStock(event.data.stock || {});
+        closeSalesStockEditor();
+      } else if (event.data.type === "cims-stock-out-saved") {
+        closeSalesStockEditor();
+        var drDocumentID = /^\d+$/.test(String(event.data.id || "")) ? String(event.data.id) : selectedSalesDRDocumentID();
+        if (drDocumentID) {
+          window.location.replace(window.location.pathname + "?dr_document_id=" + encodeURIComponent(drDocumentID) + "&_=" + Date.now());
+        }
+      } else if (event.data.type === "cims-embedded-close") {
+        closeSalesStockEditor();
+      }
+    });
+
+    document.querySelectorAll("[data-embedded-close]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        closeEmbeddedForm();
+      });
+    });
+
+    if (embeddedMode && embeddedSaved && formShell && formShell.dataset.formKind === "stocks") {
+      var stockCategoryField = document.querySelector("select[name='category_group']");
+      var selectedCategory = stockCategoryField && stockCategoryField.selectedOptions && stockCategoryField.selectedOptions[0]
+        ? stockCategoryField.selectedOptions[0].textContent.trim()
+        : (stockCategoryField ? stockCategoryField.value : "");
+      notifyEmbeddedParent({
+        type: "cims-stock-saved",
+        stock: {
+          id: "{{fieldValue .Record "id"}}",
+          code: "{{fieldValue .Record "code"}}",
+          name: "{{fieldValue .Record "name"}}",
+          categoryGroup: "{{fieldValue .Record "category_group"}}",
+          categoryLabel: selectedCategory
+        }
+      });
+    }
+    if (embeddedMode && embeddedSaved && formShell && formShell.dataset.formKind === "dr") {
+      notifyEmbeddedParent({
+        type: "cims-stock-out-saved",
+        id: embeddedDocumentNumericID()
+      });
+    }
 
     document.querySelectorAll("[data-form-action]").forEach(function (button) {
       button.addEventListener("click", function () {

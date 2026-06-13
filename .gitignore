@@ -16,6 +16,10 @@ build/
 *.log
 tmp/
 .codex_runtime/
+.codex-spreadsheet-runtime/
+node_modules
+outputs/
+/import-legacy-data
 
 # IDE/editor
 .idea/

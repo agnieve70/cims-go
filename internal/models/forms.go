@@ -98,7 +98,7 @@ func MasterForms() []FormDefinition {
 			Fields: []Field{
 				{Key: "code", Label: "Code", Column: "code", Type: FieldText, Required: true},
 				{Key: "name", Label: "Name", Column: "name", Type: FieldText, Required: true},
-				{Key: "category_group", Label: "Category Group", Column: "category_group", Type: FieldSelect, Source: "stock_category_groups"},
+				{Key: "category_group", Label: "Category", Column: "category_group", Type: FieldSelect, Source: "stock_categories"},
 				{Key: "unit", Label: "Unit", Column: "unit", Type: FieldText},
 				{Key: "description", Label: "Description", Column: "description", Type: FieldTextarea},
 				{Key: "latest_cost", Label: "Latest Cost", Column: "latest_cost", Type: FieldMoney},
@@ -118,14 +118,13 @@ func MasterForms() []FormDefinition {
 
 func partyFields(codeLabel string, customer bool) []Field {
 	fields := []Field{
-		{Key: "code", Label: codeLabel, Column: "code", Type: FieldText, Required: true},
-		{Key: "company", Label: "Company", Column: "company", Type: FieldText},
-		{Key: "lastname", Label: "Lastname", Column: "lastname", Type: FieldText},
-		{Key: "firstname", Label: "Firstname", Column: "firstname", Type: FieldText},
+		{Key: "code", Label: codeLabel, Column: "code", Type: FieldText},
+		{Key: "company", Label: "Company", Column: "company", Type: FieldText, Required: true},
+		{Key: "lastname", Label: "Lastname", Column: "lastname", Type: FieldText, Required: true},
+		{Key: "firstname", Label: "Firstname", Column: "firstname", Type: FieldText, Required: true},
 		{Key: "middlename", Label: "Middle Name", Column: "middlename", Type: FieldText},
 		{Key: "phone_number", Label: "Phone Number", Column: "phone_number", Type: FieldText},
 		{Key: "address", Label: "Address", Column: "address", Type: FieldTextarea},
-		{Key: "balance", Label: "Balance", Column: "balance", Type: FieldMoney},
 	}
 	return fields
 }
@@ -162,11 +161,11 @@ func TransactionForms() []FormDefinition {
 			LineGroups: []LineGroup{stockLines("details", "Details"), adjustmentLines("discounts", "Discounts"), adjustmentLines("additionals", "Additionals"), checkLines("payments", "Mode of Payment")},
 		},
 		{
-			Kind: "dr", Title: "DR File", RouteBase: "/transactions/dr", PartyType: "customer",
+			Kind: "dr", Title: "Stock Out File", RouteBase: "/transactions/dr", PartyType: "customer",
 			Fields: []Field{
 				{Key: "party_id", Label: "Customer", Column: "party_id", Type: FieldSelect, Source: "customers", Required: true},
 				{Key: "entry_date", Label: "Entry Date", Column: "entry_date", Type: FieldDate, Required: true},
-				{Key: "reference", Label: "DR Number", Column: "reference", Type: FieldText},
+				{Key: "reference", Label: "SO Number", Column: "reference", Type: FieldText},
 				{Key: "sales_date", Label: "DR Date", Column: "sales_date", Type: FieldDate},
 				{Key: "remarks", Label: "Remarks", Column: "remarks", Type: FieldTextarea},
 			},
@@ -174,7 +173,7 @@ func TransactionForms() []FormDefinition {
 		},
 		{
 			Kind: "sales", Title: "Sales File", RouteBase: "/transactions/sales", PartyType: "customer",
-			Fields: append([]Field{{Key: "dr_document_id", Label: "DR File", Column: "dr_document_id", Type: FieldSelect, Source: "dr_documents", Required: true}}, append(baseTransactionFields(false, "customers"),
+			Fields: append([]Field{{Key: "dr_document_id", Label: "SO Number", Column: "dr_document_id", Type: FieldSelect, Source: "dr_documents", Required: true}}, append(baseTransactionFields(false, "customers"),
 				Field{Key: "cash", Label: "Cash", Column: "cash", Type: FieldBool},
 				Field{Key: "or_ci_number", Label: "OR/CI Number", Column: "or_ci_number", Type: FieldText},
 				Field{Key: "sales_date", Label: "Sales Date", Column: "sales_date", Type: FieldDate},
@@ -183,7 +182,7 @@ func TransactionForms() []FormDefinition {
 		},
 		{
 			Kind: "stock-transactions", Title: "Stock Transactions File", RouteBase: "/transactions/stock-transactions",
-			Fields: append([]Field{{Key: "dr_document_id", Label: "DR File", Column: "dr_document_id", Type: FieldSelect, Source: "dr_documents", Required: true}},
+			Fields: append([]Field{{Key: "dr_document_id", Label: "Stock Out File", Column: "dr_document_id", Type: FieldSelect, Source: "dr_documents", Required: true}},
 				append(baseTransactionFields(false, ""), Field{Key: "transfer_date", Label: "Transfer Date", Column: "transfer_date", Type: FieldDate}, Field{Key: "transfer_id", Label: "Transfer ID", Column: "transfer_id", Type: FieldText}, Field{Key: "transaction", Label: "Transaction", Column: "transaction", Type: FieldText}, Field{Key: "branch_location", Label: "Branch/Location", Column: "branch_location", Type: FieldSelect, Source: "branches"})...),
 			LineGroups: []LineGroup{drBackedSalesLines("details", "Details"), adjustmentLines("discounts", "Discounts"), adjustmentLines("additionals", "Additionals")},
 		},

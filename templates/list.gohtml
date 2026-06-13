@@ -60,7 +60,7 @@
         {{end}}
         {{range .Records}}
         {{if eq $.Form.Kind "stock-categories"}}
-        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+        <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
           <td>{{index . "name"}}</td>
           <td>{{index . "group_name"}}</td>
@@ -70,7 +70,7 @@
           <td>{{index . "updated_by"}}</td>
         </tr>
         {{else}}
-        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
+        <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{index . "id"}}/edit'}">
           <td>{{index . "id"}}</td>
           {{$record := .}}
           {{range $.Form.Fields}}<td>{{fieldValue $record .Key}}</td>{{end}}

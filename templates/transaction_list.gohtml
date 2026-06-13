@@ -37,7 +37,7 @@
         </tr>
         {{end}}
         {{range .Documents}}
-        <tr class="data-row" tabindex="0" onclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
+        <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
           <td>{{.EntryID}}</td>
           <td>{{.EntryDate.Format "2006-01-02"}}</td>
           <td>{{.Party}}</td>
