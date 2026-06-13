@@ -18,9 +18,13 @@ type fakeStore struct {
 	dr               repositories.DRSelection
 	lastMasterSearch string
 	lastMasterYear   int
+	lastMasterLimit  int
+	lastMasterOffset int
 	lastDocKind      string
 	lastDocSearch    string
 	lastDocYear      int
+	deletedDocKind   string
+	deletedDocID     int64
 	userByIDCalls    int
 }
 
@@ -35,9 +39,11 @@ func (s *fakeStore) GetUserByID(context.Context, int64) (models.User, error) {
 	return s.user, nil
 }
 
-func (s *fakeStore) ListMaster(_ context.Context, _ models.FormDefinition, search string, year int) ([]models.Record, error) {
+func (s *fakeStore) ListMaster(_ context.Context, _ models.FormDefinition, search string, year int, limit int, offset int) ([]models.Record, error) {
 	s.lastMasterSearch = search
 	s.lastMasterYear = year
+	s.lastMasterLimit = limit
+	s.lastMasterOffset = offset
 	return []models.Record{{"id": "1", "code": "BR-01", "name": "Main", "encoder": "Admin"}}, nil
 }
 
@@ -79,7 +85,7 @@ func (s *fakeStore) ListDocuments(_ context.Context, kind string, search string,
 }
 
 func (s *fakeStore) GetDocument(context.Context, models.FormDefinition, int64) (models.Record, map[string][]models.Record, error) {
-	return models.Record{"entry_date": "2026-04-21"}, nil, nil
+	return models.Record{"id": "ENT-197", "record_id": "197", "entry_date": "2026-04-21"}, nil, nil
 }
 
 func (s *fakeStore) LoadDRSelection(context.Context, int64) (repositories.DRSelection, error) {
@@ -88,6 +94,12 @@ func (s *fakeStore) LoadDRSelection(context.Context, int64) (repositories.DRSele
 
 func (s *fakeStore) SaveDocument(context.Context, models.FormDefinition, int64, repositories.DocumentInput) (int64, error) {
 	return 1, nil
+}
+
+func (s *fakeStore) DeleteDocument(_ context.Context, form models.FormDefinition, id int64, _ models.User) error {
+	s.deletedDocKind = form.Kind
+	s.deletedDocID = id
+	return nil
 }
 
 func (s *fakeStore) PurchaseReportRows(context.Context, time.Time, time.Time) ([]models.PurchaseReportRow, error) {
@@ -529,6 +541,57 @@ func TestSalesFormLoadsSelectedDRRows(t *testing.T) {
 	}
 }
 
+func TestSalesEditIncludesDeleteButton(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `aria-label="Delete current record" form="master-delete-form"`) {
+		t.Fatalf("body missing sales delete button")
+	}
+	if !strings.Contains(body, `action="/transactions/sales/197/delete"`) {
+		t.Fatalf("body missing sales delete form action")
+	}
+}
+
+func TestSalesDeleteRedirectsToList(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/transactions/sales/197/delete", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/transactions/sales/" {
+		t.Fatalf("Location = %q, want sales list", got)
+	}
+	if store.deletedDocKind != "sales" || store.deletedDocID != 197 {
+		t.Fatalf("deleted doc = %s/%d, want sales/197", store.deletedDocKind, store.deletedDocID)
+	}
+}
+
 func TestPurchaseFormIncludesStockPicker(t *testing.T) {
 	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
 	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
@@ -752,6 +815,9 @@ func TestMasterListPassesSearchAndYear(t *testing.T) {
 	}
 	if store.lastMasterYear != 2025 {
 		t.Fatalf("master year = %d, want 2025", store.lastMasterYear)
+	}
+	if store.lastMasterLimit != masterListPageSize+1 || store.lastMasterOffset != 0 {
+		t.Fatalf("master page = limit %d offset %d, want limit %d offset 0", store.lastMasterLimit, store.lastMasterOffset, masterListPageSize+1)
 	}
 	body := rec.Body.String()
 	if !strings.Contains(body, `class="data-row"`) || !strings.Contains(body, `ondblclick="window.location='`) {

@@ -107,7 +107,13 @@ func (s *PostgresStore) getUser(ctx context.Context, where string, args ...any) 
 	return user, nil
 }
 
-func (s *PostgresStore) ListMaster(ctx context.Context, form models.FormDefinition, search string, year int) ([]models.Record, error) {
+func (s *PostgresStore) ListMaster(ctx context.Context, form models.FormDefinition, search string, year int, limit int, offset int) ([]models.Record, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	cols := []string{"m.id::text as id"}
 	for _, field := range form.Fields {
 		if field.Type == models.FieldBool {
@@ -138,6 +144,9 @@ func (s *PostgresStore) ListMaster(ctx context.Context, form models.FormDefiniti
 	if len(clauses) > 0 {
 		where = "where " + strings.Join(clauses, " and ")
 	}
+	args = append(args, limit, offset)
+	limitArg := len(args) - 1
+	offsetArg := len(args)
 	sql := fmt.Sprintf(`
 		select %s
 		from %s m
@@ -145,7 +154,7 @@ func (s *PostgresStore) ListMaster(ctx context.Context, form models.FormDefiniti
 		left join users uu on uu.id = m.last_update_by_user_id
 		%s
 		order by m.id desc
-		limit 200`, strings.Join(cols, ", "), form.Table, where)
+		limit $%d offset $%d`, strings.Join(cols, ", "), form.Table, where, limitArg, offsetArg)
 	rows, err := s.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
@@ -1811,6 +1820,7 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	}
 
 	values := models.Record{}
+	values["record_id"] = strconv.FormatInt(id, 10)
 	payload := storedDocumentPayload{}
 	if len(payloadBytes) != 0 {
 		if err := json.Unmarshal(payloadBytes, &payload); err != nil {
@@ -2174,6 +2184,25 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 		return 0, err
 	}
 	return totalInput.documentID, nil
+}
+
+func (s *PostgresStore) DeleteDocument(ctx context.Context, form models.FormDefinition, id int64, user models.User) error {
+	if !user.CanWrite() {
+		return errors.New("write access required")
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if err := s.prepareDocumentUpdate(ctx, tx, form.Kind, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `delete from documents where id=$1 and kind=$2`, id, form.Kind); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, kind string, id int64) error {

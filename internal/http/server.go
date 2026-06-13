@@ -26,7 +26,7 @@ type Store interface {
 	EnsureAdmin(ctx context.Context, username, password string) error
 	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	GetUserByID(ctx context.Context, id int64) (models.User, error)
-	ListMaster(ctx context.Context, form models.FormDefinition, search string, year int) ([]models.Record, error)
+	ListMaster(ctx context.Context, form models.FormDefinition, search string, year int, limit int, offset int) ([]models.Record, error)
 	GetMaster(ctx context.Context, form models.FormDefinition, id int64) (models.Record, error)
 	SaveMaster(ctx context.Context, form models.FormDefinition, id int64, values map[string]string, user models.User) (int64, error)
 	DeleteMaster(ctx context.Context, form models.FormDefinition, id int64, user models.User) error
@@ -34,6 +34,7 @@ type Store interface {
 	GetDocument(ctx context.Context, form models.FormDefinition, id int64) (models.Record, map[string][]models.Record, error)
 	LoadDRSelection(ctx context.Context, id int64) (repositories.DRSelection, error)
 	SaveDocument(ctx context.Context, form models.FormDefinition, id int64, input repositories.DocumentInput) (int64, error)
+	DeleteDocument(ctx context.Context, form models.FormDefinition, id int64, user models.User) error
 	PurchaseReportRows(ctx context.Context, from, to time.Time) ([]models.PurchaseReportRow, error)
 	PurchaseByDRNumberReportRows(ctx context.Context, from, to time.Time) ([]models.PurchaseByDRNumberReportRow, error)
 	PurchaseByStockCodeReportRows(ctx context.Context, from, to time.Time) ([]models.PurchaseByStockCodeReportRow, error)
@@ -75,6 +76,8 @@ type App struct {
 	optionsMu      sync.RWMutex
 	optionsCache   map[string]cachedOptions
 }
+
+const masterListPageSize = 200
 
 type cachedOptions struct {
 	options []models.Option
@@ -212,6 +215,7 @@ func (a *App) Routes() http.Handler {
 				cr.Post("/", a.transactionCreate)
 				cr.Get("/{id}/edit", a.transactionEdit)
 				cr.Post("/{id}", a.transactionUpdate)
+				cr.Post("/{id}/delete", a.transactionDelete)
 			})
 		})
 	})
@@ -276,12 +280,32 @@ func (a *App) masterList(w http.ResponseWriter, r *http.Request) {
 	}
 	search := strings.TrimSpace(r.URL.Query().Get("q"))
 	year := listYear(r, a.now)
-	records, err := a.store.ListMaster(r.Context(), form, search, year)
+	offset := listOffset(r)
+	records, err := a.store.ListMaster(r.Context(), form, search, year, masterListPageSize+1, offset)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, r, "list.gohtml", viewData{Title: form.Title, Form: form, Records: records, IsMaster: true, Search: search, Year: year})
+	hasMore := len(records) > masterListPageSize
+	if hasMore {
+		records = records[:masterListPageSize]
+	}
+	data := viewData{
+		Title:      form.Title,
+		Form:       form,
+		Records:    records,
+		IsMaster:   true,
+		Search:     search,
+		Year:       year,
+		PageOffset: offset,
+		NextOffset: offset + len(records),
+		HasMore:    hasMore,
+	}
+	if r.URL.Query().Get("partial") == "rows" {
+		a.render(w, r, "master_rows", data)
+		return
+	}
+	a.render(w, r, "list.gohtml", data)
 }
 
 func (a *App) masterForm(w http.ResponseWriter, r *http.Request) {
@@ -418,6 +442,27 @@ func (a *App) transactionUpdate(w http.ResponseWriter, r *http.Request) {
 	a.saveTransaction(w, r, id)
 }
 
+func (a *App) transactionDelete(w http.ResponseWriter, r *http.Request) {
+	form, err := transactionFormFromRequest(r)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	user, _ := auth.CurrentUser(r.Context())
+	if err := a.store.DeleteDocument(r.Context(), form, id, user); err != nil {
+		record, lineRows, getErr := a.store.GetDocument(r.Context(), form, id)
+		if getErr != nil {
+			a.serverError(w, r, err)
+			return
+		}
+		a.renderFormError(w, r, form, record, lineRows, err)
+		return
+	}
+	a.invalidateOptions()
+	http.Redirect(w, r, form.RouteBase+"/", http.StatusSeeOther)
+}
+
 func (a *App) saveTransaction(w http.ResponseWriter, r *http.Request, id int64) {
 	form, err := transactionFormFromRequest(r)
 	if err != nil {
@@ -531,7 +576,7 @@ func (a *App) addFormBackdrop(r *http.Request, data *viewData) {
 	data.Year = year
 
 	if data.Form.Table != "" {
-		records, err := a.store.ListMaster(r.Context(), data.Form, search, year)
+		records, err := a.store.ListMaster(r.Context(), data.Form, search, year, masterListPageSize, 0)
 		if err == nil {
 			data.Records = records
 			setRecordNavigation(data, records)
@@ -790,6 +835,14 @@ func isEmbeddedForm(r *http.Request) bool {
 	return r.URL.Query().Get("embedded") == "1"
 }
 
+func listOffset(r *http.Request) int {
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		return 0
+	}
+	return offset
+}
+
 func withQueryParam(path string, keyValues ...string) string {
 	if len(keyValues) == 0 {
 		return path
@@ -854,6 +907,9 @@ type viewData struct {
 	EmbeddedSaved                      bool
 	Search                             string
 	Year                               int
+	PageOffset                         int
+	NextOffset                         int
+	HasMore                            bool
 	FirstRecordID                      string
 	PreviousRecordID                   string
 	NextRecordID                       string

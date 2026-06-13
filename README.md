@@ -54,6 +54,17 @@ This produces:
 
 See [docs/windows.md](docs/windows.md).
 
+## Restore a Postgres SQL Backup
+
+Use `cmd/restore-sql` to empty the current public tables, then load a plain PostgreSQL `.sql` backup.
+
+```powershell
+$env:DATABASE_URL = "postgres://cims:cims@localhost:5432/cims?sslmode=disable"
+go run .\cmd\restore-sql -yes -file "C:\path\to\cims_postgres_backup.sql" -psql "C:\Program Files\PostgreSQL\16\bin\psql.exe"
+```
+
+If `psql.exe` is already in `PATH`, the `-psql` option can be omitted.
+
 ## Forms Included
 
 Utility files:

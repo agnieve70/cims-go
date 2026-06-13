@@ -1433,6 +1433,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        <button type="submit" class="legacy-toolbar-delete" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if or (not .CanDelete) .Embedded}}disabled{{end}} onclick="return confirm('Delete this sales record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <a class="button secondary" href="/transactions/ar-debit/new">AR Debit File</a>
         <a class="button secondary" href="/transactions/ar-credit/new">AR Credit File</a>
@@ -1670,7 +1671,7 @@
 </main>
 {{if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "purchases") (eq .Form.Kind "dr") (eq .Form.Kind "sales") (eq .Form.Kind "stock-transactions") (eq .Form.Kind "ap-credit") (eq .Form.Kind "ar-credit") (eq .Form.Kind "rebates") (eq .Form.Kind "ap-debit") (eq .Form.Kind "ar-debit") (eq .Form.Kind "expenses") (eq .Form.Kind "other-income") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
 {{if .CanDelete}}
-<form id="master-delete-form" method="post" action="{{.Form.RouteBase}}/{{fieldValue .Record "id"}}/delete"></form>
+<form id="master-delete-form" method="post" action="{{.Form.RouteBase}}/{{if fieldValue .Record "record_id"}}{{fieldValue .Record "record_id"}}{{else}}{{fieldValue .Record "id"}}{{end}}/delete"></form>
 {{end}}
   <script>
   (function () {
