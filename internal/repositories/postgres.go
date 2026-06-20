@@ -205,7 +205,7 @@ func (s *PostgresStore) SaveMaster(ctx context.Context, form models.FormDefiniti
 	args := make([]any, 0, len(form.Fields)+3)
 	for _, field := range form.Fields {
 		columns = append(columns, field.Column)
-		args = append(args, valueForField(field, values[field.Key]))
+		args = append(args, valueForMasterField(form, field, values))
 	}
 	if id == 0 {
 		columns = append(columns, "encoder_user_id", "last_update_by_user_id")
@@ -2436,6 +2436,14 @@ func scanRecords(rows pgx.Rows) ([]models.Record, error) {
 		records = append(records, record)
 	}
 	return records, rows.Err()
+}
+
+func valueForMasterField(form models.FormDefinition, field models.Field, values map[string]string) any {
+	value := values[field.Key]
+	if form.Kind == "customers" && field.Key == "credit_limit" && strings.TrimSpace(value) == "" {
+		value = "0"
+	}
+	return valueForField(field, value)
 }
 
 func valueForField(field models.Field, value string) any {

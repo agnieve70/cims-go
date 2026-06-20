@@ -72,11 +72,11 @@ func MasterForms() []FormDefinition {
 		},
 		{
 			Kind: "suppliers", Title: "Suppliers", Table: "suppliers", RouteBase: "/masters/suppliers",
-			Fields: partyFields("Supplier Code", false),
+			Fields: partyFields("Supplier Code", false, true),
 		},
 		{
 			Kind: "customers", Title: "Customers", Table: "customers", RouteBase: "/masters/customers",
-			Fields: append(partyFields("Client Code", true),
+			Fields: append(partyFields("Client Code", true, true),
 				Field{Key: "credit_term", Label: "Credit Term", Column: "credit_term", Type: FieldText},
 				Field{Key: "credit_limit", Label: "Credit Limit", Column: "credit_limit", Type: FieldMoney},
 				Field{Key: "aps", Label: "APS", Column: "aps", Type: FieldText},
@@ -116,9 +116,9 @@ func MasterForms() []FormDefinition {
 	}
 }
 
-func partyFields(codeLabel string, customer bool) []Field {
+func partyFields(codeLabel string, customer bool, codeRequired bool) []Field {
 	fields := []Field{
-		{Key: "code", Label: codeLabel, Column: "code", Type: FieldText},
+		{Key: "code", Label: codeLabel, Column: "code", Type: FieldText, Required: codeRequired},
 		{Key: "company", Label: "Company", Column: "company", Type: FieldText, Required: true},
 		{Key: "lastname", Label: "Lastname", Column: "lastname", Type: FieldText, Required: true},
 		{Key: "firstname", Label: "Firstname", Column: "firstname", Type: FieldText, Required: true},

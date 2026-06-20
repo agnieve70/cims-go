@@ -1,63 +1,74 @@
 {{template "head" .}}
 {{template "topbar" .}}
-<main class="page">
-  {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
-  <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
-    <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
-    <div class="legacy-strip-controls">
-      <label class="legacy-inline-field">
-        <span>Year:</span>
-        <select name="year">
-          <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
-          <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
-          <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
-        </select>
-      </label>
-      <label class="legacy-inline-field legacy-strip-search">
-        <span>Search:</span>
-        <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
-      </label>
+<main class="page content-window" data-content-window>
+  <div class="content-window-titlebar">
+    <span class="content-window-title">{{.Form.Title}}</span>
+    <div class="content-window-controls">
+      <button type="button" class="desktop-window-control desktop-window-minimize" data-content-window-minimize title="Minimize" aria-label="Minimize"></button>
+      <button type="button" class="desktop-window-control desktop-window-maximize" data-content-window-maximize title="Maximize" aria-label="Maximize"></button>
+      <button type="button" class="desktop-window-control desktop-window-close" data-content-window-close title="Close" aria-label="Close"></button>
     </div>
-  </form>
-  <div id="records-table"
-       class="table-wrap">
-    <table>
-      <thead>
-        {{if eq .Form.Kind "stock-categories"}}
-        <tr>
-          <th>ID ▲</th>
-          <th>Name</th>
-          <th>Group</th>
-          <th>APS Monitor</th>
-          <th>Encoder</th>
-          <th>Last Update</th>
-          <th>Last Update By</th>
-        </tr>
-        {{else}}
-        <tr>
-          <th>ID</th>
-          {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
-          <th>Encoder</th>
-        </tr>
-        {{end}}
-      </thead>
-      <tbody id="records-body">
-        {{if .User.CanWrite}}
-        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+  </div>
+  <div class="content-window-body content-window-list-body" data-content-window-body>
+    {{if .Error}}<div class="alert">{{.Error}}</div>{{end}}
+    <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
+      <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
+      <div class="legacy-strip-controls">
+        <label class="legacy-inline-field">
+          <span>Year:</span>
+          <select name="year">
+            <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
+            <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
+            <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
+          </select>
+        </label>
+        <label class="legacy-inline-field legacy-strip-search">
+          <span>Search:</span>
+          <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
+        </label>
+      </div>
+    </form>
+    <div id="records-table"
+         class="table-wrap list-table-wrap">
+      <table data-fill-empty-rows>
+        <thead>
           {{if eq .Form.Kind "stock-categories"}}
-          <td>+</td>
-          <td colspan="6">Add new ...</td>
+          <tr>
+            <th>ID ▲</th>
+            <th>Name</th>
+            <th>Group</th>
+            <th>APS Monitor</th>
+            <th>Encoder</th>
+            <th>Last Update</th>
+            <th>Last Update By</th>
+          </tr>
           {{else}}
-          <td>Add new ...</td>
-          <td colspan="20"></td>
+          <tr>
+            <th>ID</th>
+            {{range .Form.Fields}}<th>{{.Label}}</th>{{end}}
+            <th>Encoder</th>
+          </tr>
           {{end}}
-        </tr>
-        {{end}}
-        {{template "master_rows" .}}
-      </tbody>
-    </table>
+        </thead>
+        <tbody id="records-body">
+          {{if .User.CanWrite}}
+          <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+            {{if eq .Form.Kind "stock-categories"}}
+            <td>+</td>
+            <td colspan="6">Add new ...</td>
+            {{else}}
+            <td>Add new ...</td>
+            <td colspan="20"></td>
+            {{end}}
+          </tr>
+          {{end}}
+          {{template "master_rows" .}}
+        </tbody>
+      </table>
+    </div>
   </div>
 </main>
+<script src="/static/content-window.js?v=202606201840"></script>
 {{template "foot" .}}
 
 {{define "master_rows"}}
@@ -87,7 +98,7 @@
 <tr class="lazy-load-row"
     hx-get="{{.Form.RouteBase}}/?partial=rows&offset={{.NextOffset}}"
     hx-include="#page-query-form"
-    hx-trigger="revealed"
+    hx-trigger="intersect once root:.content-window-body threshold:0.01"
     hx-swap="outerHTML">
   <td colspan="20" class="empty">Loading more...</td>
 </tr>

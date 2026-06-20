@@ -1168,7 +1168,7 @@
         </label>
         <label class="legacy-record-field">
           <span>Supplier Code:</span>
-          <input name="code" value="{{fieldValue $.Record "code"}}">
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Company:</span>
@@ -1215,7 +1215,7 @@
         </label>
         <label class="legacy-record-field">
           <span>Client Code:</span>
-          <input name="code" value="{{fieldValue $.Record "code"}}">
+          <input name="code" value="{{fieldValue $.Record "code"}}" required>
         </label>
         <label class="legacy-record-field">
           <span>Company:</span>
@@ -4110,6 +4110,14 @@
         closeEmbeddedForm();
       });
     });
+
+    if (embeddedMode && embeddedSaved && formShell) {
+      notifyEmbeddedParent({
+        type: "cims-record-saved",
+        kind: formShell.dataset.formKind || "",
+        id: embeddedDocumentNumericID() || "{{fieldValue .Record "id"}}"
+      });
+    }
 
     if (embeddedMode && embeddedSaved && formShell && formShell.dataset.formKind === "stocks") {
       var stockCategoryField = document.querySelector("select[name='category_group']");

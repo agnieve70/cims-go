@@ -12,6 +12,10 @@
   var filterItems = Array.prototype.slice.call(document.querySelectorAll("[data-report-filter-item]"));
   var summaryRows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-report-summary-row]"));
   var summaryNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
+  var toolbar = document.querySelector(".report-preview-toolbar");
+  var previewTree = document.querySelector(".report-preview-tree");
+  var tabs = null;
+  var tabButtons = [];
   var totalPages = Math.max(1, pages.length || 1);
   var currentPage = 1;
 
@@ -30,6 +34,47 @@
     filterItems.forEach(function (item) {
       item.hidden = !!targetID && item.id !== targetID;
     });
+  };
+  var showCurrentPageOnly = function () {
+    pages.forEach(function (section) { section.hidden = Number(section.getAttribute("data-report-page")) !== currentPage; });
+  };
+  var showFullTree = function () {
+    if (!previewTree) return;
+    previewTree.querySelectorAll("li").forEach(function (item) { item.hidden = false; });
+  };
+  var filterTreeForPage = function (page, targetID) {
+    if (!previewTree) return;
+    showFullTree();
+    var nodes = treeNodes.filter(function (node) {
+      if (Number(node.getAttribute("data-report-tree-page")) !== page) return false;
+      return !targetID || node.getAttribute("data-report-scroll-target") === targetID || node.getAttribute("data-report-filter-target") === targetID || !node.hasAttribute("data-report-scroll-target");
+    });
+    if (!nodes.length) return;
+    previewTree.querySelectorAll("li").forEach(function (item) { item.hidden = true; });
+    nodes.forEach(function (node) {
+      var item = node.closest("li");
+      while (item && previewTree.contains(item)) {
+        item.hidden = false;
+        var branch = item.closest("li.report-tree-branch");
+        if (!branch || branch === item) break;
+        item = branch;
+      }
+      var branch = node.closest(".report-tree-branch");
+      if (branch) {
+        branch.hidden = false;
+        branch.classList.remove("collapsed");
+        branch.classList.add("expanded");
+        var parent = branch.querySelector(":scope > .report-tree-parent");
+        if (parent) parent.setAttribute("aria-expanded", "true");
+        branch.querySelectorAll("li").forEach(function (child) {
+          var childNode = child.querySelector(".report-tree-node");
+          child.hidden = !(childNode && nodes.indexOf(childNode) !== -1);
+        });
+      }
+    });
+  };
+  var setActiveTab = function (button) {
+    tabButtons.forEach(function (candidate) { candidate.classList.toggle("active", candidate === button); });
   };
   var scrollPaperToTop = function () {
     if (paperScroll) paperScroll.scrollTop = 0;
@@ -87,6 +132,118 @@
       summaryRows.forEach(function (row) { row.classList.toggle("report-row-highlight", row.getAttribute("data-report-summary-row") === rowIndex); });
       var row = summaryRows.find(function (candidate) { return candidate.getAttribute("data-report-summary-row") === rowIndex; });
       if (row) row.scrollIntoView({block: "center", inline: "nearest"});
+    });
+  });
+
+  var textLabel = function (element) {
+    return (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+  };
+  var ensureTabs = function () {
+    if (tabs || !toolbar) return tabs;
+    tabs = document.createElement("div");
+    tabs.className = "report-preview-tabs";
+    tabs.hidden = true;
+    toolbar.insertAdjacentElement("afterend", tabs);
+    return tabs;
+  };
+  var activateTab = function (button) {
+    var type = button.getAttribute("data-report-tab-type");
+    var page = Number(button.getAttribute("data-report-tab-page")) || 1;
+    var targetID = button.getAttribute("data-report-tab-target");
+    selectedTreeNode = null;
+    setActiveTab(button);
+    setPage(page);
+    if (type === "item") {
+      setFilter(targetID);
+      filterTreeForPage(page, targetID);
+    } else if (type === "group") {
+      setFilter("");
+      showCurrentPageOnly();
+      filterTreeForPage(page, "");
+    } else {
+      setFilter("");
+      showCurrentPageOnly();
+      showFullTree();
+    }
+    resetPaperToTop();
+  };
+  var closeReportTab = function (button) {
+    var wasActive = button.classList.contains("active");
+    var index = tabButtons.indexOf(button);
+    tabButtons = tabButtons.filter(function (candidate) { return candidate !== button; });
+    button.remove();
+    if (wasActive) {
+      var fallback = tabButtons[Math.max(0, index - 1)] || tabButtons[0];
+      if (fallback) activateTab(fallback);
+    }
+    if (tabButtons.length === 1 && tabs) {
+      activateTab(tabButtons[0]);
+      tabs.hidden = true;
+    }
+  };
+  var addReportTab = function (options) {
+    var tabBar = ensureTabs();
+    if (!tabBar) return;
+    tabBar.hidden = false;
+    if (!tabButtons.length) {
+      var allButton = document.createElement("button");
+      allButton.type = "button";
+      allButton.className = "report-preview-tab active";
+      allButton.textContent = "All";
+      allButton.setAttribute("data-report-tab-key", "all");
+      allButton.setAttribute("data-report-tab-type", "all");
+      allButton.setAttribute("data-report-tab-page", "1");
+      allButton.addEventListener("click", function () { activateTab(allButton); });
+      tabBar.appendChild(allButton);
+      tabButtons.push(allButton);
+    }
+    var key = options.type + ":" + (options.targetID || options.page || options.label);
+    var existing = tabButtons.find(function (button) { return button.getAttribute("data-report-tab-key") === key; });
+    if (existing) {
+      activateTab(existing);
+      return;
+    }
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "report-preview-tab";
+    button.title = options.label;
+    var label = document.createElement("span");
+    label.className = "report-preview-tab-label";
+    label.textContent = options.label;
+    var close = document.createElement("span");
+    close.className = "report-preview-tab-close";
+    close.textContent = "x";
+    close.setAttribute("aria-hidden", "true");
+    button.append(label, close);
+    button.setAttribute("data-report-tab-key", key);
+    button.setAttribute("data-report-tab-type", options.type);
+    button.setAttribute("data-report-tab-page", String(options.page || 1));
+    if (options.targetID) button.setAttribute("data-report-tab-target", options.targetID);
+    button.addEventListener("click", function (event) {
+      if (event.target.closest(".report-preview-tab-close")) {
+        event.stopPropagation();
+        closeReportTab(button);
+        return;
+      }
+      activateTab(button);
+    });
+    tabBar.appendChild(button);
+    tabButtons.push(button);
+    activateTab(button);
+  };
+  paper.querySelectorAll("tbody td:not(.num), .report-detail-group p strong").forEach(function (element) {
+    element.classList.add("report-drill-target");
+    element.title = "Double-click to open in a report tab";
+    element.addEventListener("dblclick", function () {
+      var group = element.closest(".report-detail-group[data-report-page]");
+      if (!group) return;
+      var row = element.closest("[data-report-filter-item]");
+      var page = Number(group.getAttribute("data-report-page")) || 1;
+      if (row && row.id) {
+        addReportTab({type: "item", page: page, targetID: row.id, label: textLabel(element)});
+        return;
+      }
+      addReportTab({type: "group", page: page, label: textLabel(element)});
     });
   });
 

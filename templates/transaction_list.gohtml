@@ -1,58 +1,69 @@
 {{template "head" .}}
 {{template "topbar" .}}
-<main class="page">
-  <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
-    <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
-    <div class="legacy-strip-controls">
-      <label class="legacy-inline-field">
-        <span>Year:</span>
-        <select name="year">
-          <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
-          <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
-          <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
-        </select>
-      </label>
-      <label class="legacy-inline-field legacy-strip-search">
-        <span>Search:</span>
-        <input type="text" name="q" value="{{.Search}}" placeholder="Search records">
-      </label>
+<main class="page content-window" data-content-window>
+  <div class="content-window-titlebar">
+    <span class="content-window-title">{{.Form.Title}}</span>
+    <div class="content-window-controls">
+      <button type="button" class="desktop-window-control desktop-window-minimize" data-content-window-minimize title="Minimize" aria-label="Minimize"></button>
+      <button type="button" class="desktop-window-control desktop-window-maximize" data-content-window-maximize title="Maximize" aria-label="Maximize"></button>
+      <button type="button" class="desktop-window-control desktop-window-close" data-content-window-close title="Close" aria-label="Close"></button>
     </div>
-  </form>
-  <div id="documents-table"
-       class="table-wrap"
-       hx-get="{{.Form.RouteBase}}/"
-       hx-include="#page-query-form"
-       hx-trigger="every 60s"
-       hx-select="#documents-table"
-       hx-swap="outerHTML">
-    <table>
-      <thead>
-        <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
-      </thead>
-      <tbody>
-        {{if .User.CanWrite}}
-        <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
-          <td>Add new ...</td>
-          <td colspan="8"></td>
-        </tr>
-        {{end}}
-        {{range .Documents}}
-        <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
-          <td>{{.EntryID}}</td>
-          <td>{{.EntryDate.Format "2006-01-02"}}</td>
-          <td>{{.Party}}</td>
-          <td>{{.Reference}}</td>
-          <td>{{.DRRef}}</td>
-          <td>{{.Status}}</td>
-          <td>{{.Branch}}</td>
-          <td>{{.Net}}</td>
-          <td>{{.Encoder}}</td>
-        </tr>
-        {{else}}
-        <tr><td colspan="9" class="empty">No entries yet.</td></tr>
-        {{end}}
-      </tbody>
-    </table>
+  </div>
+  <div class="content-window-body content-window-list-body" data-content-window-body>
+    <form method="get" action="{{.Form.RouteBase}}/" class="legacy-strip" id="page-query-form">
+      <div class="legacy-strip-note">After specifying keyword, press enter or click magnifying glass button, to search.</div>
+      <div class="legacy-strip-controls">
+        <label class="legacy-inline-field">
+          <span>Year:</span>
+          <select name="year">
+            <option value="2025" {{if eq .Year 2025}}selected{{end}}>2025</option>
+            <option value="2026" {{if eq .Year 2026}}selected{{end}}>2026</option>
+            <option value="2027" {{if eq .Year 2027}}selected{{end}}>2027</option>
+          </select>
+        </label>
+        <label class="legacy-inline-field legacy-strip-search">
+          <span>Search:</span>
+          <input type="text" name="q" value="{{.Search}}" placeholder="Search records">
+        </label>
+      </div>
+    </form>
+    <div id="documents-table"
+         class="table-wrap list-table-wrap"
+         hx-get="{{.Form.RouteBase}}/"
+         hx-include="#page-query-form"
+         hx-trigger="every 60s"
+         hx-select="#documents-table"
+         hx-swap="outerHTML">
+      <table data-fill-empty-rows>
+        <thead>
+          <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
+        </thead>
+        <tbody>
+          {{if .User.CanWrite}}
+          <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
+            <td>Add new ...</td>
+            <td colspan="8"></td>
+          </tr>
+          {{end}}
+          {{range .Documents}}
+          <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
+            <td>{{.EntryID}}</td>
+            <td>{{.EntryDate.Format "2006-01-02"}}</td>
+            <td>{{.Party}}</td>
+            <td>{{.Reference}}</td>
+            <td>{{.DRRef}}</td>
+            <td>{{.Status}}</td>
+            <td>{{.Branch}}</td>
+            <td>{{.Net}}</td>
+            <td>{{.Encoder}}</td>
+          </tr>
+          {{else}}
+          <tr><td colspan="9" class="empty">No entries yet.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
   </div>
 </main>
+<script src="/static/content-window.js?v=202606201840"></script>
 {{template "foot" .}}

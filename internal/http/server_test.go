@@ -20,11 +20,13 @@ type fakeStore struct {
 	lastMasterYear   int
 	lastMasterLimit  int
 	lastMasterOffset int
+	masterRecords    []models.Record
 	lastDocKind      string
 	lastDocSearch    string
 	lastDocYear      int
 	deletedDocKind   string
 	deletedDocID     int64
+	saveMasterCalls  int
 	userByIDCalls    int
 }
 
@@ -44,6 +46,16 @@ func (s *fakeStore) ListMaster(_ context.Context, _ models.FormDefinition, searc
 	s.lastMasterYear = year
 	s.lastMasterLimit = limit
 	s.lastMasterOffset = offset
+	if s.masterRecords != nil {
+		end := offset + limit
+		if end > len(s.masterRecords) {
+			end = len(s.masterRecords)
+		}
+		if offset > len(s.masterRecords) {
+			offset = len(s.masterRecords)
+		}
+		return s.masterRecords[offset:end], nil
+	}
 	return []models.Record{{"id": "1", "code": "BR-01", "name": "Main", "encoder": "Admin"}}, nil
 }
 
@@ -59,6 +71,7 @@ func (s *fakeStore) GetMaster(context.Context, models.FormDefinition, int64) (mo
 }
 
 func (s *fakeStore) SaveMaster(context.Context, models.FormDefinition, int64, map[string]string, models.User) (int64, error) {
+	s.saveMasterCalls++
 	return 1, nil
 }
 
@@ -493,6 +506,39 @@ func TestMasterListRendersForLoggedInUser(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "BR-01") {
 		t.Fatalf("body does not contain fake branch row")
 	}
+	if !strings.Contains(rec.Body.String(), `class="nav-logout-button"`) || !strings.Contains(rec.Body.String(), `action="/logout"`) {
+		t.Fatalf("body does not contain topbar logout button")
+	}
+	if !strings.Contains(rec.Body.String(), `menu-dismissed`) || !strings.Contains(rec.Body.String(), `.dropdown-menu a[href]`) {
+		t.Fatalf("body does not contain dropdown dismiss behavior")
+	}
+}
+
+func TestCustomerCreateRequiresClientCode(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := strings.NewReader("code=&company=Acme&lastname=Doe&firstname=Jane")
+	req := httptest.NewRequest(http.MethodPost, "/masters/customers", body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+	if store.saveMasterCalls != 0 {
+		t.Fatalf("SaveMaster called %d times, want 0", store.saveMasterCalls)
+	}
+	if !strings.Contains(rec.Body.String(), "Client Code is required") {
+		t.Fatalf("body missing client-code validation error")
+	}
 }
 
 func TestSalesFormLoadsSelectedDRRows(t *testing.T) {
@@ -794,7 +840,14 @@ func TestEmbeddedTransactionSaveRedirectsBackToEdit(t *testing.T) {
 }
 
 func TestMasterListPassesSearchAndYear(t *testing.T) {
-	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	records := make([]models.Record, masterListPageSize+1)
+	for i := range records {
+		records[i] = models.Record{"id": "1", "code": "BR-01", "name": "Main", "encoder": "Admin"}
+	}
+	store := &fakeStore{
+		user:          models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		masterRecords: records,
+	}
 	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
 	app, err := NewApp(store, manager)
 	if err != nil {
@@ -825,6 +878,12 @@ func TestMasterListPassesSearchAndYear(t *testing.T) {
 	}
 	if strings.Contains(body, `class="data-row" tabindex="0" onclick="window.location='`) {
 		t.Fatalf("body still uses single-click row open behavior")
+	}
+	if !strings.Contains(body, `hx-trigger="intersect once root:.content-window-body threshold:0.01"`) {
+		t.Fatalf("body missing content-window lazy-load trigger")
+	}
+	if !strings.Contains(body, `class="content-window-body content-window-list-body"`) || !strings.Contains(body, `data-fill-empty-rows`) {
+		t.Fatalf("body missing full-height list table markers")
 	}
 }
 

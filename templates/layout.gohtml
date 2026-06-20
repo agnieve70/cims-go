@@ -5,7 +5,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Title}} · CIMS</title>
-  <link rel="stylesheet" href="/static/app.css?v=202606131740">
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem("cims.theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (theme === "dark" || (!theme && prefersDark)) {
+          document.documentElement.classList.add("theme-dark");
+        }
+      } catch (error) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/app.css?v=202606202040">
   <script src="/static/htmx.min.js?v=1.9.12"></script>
 </head>
 <body>
@@ -76,6 +87,17 @@
       <a href="/reports/transfers-by-branch"><img class="dropdown-icon" src="/static/icons/dropdown-transfers-by-branch.svg" alt="">By Branch</a>
     </div>
   </div>
+  <div class="navrail-spacer" aria-hidden="true"></div>
+  <button class="nav-theme-toggle" type="button" data-theme-toggle title="Toggle dark mode" aria-label="Toggle dark mode">
+    <span class="nav-theme-icon" data-theme-icon>☾</span>
+    <span class="nav-theme-label" data-theme-label>Dark Mode</span>
+  </button>
+  <form method="post" action="/logout" class="nav-logout-form">
+    <button class="nav-logout-button" type="submit" title="Logout" aria-label="Logout">
+      <span class="nav-logout-icon" aria-hidden="true"></span>
+      <span class="nav-logout-label">Logout</span>
+    </button>
+  </form>
 </nav>
 <aside class="sidebar" id="primary-sidebar" aria-label="Files">
   <section class="side-section expanded" data-section-key="files">
@@ -144,9 +166,69 @@
   (function () {
     var storageKey = "cims.sidebarCollapsed";
     var sectionKeyPrefix = "cims.sidebarSection.";
+    var themeKey = "cims.theme";
     var body = document.body;
     var toggle = document.querySelector(".navtoggle");
     if (!body || !toggle) return;
+
+    var themeToggles = Array.prototype.slice.call(document.querySelectorAll("[data-theme-toggle]"));
+    var root = document.documentElement;
+
+    var setThemeState = function (dark, persist) {
+      root.classList.toggle("theme-dark", dark);
+      themeToggles.forEach(function (themeToggle) {
+        var themeLabel = themeToggle.querySelector("[data-theme-label]");
+        var themeIcon = themeToggle.querySelector("[data-theme-icon]");
+        if (themeLabel) themeLabel.textContent = dark ? "Light Mode" : "Dark Mode";
+        if (themeIcon) themeIcon.textContent = dark ? "☀" : "☾";
+        themeToggle.setAttribute("aria-pressed", dark ? "true" : "false");
+      });
+      if (persist) {
+        localStorage.setItem(themeKey, dark ? "dark" : "light");
+        window.dispatchEvent(new CustomEvent("cims:themechange", { detail: { dark: dark } }));
+      }
+    };
+
+    setThemeState(root.classList.contains("theme-dark"), false);
+
+    themeToggles.forEach(function (themeToggle) {
+      themeToggle.addEventListener("click", function () {
+        setThemeState(!root.classList.contains("theme-dark"), true);
+      });
+    });
+
+    var navMenus = Array.prototype.slice.call(document.querySelectorAll(".navrail .has-menu"));
+    var dismissMenu = function (menu) {
+      if (!menu) return;
+      menu.classList.add("menu-dismissed");
+      menu.addEventListener("pointerleave", function clearDismissed() {
+        menu.classList.remove("menu-dismissed");
+      }, { once: true });
+    };
+    var activateMenu = function (activeMenu) {
+      navMenus.forEach(function (menu) {
+        if (menu === activeMenu) {
+          menu.classList.remove("menu-dismissed");
+        } else {
+          dismissMenu(menu);
+        }
+      });
+    };
+    navMenus.forEach(function (menu) {
+      menu.addEventListener("pointerenter", function () { activateMenu(menu); });
+      menu.addEventListener("focusin", function () { activateMenu(menu); });
+      menu.addEventListener("mousedown", function () { activateMenu(menu); });
+    });
+
+    document.querySelectorAll(".dropdown-menu a[href]").forEach(function (link) {
+      link.addEventListener("click", function () {
+        var menu = link.closest(".has-menu");
+        if (!menu) return;
+        dismissMenu(menu);
+        menu.blur();
+        link.blur();
+      });
+    });
 
     var setSidebarState = function (collapsed) {
       body.classList.toggle("sidebar-collapsed", collapsed);
@@ -241,6 +323,12 @@
       }
     };
 
+    tree.addEventListener("click", function (event) {
+      var node = event.target.closest(".report-tree-node");
+      if (!node || !tree.contains(node)) return;
+      resetReportPaperToTop();
+    });
+
     tree.addEventListener("keydown", function (event) {
       var node = event.target.closest(".report-tree-node");
       if (!node || !tree.contains(node)) return;
@@ -276,7 +364,44 @@
       }
     });
   })();
+
+  (function () {
+    var fillListTables = function () {
+      document.querySelectorAll("table[data-fill-empty-rows]").forEach(function (table) {
+        var wrap = table.closest(".list-table-wrap");
+        var tbody = table.tBodies && table.tBodies[0];
+        if (!wrap || !tbody) return;
+        tbody.querySelectorAll(".empty-fill-row").forEach(function (row) { row.remove(); });
+        if (tbody.querySelector(".lazy-load-row")) return;
+
+        var sampleRow = tbody.querySelector("tr:not(.empty-fill-row)");
+        var headerRow = table.tHead && table.tHead.rows[0];
+        var columnCount = headerRow ? headerRow.cells.length : 1;
+        var rowHeight = sampleRow ? sampleRow.getBoundingClientRect().height : 34;
+        if (!rowHeight || rowHeight < 1) rowHeight = 34;
+
+        var remaining = wrap.clientHeight - table.getBoundingClientRect().height;
+        var rowsToAdd = Math.floor(remaining / rowHeight);
+        for (var rowIndex = 0; rowIndex < rowsToAdd; rowIndex++) {
+          var row = document.createElement("tr");
+          row.className = "empty-fill-row";
+          row.setAttribute("aria-hidden", "true");
+          for (var cellIndex = 0; cellIndex < columnCount; cellIndex++) {
+            row.appendChild(document.createElement("td"));
+          }
+          tbody.appendChild(row);
+        }
+      });
+    };
+
+    window.addEventListener("load", fillListTables);
+    window.addEventListener("resize", fillListTables);
+    document.addEventListener("htmx:afterSettle", fillListTables);
+    window.setTimeout(fillListTables, 0);
+    window.setTimeout(fillListTables, 100);
+  })();
 </script>
+{{if .User.ID}}<script src="/static/content-window.js?v=202606201840"></script>{{end}}
 </body>
 </html>
 {{end}}
