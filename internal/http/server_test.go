@@ -386,6 +386,7 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 		{StockID: "1", Category: "PILMICO HOGS", StockCode: "CLASSIC FI", StockName: "CLASSIC FINEX, 50kg.", EntryDate: "12/31/2025", Reference: "PO-OLD", Company: "Supplier A", Kind: "purchases", QtyDelta: 25},
 		{StockID: "1", Category: "PILMICO HOGS", StockCode: "CLASSIC FI", StockName: "CLASSIC FINEX, 50kg.", EntryDate: "03/14/2026", Reference: "PO-1", Company: "Supplier A", Kind: "purchases", QtyDelta: 155},
 		{StockID: "2", Category: "PILMICO HOGS", StockCode: "776", StockName: "CLASSIC GROWEX"},
+		{StockID: "3", Category: "EMPTY CATEGORY", StockCode: "EMPTY", StockName: "EMPTY STOCK"},
 	}, nil
 }
 
@@ -1857,8 +1858,11 @@ func TestStockLedgerReportRenders(t *testing.T) {
 	if !strings.Contains(body, "STOCK LEDGER") || !strings.Contains(body, "Period Covered : 3/1/2026 ~ 3/31/2026") {
 		t.Fatalf("body missing stock ledger title or coverage")
 	}
-	if !strings.Contains(body, "PILMICO HOGS") || !strings.Contains(body, "CLASSIC FINEX") || !strings.Contains(body, "CLASSIC GROWEX") {
+	if !strings.Contains(body, "PILMICO HOGS") || !strings.Contains(body, "CLASSIC FINEX") {
 		t.Fatalf("body missing stock ledger category or stock rows")
+	}
+	if strings.Contains(body, "CLASSIC GROWEX") || strings.Contains(body, "EMPTY CATEGORY") || strings.Contains(body, "EMPTY STOCK") {
+		t.Fatalf("body rendered stock ledger rows without quantity values")
 	}
 	if !strings.Contains(body, "Forwarded Balance") || !strings.Contains(body, "25.00") || !strings.Contains(body, "180.00") {
 		t.Fatalf("body missing stock ledger forwarded or running balance values")

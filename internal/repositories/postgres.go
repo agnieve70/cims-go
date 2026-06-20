@@ -1897,9 +1897,18 @@ func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelect
 		         from dr_consumptions dc
 		         where dc.dr_line_id = dl.id
 		       ), 0)))::bigint::text,
-		       coalesce(st.latest_cost::text, '0')
+		       coalesce(latest_purchase.unit_cost::text, st.latest_cost::text, '0')
 		from document_lines dl
 		left join stocks st on st.id = dl.stock_id
+		left join lateral (
+		  select pdl.unit_cost
+		  from document_lines pdl
+		  join documents pd on pd.id = pdl.document_id
+		  where pd.kind = 'purchases'
+		    and pdl.stock_id = dl.stock_id
+		  order by pd.document_date desc, pd.entry_date desc, pd.id desc, pdl.line_no desc
+		  limit 1
+		) latest_purchase on true
 		where dl.document_id=$1
 		  and dl.group_key='details'
 		  and (dl.qty - coalesce((
@@ -2070,7 +2079,14 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	effects := services.BuildPostingEffects(totalInput.posting)
 	drReferenceID := parseInt(input.Values["dr_document_id"])
 	var drState drValidationState
+	var latestCostStockIDs []int64
 	if id != 0 {
+		if form.Kind == "purchases" {
+			latestCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
+			if err != nil {
+				return 0, err
+			}
+		}
 		if err := s.prepareDocumentUpdate(ctx, tx, form.Kind, id); err != nil {
 			return 0, err
 		}
@@ -2162,6 +2178,12 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 			return 0, err
 		}
 	}
+	if form.Kind == "purchases" {
+		latestCostStockIDs = appendStockLineIDs(latestCostStockIDs, totalInput.posting.Lines)
+		if err := s.refreshLatestPurchaseCosts(ctx, tx, latestCostStockIDs); err != nil {
+			return 0, err
+		}
+	}
 	if effects.Balance.PartyType != services.PartyNone && effects.Balance.PartyID != 0 && effects.Balance.AmountDelta != 0 {
 		_, err = tx.Exec(ctx, `
 			insert into balance_ledger (document_id, party_type, party_id, amount_delta)
@@ -2196,13 +2218,70 @@ func (s *PostgresStore) DeleteDocument(ctx context.Context, form models.FormDefi
 	}
 	defer tx.Rollback(ctx)
 
+	var latestCostStockIDs []int64
+	if form.Kind == "purchases" {
+		latestCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+	}
 	if err := s.prepareDocumentUpdate(ctx, tx, form.Kind, id); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `delete from documents where id=$1 and kind=$2`, id, form.Kind); err != nil {
 		return err
 	}
+	if form.Kind == "purchases" {
+		if err := s.refreshLatestPurchaseCosts(ctx, tx, latestCostStockIDs); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
+}
+
+func (s *PostgresStore) purchaseDocumentStockIDs(ctx context.Context, tx pgx.Tx, documentID int64) ([]int64, error) {
+	rows, err := tx.Query(ctx, `
+		select distinct dl.stock_id
+		from document_lines dl
+		join documents d on d.id = dl.document_id
+		where d.id = $1
+		  and d.kind = 'purchases'
+		  and dl.stock_id is not null`, documentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stockIDs []int64
+	for rows.Next() {
+		var stockID int64
+		if err := rows.Scan(&stockID); err != nil {
+			return nil, err
+		}
+		stockIDs = appendUniqueInt64(stockIDs, stockID)
+	}
+	return stockIDs, rows.Err()
+}
+
+func (s *PostgresStore) refreshLatestPurchaseCosts(ctx context.Context, tx pgx.Tx, stockIDs []int64) error {
+	stockIDs = uniquePositiveInt64s(stockIDs)
+	if len(stockIDs) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `
+		update stocks st
+		set latest_cost = coalesce((
+		    select dl.unit_cost
+		    from document_lines dl
+		    join documents d on d.id = dl.document_id
+		    where d.kind = 'purchases'
+		      and dl.stock_id = st.id
+		    order by d.document_date desc, d.entry_date desc, d.id desc, dl.line_no desc
+		    limit 1
+		  ), 0),
+		  updated_at = now()
+		where st.id = any($1::bigint[])`, stockIDs)
+	return err
 }
 
 func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, kind string, id int64) error {
@@ -2576,6 +2655,33 @@ func stockLinesFromGroups(groups []LineInput) []services.StockLine {
 		return lines
 	}
 	return nil
+}
+
+func appendStockLineIDs(stockIDs []int64, lines []services.StockLine) []int64 {
+	for _, line := range lines {
+		stockIDs = appendUniqueInt64(stockIDs, line.StockID)
+	}
+	return stockIDs
+}
+
+func appendUniqueInt64(values []int64, value int64) []int64 {
+	if value <= 0 {
+		return values
+	}
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
+}
+
+func uniquePositiveInt64s(values []int64) []int64 {
+	unique := make([]int64, 0, len(values))
+	for _, value := range values {
+		unique = appendUniqueInt64(unique, value)
+	}
+	return unique
 }
 
 func salesLinesFromGroups(groups []LineInput) []services.SalesLine {

@@ -6179,6 +6179,7 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				}
 			}
 			balance = forwarded
+			hasValue := forwarded != 0
 			group := stockLedgerStockGroup{
 				StockCode: state.code,
 				StockName: state.name,
@@ -6193,6 +6194,9 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				rowDate := parseReportDate(rowDateForParse(row.EntryDate), to)
 				if rowDate.Before(from) || rowDate.After(to) {
 					continue
+				}
+				if row.QtyDelta != 0 {
+					hasValue = true
 				}
 				balance += row.QtyDelta
 				line := stockLedgerLine{
@@ -6211,7 +6215,13 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				}
 				group.Rows = append(group.Rows, line)
 			}
+			if !hasValue {
+				continue
+			}
 			category.Stocks = append(category.Stocks, group)
+		}
+		if len(category.Stocks) == 0 {
+			continue
 		}
 		report.Categories = append(report.Categories, category)
 	}
