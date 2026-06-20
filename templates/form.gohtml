@@ -384,8 +384,10 @@
             <select name="dr_document_id" required data-sales-dr-select>
               <option value="">Select SO Number</option>
               {{$currentDR := fieldValue $.Record "dr_document_id"}}
+              {{$currentDRLabel := fieldValue $.Record "dr_document_label"}}
+              {{if and $currentDR $currentDRLabel}}<option value="{{$currentDR}}" selected>{{$currentDRLabel}}</option>{{end}}
               {{range index $.Options "dr_documents"}}
-                <option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>
+                {{if and $currentDRLabel (eq .Value $currentDR)}}{{else}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}
               {{end}}
             </select>
             <button type="button" class="purchase-supplier-browse" data-sales-dr-browse>Browse</button>
@@ -548,7 +550,7 @@
         <label class="transfer-field transfer-id"><span>Transfer ID:</span><input name="transfer_id" value="{{fieldValue $.Record "transfer_id"}}"></label>
         <label class="transfer-field transfer-transaction"><span>Transaction:</span><input name="transaction" value="{{fieldValue $.Record "transaction"}}"></label>
         <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-        <label class="transfer-field transfer-dr-file"><span>Stock Out File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{range index $.Options "dr_documents"}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-dr-file"><span>Stock Out File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{$currentDRLabel := fieldValue $.Record "dr_document_label"}}{{if and $currentDR $currentDRLabel}}<option value="{{$currentDR}}" selected>{{$currentDRLabel}}</option>{{end}}{{range index $.Options "dr_documents"}}{{if and $currentDRLabel (eq .Value $currentDR)}}{{else}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}{{end}}</select></label>
         <label class="transfer-field transfer-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
         <label class="transfer-field transfer-updated-by"><span>Last Update By:</span><input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true"></label>
       </section>

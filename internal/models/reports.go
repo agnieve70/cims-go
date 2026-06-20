@@ -260,6 +260,7 @@ type StockLedgerReportRow struct {
 	StockCode string
 	StockName string
 	EntryDate string
+	SortKey   string
 	Reference string
 	Company   string
 	Kind      string

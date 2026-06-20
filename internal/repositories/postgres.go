@@ -1566,6 +1566,9 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 			       	when d.kind = 'stock-transactions' then d.document_date
 			       	else d.entry_date::date
 			       end as movement_date,
+			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' ||
+			         lpad(d.id::text, 20, '0') || '-' ||
+			         lpad(sl.id::text, 20, '0') as sort_key,
 			       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), '') as reference,
 			       coalesce(nullif(
 			       	case
@@ -1592,13 +1595,14 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(to_char(l.movement_date, 'MM/DD/YYYY'), '') as entry_date,
+		       coalesce(l.sort_key, '') as sort_key,
 		       coalesce(l.reference, '') as reference,
 		       coalesce(l.company, '') as company,
 		       coalesce(l.kind, '') as kind,
 		       coalesce(l.qty_delta, 0)::bigint as qty_delta
 		from stocks st
 		left join ledger l on l.stock_id = st.id
-		order by category, stock_code, stock_name, l.movement_date, l.reference`, to)
+		order by category, stock_code, stock_name, l.movement_date, l.sort_key`, to)
 	if err != nil {
 		return nil, err
 	}
@@ -1606,7 +1610,7 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 	var reportRows []models.StockLedgerReportRow
 	for rows.Next() {
 		var row models.StockLedgerReportRow
-		if err := rows.Scan(&row.StockID, &row.Category, &row.StockCode, &row.StockName, &row.EntryDate, &row.Reference, &row.Company, &row.Kind, &row.QtyDelta); err != nil {
+		if err := rows.Scan(&row.StockID, &row.Category, &row.StockCode, &row.StockName, &row.EntryDate, &row.SortKey, &row.Reference, &row.Company, &row.Kind, &row.QtyDelta); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1859,12 +1863,60 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	}
 	if drReferenceID != "" {
 		values["dr_document_id"] = drReferenceID
+		var drLabel string
+		err := s.pool.QueryRow(ctx, `
+			select coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' || coalesce(nullif(c.company,''), c.code, '')
+			from documents d
+			left join customers c on c.id = d.party_id
+			where d.id=$1 and d.kind='dr'`, drReferenceID).Scan(&drLabel)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, err
+		}
+		if drLabel != "" {
+			values["dr_document_label"] = drLabel
+		}
 	}
 	if values["reference"] == "" && reference != "" {
 		values["reference"] = reference
 	}
 
-	return values, lineRowsFromInput(payload.LineInput), nil
+	lineRows := lineRowsFromInput(payload.LineInput)
+	if len(lineRows) == 0 {
+		lineRows, err = s.documentLineRows(ctx, id)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return values, lineRows, nil
+}
+
+func (s *PostgresStore) documentLineRows(ctx context.Context, documentID int64) (map[string][]models.Record, error) {
+	rows, err := s.pool.Query(ctx, `
+		select group_key, payload
+		from document_lines
+		where document_id=$1
+		order by group_key, line_no`, documentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rowsByGroup := map[string][]models.Record{}
+	for rows.Next() {
+		var group string
+		var payloadBytes []byte
+		if err := rows.Scan(&group, &payloadBytes); err != nil {
+			return nil, err
+		}
+		record := models.Record{}
+		if len(payloadBytes) != 0 {
+			if err := json.Unmarshal(payloadBytes, &record); err != nil {
+				return nil, err
+			}
+		}
+		rowsByGroup[group] = append(rowsByGroup[group], record)
+	}
+	return rowsByGroup, rows.Err()
 }
 
 func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelection, error) {
@@ -2302,28 +2354,38 @@ func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, ki
 		}
 	}
 
+	type balanceAdjustment struct {
+		partyType string
+		partyID   int64
+		amount    string
+	}
+	var adjustments []balanceAdjustment
 	rows, err := tx.Query(ctx, `select party_type, party_id, amount_delta from balance_ledger where document_id=$1`, id)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 	for rows.Next() {
-		var partyType string
-		var partyID int64
-		var amount string
-		if err := rows.Scan(&partyType, &partyID, &amount); err != nil {
+		var adjustment balanceAdjustment
+		if err := rows.Scan(&adjustment.partyType, &adjustment.partyID, &adjustment.amount); err != nil {
+			rows.Close()
 			return err
 		}
-		table := "customers"
-		if partyType == string(services.PartySupplier) {
-			table = "suppliers"
-		}
-		if _, err := tx.Exec(ctx, fmt.Sprintf(`update %s set balance = coalesce(balance, 0) - $1 where id=$2`, table), amount, partyID); err != nil {
-			return err
-		}
+		adjustments = append(adjustments, adjustment)
 	}
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return err
+	}
+	rows.Close()
+
+	for _, adjustment := range adjustments {
+		table := "customers"
+		if adjustment.partyType == string(services.PartySupplier) {
+			table = "suppliers"
+		}
+		if _, err := tx.Exec(ctx, fmt.Sprintf(`update %s set balance = coalesce(balance, 0) - $1 where id=$2`, table), adjustment.amount, adjustment.partyID); err != nil {
+			return err
+		}
 	}
 
 	if _, err := tx.Exec(ctx, `delete from dr_consumptions where consumer_document_id=$1`, id); err != nil {

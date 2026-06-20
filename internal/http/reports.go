@@ -6166,6 +6166,11 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				left := parseReportDate(rowDateForParse(state.rows[i].EntryDate), to)
 				right := parseReportDate(rowDateForParse(state.rows[j].EntryDate), to)
 				if left.Equal(right) {
+					leftKey := strings.TrimSpace(state.rows[i].SortKey)
+					rightKey := strings.TrimSpace(state.rows[j].SortKey)
+					if leftKey != "" || rightKey != "" {
+						return leftKey < rightKey
+					}
 					return strings.ToLower(state.rows[i].Reference) < strings.ToLower(state.rows[j].Reference)
 				}
 				return left.Before(right)

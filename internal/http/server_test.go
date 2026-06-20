@@ -16,6 +16,8 @@ import (
 type fakeStore struct {
 	user             models.User
 	dr               repositories.DRSelection
+	documentValues   models.Record
+	documentLines    map[string][]models.Record
 	lastMasterSearch string
 	lastMasterYear   int
 	lastMasterLimit  int
@@ -98,6 +100,9 @@ func (s *fakeStore) ListDocuments(_ context.Context, kind string, search string,
 }
 
 func (s *fakeStore) GetDocument(context.Context, models.FormDefinition, int64) (models.Record, map[string][]models.Record, error) {
+	if s.documentValues != nil {
+		return s.documentValues, s.documentLines, nil
+	}
 	return models.Record{"id": "ENT-197", "record_id": "197", "entry_date": "2026-04-21"}, nil, nil
 }
 
@@ -387,6 +392,8 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 		{StockID: "1", Category: "PILMICO HOGS", StockCode: "CLASSIC FI", StockName: "CLASSIC FINEX, 50kg.", EntryDate: "03/14/2026", Reference: "PO-1", Company: "Supplier A", Kind: "purchases", QtyDelta: 155},
 		{StockID: "2", Category: "PILMICO HOGS", StockCode: "776", StockName: "CLASSIC GROWEX"},
 		{StockID: "3", Category: "EMPTY CATEGORY", StockCode: "EMPTY", StockName: "EMPTY STOCK"},
+		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314090000000000-00000000000000000010-00000000000000000020", Reference: "ZZ-PURCHASE", Company: "Supplier A", Kind: "purchases", QtyDelta: 10},
+		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314100000000000-00000000000000000011-00000000000000000021", Reference: "AA-SALE", Company: "Customer A", Kind: "sales", QtyDelta: -5},
 	}, nil
 }
 
@@ -611,6 +618,51 @@ func TestSalesEditIncludesDeleteButton(t *testing.T) {
 	}
 	if !strings.Contains(body, `action="/transactions/sales/197/delete"`) {
 		t.Fatalf("body missing sales delete form action")
+	}
+}
+
+func TestSalesEditSelectsCurrentSOAndRows(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":                "ENT-197",
+			"record_id":         "197",
+			"entry_date":        "2026-04-21",
+			"dr_document_id":    "7",
+			"dr_document_label": "SO-0007 - Customer A",
+			"party_id":          "3",
+		},
+		documentLines: map[string][]models.Record{
+			"details": {{
+				"dr_line_id":  "11",
+				"stock_id":    "5",
+				"stock_label": "ST-01 - Test Stock",
+				"qty":         "4",
+				"unit_cost":   "12.50",
+			}},
+		},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `<option value="7" selected>SO-0007 - Customer A</option>`) {
+		t.Fatalf("body missing selected SO option")
+	}
+	if !strings.Contains(body, `ST-01 - Test Stock`) || !strings.Contains(body, `name="line_details_qty" value="4" readonly`) {
+		t.Fatalf("body missing saved sales detail row")
 	}
 }
 
@@ -1866,5 +1918,10 @@ func TestStockLedgerReportRenders(t *testing.T) {
 	}
 	if !strings.Contains(body, "Forwarded Balance") || !strings.Contains(body, "25.00") || !strings.Contains(body, "180.00") {
 		t.Fatalf("body missing stock ledger forwarded or running balance values")
+	}
+	purchaseIndex := strings.Index(body, "ZZ-PURCHASE")
+	saleIndex := strings.Index(body, "AA-SALE")
+	if purchaseIndex == -1 || saleIndex == -1 || purchaseIndex > saleIndex {
+		t.Fatalf("stock ledger did not preserve same-day entry timestamp order")
 	}
 }
