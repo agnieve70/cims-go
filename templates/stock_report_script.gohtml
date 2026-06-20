@@ -40,12 +40,13 @@
   };
   var showFullTree = function () {
     if (!previewTree) return;
-    previewTree.querySelectorAll("li").forEach(function (item) { item.hidden = false; });
+    previewTree.querySelectorAll("li").forEach(function (item) { item.hidden = item.hasAttribute("data-report-pruned"); });
   };
   var filterTreeForPage = function (page, targetID) {
     if (!previewTree) return;
     showFullTree();
     var nodes = treeNodes.filter(function (node) {
+      if (node.closest("[data-report-pruned]")) return false;
       if (Number(node.getAttribute("data-report-tree-page")) !== page) return false;
       return !targetID || node.getAttribute("data-report-scroll-target") === targetID || node.getAttribute("data-report-filter-target") === targetID || !node.hasAttribute("data-report-scroll-target");
     });
@@ -68,7 +69,7 @@
         if (parent) parent.setAttribute("aria-expanded", "true");
         branch.querySelectorAll("li").forEach(function (child) {
           var childNode = child.querySelector(".report-tree-node");
-          child.hidden = !(childNode && nodes.indexOf(childNode) !== -1);
+          child.hidden = child.hasAttribute("data-report-pruned") || !(childNode && nodes.indexOf(childNode) !== -1);
         });
       }
     });
@@ -231,7 +232,7 @@
     tabButtons.push(button);
     activateTab(button);
   };
-  paper.querySelectorAll("tbody td:not(.num), .report-detail-group p strong").forEach(function (element) {
+  paper.querySelectorAll("tbody td:not(.num), .report-detail-group p strong, .stock-ledger-category strong, .stock-ledger-stock-heading strong").forEach(function (element) {
     element.classList.add("report-drill-target");
     element.title = "Double-click to open in a report tab";
     element.addEventListener("dblclick", function () {

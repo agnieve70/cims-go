@@ -293,12 +293,69 @@
     var tree = document.querySelector(".report-preview-tree");
     if (!tree) return;
 
+    var parseReportNumber = function (text) {
+      var normalized = String(text || "").replace(/,/g, "").replace(/[()]/g, "-").replace(/[^0-9.\-]/g, "");
+      var value = Number(normalized);
+      return Number.isFinite(value) ? value : 0;
+    };
+    var elementHasReportValue = function (element) {
+      if (!element) return false;
+      var text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text || element.querySelector(".report-empty")) return false;
+      var numericCells = Array.prototype.slice.call(element.querySelectorAll(".num"));
+      if (numericCells.length) {
+        return numericCells.some(function (cell) { return Math.abs(parseReportNumber(cell.textContent)) > 0.00001; });
+      }
+      return !!element.querySelector("tbody tr, [data-report-filter-item]") || !!text;
+    };
+    var pageHasReportValue = function (page) {
+      var section = document.querySelector(".report-detail-group[data-report-page='" + String(page) + "']");
+      if (!section) return false;
+      var items = Array.prototype.slice.call(section.querySelectorAll("[data-report-filter-item]"));
+      if (items.length) {
+        return items.some(elementHasReportValue);
+      }
+      return elementHasReportValue(section);
+    };
+    var treeNodeHasReportValue = function (node) {
+      var summaryRow = node.getAttribute("data-report-summary-row");
+      if (summaryRow) {
+        return elementHasReportValue(document.querySelector("tbody tr[data-report-summary-row='" + summaryRow + "']"));
+      }
+      var targetID = node.getAttribute("data-report-filter-target") || node.getAttribute("data-report-scroll-target");
+      if (targetID) {
+        return elementHasReportValue(document.getElementById(targetID));
+      }
+      if (node.hasAttribute("data-report-tree-page")) {
+        return pageHasReportValue(Number(node.getAttribute("data-report-tree-page")));
+      }
+      return true;
+    };
+    var pruneEmptyReportTreeNodes = function () {
+      treeNodes().forEach(function (node) {
+        var item = node.closest("li");
+        if (!item) return;
+        var empty = !treeNodeHasReportValue(node);
+        item.hidden = empty;
+        item.toggleAttribute("data-report-pruned", empty);
+      });
+      Array.prototype.slice.call(tree.querySelectorAll(".report-tree-branch")).reverse().forEach(function (branch) {
+        var parentNode = branch.querySelector(":scope > .report-tree-parent");
+        var hasVisibleChild = Array.prototype.some.call(branch.querySelectorAll(":scope > ul > li"), function (child) {
+          return !child.hasAttribute("data-report-pruned");
+        });
+        var empty = !hasVisibleChild && (!parentNode || !treeNodeHasReportValue(parentNode));
+        branch.hidden = empty;
+        branch.toggleAttribute("data-report-pruned", empty);
+      });
+    };
     var treeNodes = function () {
       return Array.prototype.slice.call(tree.querySelectorAll(".report-tree-node"));
     };
+    pruneEmptyReportTreeNodes();
     var visibleTreeNodes = function () {
       return treeNodes().filter(function (node) {
-        return node.offsetParent !== null && !node.closest(".report-tree-branch.collapsed > ul");
+        return node.offsetParent !== null && !node.closest("[data-report-pruned]") && !node.closest(".report-tree-branch.collapsed > ul");
       });
     };
     var scrollReportPaperToTop = function () {

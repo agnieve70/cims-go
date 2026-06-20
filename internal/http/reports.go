@@ -10,6 +10,8 @@ import (
 	"cims-go/internal/models"
 )
 
+const defaultReportMonth = int(time.January)
+
 type purchaseReportData struct {
 	Generated     bool
 	ReportType    string
@@ -2686,7 +2688,7 @@ func (a *App) defaultPurchaseReportData(r *http.Request) purchaseReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2702,7 +2704,7 @@ func (a *App) defaultPurchaseByDRNumberReportData(r *http.Request) purchaseByDRN
 	return purchaseByDRNumberReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2718,7 +2720,7 @@ func (a *App) defaultPurchaseByStockCodeReportData(r *http.Request) purchaseBySt
 	return purchaseByStockCodeReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2734,7 +2736,7 @@ func (a *App) defaultPurchaseBySupplierReportData(r *http.Request) purchaseBySup
 	return purchaseBySupplierReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2751,7 +2753,7 @@ func (a *App) defaultSalesReportData(r *http.Request) salesReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2767,7 +2769,7 @@ func (a *App) defaultSalesByORCIDRNumberReportData(r *http.Request) salesByORCID
 	return salesByORCIDRNumberReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2783,7 +2785,7 @@ func (a *App) defaultSalesMarkupByTransactionReportData(r *http.Request) salesMa
 	return salesMarkupByTransactionReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2799,7 +2801,7 @@ func (a *App) defaultSalesSummaryByItemReportData(r *http.Request) salesSummaryB
 	return salesSummaryByItemReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2815,7 +2817,7 @@ func (a *App) defaultSalesByCustomerReportData(r *http.Request) salesByCustomerR
 	return salesByCustomerReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2831,7 +2833,7 @@ func (a *App) defaultSalesByCustomerSummaryByItemReportData(r *http.Request) sal
 	return salesByCustomerSummaryByItemReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2847,7 +2849,7 @@ func (a *App) defaultSalesByStockNameReportData(r *http.Request) salesByStockNam
 	return salesByStockNameReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2864,7 +2866,7 @@ func (a *App) defaultAPLedgerReportData(r *http.Request) apLedgerReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2881,7 +2883,7 @@ func (a *App) defaultARLedgerReportData(r *http.Request) arLedgerReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2926,7 +2928,7 @@ func (a *App) defaultExpenseReportData(r *http.Request) expenseReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter-landscape",
@@ -2942,7 +2944,7 @@ func (a *App) defaultIncomeStatementReportData(r *http.Request) incomeStatementR
 	return incomeStatementReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -2958,7 +2960,7 @@ func (a *App) defaultIncentiveReportData(r *http.Request) incentiveReportData {
 	return incentiveReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3000,7 +3002,7 @@ func (a *App) defaultStockSalesTransferReportData(r *http.Request) stockSalesTra
 	return stockSalesTransferReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter-landscape",
@@ -3016,7 +3018,7 @@ func (a *App) defaultStockSalesTransferAmountReportData(r *http.Request) stockSa
 	return stockSalesTransferAmountReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter-landscape",
@@ -3032,7 +3034,7 @@ func (a *App) defaultStockTransferSummaryReportData(r *http.Request) stockTransf
 	return stockTransferSummaryReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3048,7 +3050,7 @@ func (a *App) defaultStockTransferByStockNameReportData(r *http.Request) stockTr
 	return stockTransferByStockNameReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3064,7 +3066,7 @@ func (a *App) defaultStockTransferByBranchReportData(r *http.Request) stockTrans
 	return stockTransferByBranchReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3080,7 +3082,7 @@ func (a *App) defaultStockTransferByEntryIDReportData(r *http.Request) stockTran
 	return stockTransferByEntryIDReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3096,7 +3098,7 @@ func (a *App) defaultStockTransferSummaryByEntryIDReportData(r *http.Request) st
 	return stockTransferSummaryByEntryIDReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3112,7 +3114,7 @@ func (a *App) defaultStockTransferSummaryByItemReportData(r *http.Request) stock
 	return stockTransferSummaryByItemReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3128,7 +3130,7 @@ func (a *App) defaultStockTransferMarkupByTransactionReportData(r *http.Request)
 	return stockTransferMarkupByTransactionReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3144,7 +3146,7 @@ func (a *App) defaultStockLedgerReportData(r *http.Request) stockLedgerReportDat
 	return stockLedgerReportData{
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       int(now.Month()),
+		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
@@ -3199,7 +3201,7 @@ func (a *App) defaultIncomingCheckCalendarReportData(r *http.Request) incomingCh
 	now := a.now()
 	report := incomingCheckCalendarReportData{
 		Year:      listYear(r, a.now),
-		Month:     int(now.Month()),
+		Month:     defaultReportMonth,
 		MonthName: now.Month().String(),
 		Title:     "CIMS",
 		Weekdays: []incomingCheckCalendarWeekday{

@@ -1008,6 +1008,35 @@ func TestExpensesSummaryReportRenders(t *testing.T) {
 	}
 }
 
+func TestReportMonthOptionDefaultsToJanuary(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.now = func() time.Time {
+		return time.Date(2026, time.June, 20, 0, 0, 0, 0, time.UTC)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/reports/sales-summary", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `value="1" selected>1 - January</option>`) {
+		t.Fatalf("body missing selected January month option")
+	}
+	if strings.Contains(body, `value="6" selected>6 - June</option>`) {
+		t.Fatalf("body selected current month instead of January")
+	}
+}
+
 func TestIncomeStatementReportRenders(t *testing.T) {
 	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
 	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
