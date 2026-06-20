@@ -1222,7 +1222,11 @@ body.sidebar-collapsed .content-window-taskbar {
   background: #fff;
   border-right: 1px solid #707070;
   color: #000;
-  font: 14px Arial, sans-serif;
+  font: 300 15px Tahoma, Geneva, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
   padding: 6px 8px;
 }
 
@@ -1276,7 +1280,9 @@ body.sidebar-collapsed .content-window-taskbar {
   background: transparent;
   color: #000;
   font: inherit;
-  font-weight: 400;
+  font-weight: 300;
+  letter-spacing: inherit;
+  text-transform: uppercase;
   text-align: left;
 }
 
@@ -6870,15 +6876,41 @@ html.theme-dark .report-paper-header p {
 }
 
 html.theme-dark .report-supplier-label strong,
+html.theme-dark .report-ledger-profile dd,
 html.theme-dark .report-summary-table tbody td:first-child,
+html.theme-dark .stock-sales-transfer-table .report-section-row th:nth-child(2),
+html.theme-dark .stock-aging-table .report-section-row th:first-child,
 html.theme-dark .stock-reorder-category-label strong,
-html.theme-dark .stock-summary-category-label strong {
-  color: #ff6f6f;
+html.theme-dark .stock-summary-category-label strong,
+html.theme-dark .sales-customer-category-head strong,
+html.theme-dark .sales-customer-label strong,
+html.theme-dark .sales-customer-summary-category-head strong,
+html.theme-dark .sales-customer-summary-label strong,
+html.theme-dark .sales-or-meta strong,
+html.theme-dark .sales-summary-item-category-head,
+html.theme-dark .sales-summary-item-category-head strong,
+html.theme-dark .sales-stock-category-head,
+html.theme-dark .sales-stock-meta strong,
+html.theme-dark .purchase-dr-meta strong,
+html.theme-dark .purchase-stock-name,
+html.theme-dark .purchase-stock-meta strong,
+html.theme-dark .purchase-supplier-meta strong,
+html.theme-dark .purchase-supplier-table tfoot td,
+html.theme-dark .stock-ledger-category strong,
+html.theme-dark .stock-ledger-stock-heading strong,
+html.theme-dark .stock-transfer-summary-branch strong,
+html.theme-dark .stock-transfer-by-branch-category strong {
+  color: #7ee787;
 }
 
 html.theme-dark .stock-reorder-category-label strong,
-html.theme-dark .stock-summary-category-label strong {
-  border-color: #ff6f6f;
+html.theme-dark .stock-summary-category-label strong,
+html.theme-dark .purchase-stock-name {
+  border-color: #7ee787;
+}
+
+html.theme-dark .stock-ledger-category {
+  border-bottom-color: #7ee787;
 }
 
 html.theme-dark .report-table {
@@ -6904,7 +6936,7 @@ html.theme-dark .report-table tbody tr.report-negative-row td {
 }
 
 html.theme-dark .report-summary-table tfoot td {
-  color: #ff8f8f;
+  color: #7ee787;
 }
 
 html.theme-dark .report-summary-table tfoot td:first-child,
