@@ -243,23 +243,33 @@
       localStorage.setItem(storageKey, collapsed ? "1" : "0");
     });
 
-    document.querySelectorAll(".side-section[data-section-key]").forEach(function (section) {
+    var sideSections = Array.prototype.slice.call(document.querySelectorAll(".side-section[data-section-key]"));
+    var setSidebarSectionState = function (section, collapsed) {
+      var button = section.querySelector(".side-section-toggle");
+      if (!button) return;
+      var sectionKey = sectionKeyPrefix + section.getAttribute("data-section-key");
+      section.classList.toggle("collapsed", collapsed);
+      section.classList.toggle("expanded", !collapsed);
+      button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      localStorage.setItem(sectionKey, collapsed ? "1" : "0");
+    };
+
+    sideSections.forEach(function (section) {
       var button = section.querySelector(".side-section-toggle");
       var sectionKey = sectionKeyPrefix + section.getAttribute("data-section-key");
       if (!button) return;
-
-      var setSectionState = function (collapsed) {
-        section.classList.toggle("collapsed", collapsed);
-        section.classList.toggle("expanded", !collapsed);
-        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
-      };
-
-      setSectionState(localStorage.getItem(sectionKey) === "1");
+      setSidebarSectionState(section, localStorage.getItem(sectionKey) === "1");
 
       button.addEventListener("click", function () {
         var collapsed = !section.classList.contains("collapsed");
-        setSectionState(collapsed);
-        localStorage.setItem(sectionKey, collapsed ? "1" : "0");
+        setSidebarSectionState(section, collapsed);
+        if (!collapsed) {
+          sideSections.forEach(function (otherSection) {
+            if (otherSection !== section) {
+              setSidebarSectionState(otherSection, true);
+            }
+          });
+        }
 
         if (section.getAttribute("data-section-key") === "files" && window.location.pathname !== "/dashboard") {
           window.location.href = "/dashboard";
