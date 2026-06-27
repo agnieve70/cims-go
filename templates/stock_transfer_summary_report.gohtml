@@ -48,7 +48,14 @@
       <div>Preview</div>
       <ul>
         {{range $index, $category := .StockTransferSummaryReport.Categories}}
-        <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$category.Name}}</button></li>
+        <li class="report-tree-branch collapsed">
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{$category.PageNumber}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button>
+          <ul>
+            {{range $branch := $category.Branches}}
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{$branch.PageNumber}}" data-report-scroll-target="{{$branch.TargetID}}" data-report-highlight-target="{{$branch.TargetID}}" data-report-highlight-label-only>{{$branch.Name}}</button></li>
+            {{end}}
+          </ul>
+        </li>
         {{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}
       </ul>
     </aside>
@@ -74,16 +81,18 @@
       <div class="report-paper-scroll">
         <article class="report-paper {{.StockTransferSummaryReport.PaperClass}} stock-transfer-summary-paper">
           <header class="report-paper-header"><h1>{{.StockTransferSummaryReport.Title}}</h1><h2>STOCK TRANSFER</h2><p>{{.StockTransferSummaryReport.RangeLabel}}</p></header>
-          {{range $index, $category := .StockTransferSummaryReport.Categories}}
+          {{range $index, $page := .StockTransferSummaryReport.Pages}}
           <section class="report-detail-group stock-transfer-summary-category" data-report-page="{{add $index 1}}">
-            <div class="stock-transfer-summary-mode">BY PRODUCT <span>Total : <strong>{{$category.TotalQuantity}}</strong> <strong>{{$category.TotalAmount}}</strong></span></div>
-            {{range $branch := $category.Branches}}
-            <div class="stock-transfer-summary-branch">Branch: <strong>{{$branch.Name}}</strong></div>
+            <div class="stock-transfer-summary-mode">BY PRODUCT <span>Total : <strong>{{$page.TotalQuantity}}</strong> <strong>{{$page.TotalAmount}}</strong></span></div>
+            {{range $branch := $page.Branches}}
+            <div class="stock-transfer-summary-branch-block">
+            <div id="{{$branch.TargetID}}" class="stock-transfer-summary-branch" data-report-filter-item>Branch: <strong>{{$branch.Name}}</strong></div>
             <table class="report-table stock-transfer-summary-table"><thead><tr><th>Reference</th><th>Date</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>{{range $branch.Rows}}<tr><td>{{.Reference}}</td><td>{{.Date}}</td><td>{{.Code}}</td><td>{{.StockName}}</td><td class="num">{{.Quantity}}</td><td class="num">{{.Amount}}</td></tr>{{end}}</tbody><tfoot><tr><td colspan="4">Total :</td><td class="num">{{$branch.TotalQuantity}}</td><td class="num">{{$branch.TotalAmount}}</td></tr></tfoot></table>
+            </div>
             {{end}}
+            {{if $page.ShowGrandTotal}}<table class="report-table stock-transfer-summary-grand-total"><tfoot><tr><td>Grand Total :</td><td class="num">{{$page.GrandQuantity}}</td><td class="num">{{$page.GrandAmount}}</td></tr></tfoot></table>{{end}}
           </section>
           {{else}}<p class="report-empty">No stock transfers for the selected coverage.</p>{{end}}
-          {{if .StockTransferSummaryReport.Categories}}<table class="report-table stock-transfer-summary-grand-total"><tfoot><tr><td>Total :</td><td class="num">{{.StockTransferSummaryReport.TotalQuantity}}</td><td class="num">{{.StockTransferSummaryReport.TotalAmount}}</td></tr></tfoot></table>{{end}}
         </article>
       </div>
     </section>

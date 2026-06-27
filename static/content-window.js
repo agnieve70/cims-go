@@ -137,7 +137,7 @@
     var background = desktopBackground();
     return [
       ".navrail,.sidebar,.content-window-titlebar,.content-window-restore,.content-window-resize-handle{display:none!important}",
-      "html,body{width:100%!important;height:100%!important;min-height:100%!important;background:" + background + "!important;overflow:hidden!important}",
+      "html,body{width:100%!important;height:100%!important;min-height:100%!important;background:" + background + "!important;overflow:hidden!important;zoom:1!important}",
       ".page{width:100%!important;height:100vh!important;margin:0!important;margin-top:0!important;min-height:100vh!important;padding:0!important;background:" + background + "!important;overflow:hidden!important}",
       ".content-window{position:relative!important;left:0!important;top:0!important;right:auto!important;bottom:auto!important;width:100%!important;height:100vh!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:" + background + "!important}",
       ".content-window.is-page-maximized{position:relative!important;left:0!important;top:0!important;right:auto!important;bottom:auto!important;width:100%!important;height:100vh!important}",

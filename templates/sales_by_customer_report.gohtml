@@ -57,15 +57,15 @@
 {{else}}
 <main class="page report-viewer-page">
   <div class="report-viewer-shell">
-    <aside class="report-preview-tree">
+    <aside class="report-preview-tree" data-report-always-full-tree>
       <div>Preview</div>
       <ul>
         {{range $index, $category := .SalesByCustomerReport.Categories}}
         <li class="report-tree-branch collapsed">
-          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle data-report-scroll-target="sales-customer-category-{{add $index 1}}" data-report-highlight-category="sales-customer-category-{{add $index 1}}" aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
           <ul>
             {{range $customerIndex, $customer := $category.Customers}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-customer-{{add $index 1}}-{{add $customerIndex 1}}">{{$customer.Customer}}</button></li>
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-customer-{{add $index 1}}-{{add $customerIndex 1}}" data-report-highlight-target="sales-customer-{{add $index 1}}-{{add $customerIndex 1}}" data-report-highlight-label-only>{{$customer.Customer}}</button></li>
             {{end}}
           </ul>
         </li>
@@ -105,25 +105,22 @@
             <p>{{.SalesByCustomerReport.RangeLabel}}</p>
           </header>
           {{range $index, $category := .SalesByCustomerReport.Categories}}
-          <section class="report-detail-group sales-customer-category" data-report-page="{{add $index 1}}">
-            <div class="sales-customer-category-head"><strong>{{$category.Category}}</strong><span>Total :</span><span class="num">{{$category.TotalQty}}</span><span class="num">{{$category.TotalAmt}}</span></div>
+          <section id="sales-customer-category-{{add $index 1}}" class="report-detail-group sales-customer-category" data-report-page="{{add $index 1}}">
+            <div class="sales-customer-category-head"><strong data-report-category-name>{{$category.Category}}</strong><span>Total :</span><span class="num">{{$category.TotalQty}}</span><span class="num">{{$category.TotalAmt}}</span></div>
             {{range $customerIndex, $customer := $category.Customers}}
-            <section id="sales-customer-{{add $index 1}}-{{add $customerIndex 1}}" class="sales-customer-group">
-              <div class="sales-customer-label">Customer: <strong>{{$customer.Customer}}</strong></div>
+            <section id="sales-customer-{{add $index 1}}-{{add $customerIndex 1}}" class="sales-customer-group" data-report-filter-item data-report-filter-groups="sales-customer-filter-{{add $index 1}}-{{add $customerIndex 1}}">
+              <div class="sales-customer-label">Customer: <strong data-report-stock-name>{{$customer.Customer}}</strong></div>
               <table class="report-table sales-customer-table">
                 <thead><tr><th>Reference</th><th>Date</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Price</th><th>Amount</th></tr></thead>
                 <tbody>
-                  {{range $row := $customer.Rows}}<tr data-report-filter-item><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Price}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}
+                  {{range $row := $customer.Rows}}<tr data-report-filter-item data-report-filter-groups="sales-customer-filter-{{add $index 1}}-{{add $customerIndex 1}}"><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Price}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}
                 </tbody>
-                <tfoot><tr><td colspan="4">Total :</td><td class="num">{{$customer.TotalQty}}</td><td></td><td class="num">{{$customer.TotalAmt}}</td></tr></tfoot>
+                <tfoot><tr data-report-filter-item data-report-filter-groups="sales-customer-filter-{{add $index 1}}-{{add $customerIndex 1}}"><td colspan="4">Total :</td><td class="num">{{$customer.TotalQty}}</td><td></td><td class="num">{{$customer.TotalAmt}}</td></tr></tfoot>
               </table>
             </section>
             {{end}}
           </section>
           {{else}}<p class="report-empty">No sales records for the selected coverage.</p>{{end}}
-          {{if .SalesByCustomerReport.Categories}}
-          <table class="report-table sales-customer-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.SalesByCustomerReport.TotalQuantity}}</td><td class="num">{{.SalesByCustomerReport.TotalAmount}}</td></tr></tfoot></table>
-          {{end}}
         </article>
       </div>
     </section>

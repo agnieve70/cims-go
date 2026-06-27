@@ -63,11 +63,6 @@
         {{range $index, $branch := .StockTransferByBranchReport.Branches}}
         <li class="report-tree-branch collapsed">
           <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$branch.Name}}</button>
-          <ul>
-            {{range $categoryIndex, $category := $branch.Categories}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="transfer-branch-category-{{add $index 1}}-{{add $categoryIndex 1}}">{{$category.Name}}</button></li>
-            {{end}}
-          </ul>
         </li>
         {{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}
       </ul>

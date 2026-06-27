@@ -59,18 +59,11 @@
   <div class="report-viewer-shell">
     <aside class="report-preview-tree">
       <div>Preview</div>
-      <ul>
-        {{range $index, $group := .PurchaseByDRReport.Groups}}
-        <li class="report-tree-branch collapsed">
-          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$group.Reference}}</button>
-          <ul>
-            {{range $rowIndex, $row := $group.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="purchase-dr-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="purchase-dr-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.Stock}}</button></li>
-            {{end}}
-          </ul>
-        </li>
-        {{else}}<li><span class="report-tree-empty">No purchase records</span></li>{{end}}
-      </ul>
+	      <ul>
+	        {{range $index, $group := .PurchaseByDRReport.Groups}}
+	        <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.Reference}}</button></li>
+	        {{else}}<li><span class="report-tree-empty">No purchase records</span></li>{{end}}
+	      </ul>
     </aside>
     <section class="report-preview">
       <div class="report-preview-toolbar">
@@ -104,24 +97,21 @@
             <h2>STOCK PURCHASES BY REFERENCE NUMBER</h2>
             <p>{{.PurchaseByDRReport.RangeLabel}}</p>
           </header>
-          {{range $index, $group := .PurchaseByDRReport.Groups}}
-          <section class="report-detail-group purchase-dr-group" data-report-page="{{add $index 1}}">
-            <div class="purchase-dr-meta"><span>Reference: <strong>{{$group.Reference}}</strong></span><span>Purchase Date: <strong>{{$group.Date}}</strong></span></div>
-            <table class="report-table purchase-dr-table">
-              <thead><tr><th>Supplier</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Cost</th><th>Amount</th></tr></thead>
-              <tbody>
-                {{range $rowIndex, $row := $group.Rows}}
-                <tr id="purchase-dr-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Supplier}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
-                {{end}}
-              </tbody>
-              <tfoot><tr><td colspan="3">Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr></tfoot>
-            </table>
-          </section>
-          {{else}}<p class="report-empty">No purchase records for the selected coverage.</p>{{end}}
-          {{if .PurchaseByDRReport.Groups}}
-          <table class="report-table purchase-dr-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.PurchaseByDRReport.TotalQuantity}}</td><td class="num">{{.PurchaseByDRReport.TotalAmount}}</td></tr></tfoot></table>
-          {{end}}
-        </article>
+	          {{range $index, $group := .PurchaseByDRReport.Groups}}
+	          <section class="report-detail-group purchase-dr-group" data-report-page="{{add $index 1}}">
+	            <div class="purchase-dr-meta"><span>Reference: <strong>{{$group.Reference}}</strong></span><span>Sales Date: <strong>{{$group.Date}}</strong></span></div>
+	            <table class="report-table purchase-dr-table">
+	              <thead><tr><th>Supplier</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Cost</th><th>Amount</th></tr></thead>
+	              <tbody>
+	                {{range $rowIndex, $row := $group.Rows}}
+	                <tr id="purchase-dr-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Supplier}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
+	                {{end}}
+	              </tbody>
+	              <tfoot><tr><td colspan="3">Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr></tfoot>
+	            </table>
+	          </section>
+	          {{else}}<p class="report-empty">No purchase records for the selected coverage.</p>{{end}}
+	        </article>
       </div>
     </section>
   </div>

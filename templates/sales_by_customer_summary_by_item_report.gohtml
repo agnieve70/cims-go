@@ -56,10 +56,17 @@
       <ul>
         {{range $index, $category := .SalesByCustomerSummaryByItemReport.Categories}}
         <li class="report-tree-branch collapsed">
-          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle data-report-highlight-category="sales-customer-summary-category-{{add $index 1}}" aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
           <ul>
             {{range $customerIndex, $customer := $category.Customers}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-customer-summary-{{add $index 1}}-{{add $customerIndex 1}}">{{$customer.Customer}}</button></li>
+            <li class="report-tree-branch collapsed">
+              <button type="button" class="report-tree-node report-tree-child report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle data-report-scroll-target="sales-customer-summary-{{add $index 1}}-{{add $customerIndex 1}}" data-report-highlight-target="sales-customer-summary-{{add $index 1}}-{{add $customerIndex 1}}" data-report-highlight-label-only aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$customer.Customer}}</button>
+              <ul>
+                {{range $rowIndex, $row := $customer.Rows}}
+                <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-customer-summary-row-{{add $index 1}}-{{add $customerIndex 1}}-{{add $rowIndex 1}}" data-report-highlight-target="sales-customer-summary-row-{{add $index 1}}-{{add $customerIndex 1}}-{{add $rowIndex 1}}">{{$row.Stock}}</button></li>
+                {{end}}
+              </ul>
+            </li>
             {{end}}
           </ul>
         </li>
@@ -94,20 +101,19 @@
           </header>
           {{range $index, $category := .SalesByCustomerSummaryByItemReport.Categories}}
           <section class="report-detail-group sales-customer-summary-category" data-report-page="{{add $index 1}}">
-            <div class="sales-customer-summary-category-head"><strong>{{$category.Category}}</strong><span>Total :</span><span class="num">{{$category.TotalQty}}</span><span class="num">{{$category.TotalAmt}}</span></div>
+            <div class="sales-customer-summary-category-head"><strong data-report-category-name>{{$category.Category}}</strong><span>Total :</span><span class="num">{{$category.TotalQty}}</span><span class="num">{{$category.TotalAmt}}</span></div>
             {{range $customerIndex, $customer := $category.Customers}}
-            <section id="sales-customer-summary-{{add $index 1}}-{{add $customerIndex 1}}" class="sales-customer-summary-group">
-              <div class="sales-customer-summary-label">Customer: <strong>{{$customer.Customer}}</strong></div>
+            <section id="sales-customer-summary-{{add $index 1}}-{{add $customerIndex 1}}" class="sales-customer-summary-group" data-report-filter-item>
+              <div class="sales-customer-summary-label">Customer: <strong data-report-stock-name>{{$customer.Customer}}</strong></div>
               <table class="report-table sales-customer-summary-table">
                 <thead><tr><th>Code</th><th>StockName</th><th>Quantity</th><th>Price</th><th>Amount</th></tr></thead>
-                <tbody>{{range $row := $customer.Rows}}<tr data-report-filter-item><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Price}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}</tbody>
+                <tbody>{{range $rowIndex, $row := $customer.Rows}}<tr id="sales-customer-summary-row-{{add $index 1}}-{{add $customerIndex 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Price}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}</tbody>
                 <tfoot><tr><td colspan="2">Total :</td><td class="num">{{$customer.TotalQty}}</td><td></td><td class="num">{{$customer.TotalAmt}}</td></tr></tfoot>
               </table>
             </section>
             {{end}}
           </section>
           {{else}}<p class="report-empty">No sales records for the selected coverage.</p>{{end}}
-          {{if .SalesByCustomerSummaryByItemReport.Categories}}<table class="report-table sales-customer-summary-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.SalesByCustomerSummaryByItemReport.TotalQuantity}}</td><td class="num">{{.SalesByCustomerSummaryByItemReport.TotalAmount}}</td></tr></tfoot></table>{{end}}
         </article>
       </div>
     </section>

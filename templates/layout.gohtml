@@ -16,7 +16,7 @@
       } catch (error) {}
     })();
   </script>
-  <link rel="stylesheet" href="/static/app.css?v=202606202080">
+  <link rel="stylesheet" href="/static/app.css?v=202606270002">
   <script src="/static/htmx.min.js?v=1.9.12"></script>
 </head>
 <body>
@@ -318,6 +318,14 @@
       }
       return !!element.querySelector("tbody tr, [data-report-filter-item]") || !!text;
     };
+    var elementMatchesFilterGroup = function (element, targetID) {
+      return (element.getAttribute("data-report-filter-groups") || "").split(/\s+/).indexOf(targetID) !== -1;
+    };
+    var filterGroupHasReportValue = function (targetID) {
+      return Array.prototype.slice.call(document.querySelectorAll("[data-report-filter-groups]")).some(function (element) {
+        return elementMatchesFilterGroup(element, targetID) && elementHasReportValue(element);
+      });
+    };
     var pageHasReportValue = function (page) {
       var section = document.querySelector(".report-detail-group[data-report-page='" + String(page) + "']");
       if (!section) return false;
@@ -334,7 +342,7 @@
       }
       var targetID = node.getAttribute("data-report-filter-target") || node.getAttribute("data-report-scroll-target");
       if (targetID) {
-        return elementHasReportValue(document.getElementById(targetID));
+        return elementHasReportValue(document.getElementById(targetID)) || filterGroupHasReportValue(targetID);
       }
       if (node.hasAttribute("data-report-tree-page")) {
         return pageHasReportValue(Number(node.getAttribute("data-report-tree-page")));
@@ -342,6 +350,7 @@
       return true;
     };
     var pruneEmptyReportTreeNodes = function () {
+      if (tree.hasAttribute("data-report-always-full-tree")) return;
       treeNodes().forEach(function (node) {
         var item = node.closest("li");
         if (!item) return;
@@ -386,13 +395,14 @@
         node.setAttribute("data-report-keyboard-activate", "1");
         node.click();
         node.removeAttribute("data-report-keyboard-activate");
-        resetReportPaperToTop();
+        if (!node.hasAttribute("data-report-scroll-target")) resetReportPaperToTop();
       }
     };
 
     tree.addEventListener("click", function (event) {
       var node = event.target.closest(".report-tree-node");
       if (!node || !tree.contains(node)) return;
+      if (node.hasAttribute("data-report-scroll-target")) return;
       resetReportPaperToTop();
     });
 
@@ -480,6 +490,7 @@
       });
     };
 
+    window.CIMSFillListTables = fillListTables;
     window.addEventListener("load", fillListTables);
     window.addEventListener("resize", fillListTables);
     document.addEventListener("htmx:afterSettle", fillListTables);
@@ -487,7 +498,8 @@
     window.setTimeout(fillListTables, 100);
   })();
 </script>
-{{if .User.ID}}<script src="/static/content-window.js?v=202606201840"></script>{{end}}
+<script src="/static/table-sort.js?v=202606230001"></script>
+{{if .User.ID}}<script src="/static/content-window.js?v=202606230002"></script>{{end}}
 </body>
 </html>
 {{end}}

@@ -199,6 +199,8 @@ func (a *App) Routes() http.Handler {
 			protected.Get("/reports/stock-aging", a.stockAgingReport)
 			protected.Get("/reports/stock-reorder-point", a.stockReorderPointReport)
 			protected.Get("/reports/stock-summary", a.stockSummaryReport)
+			protected.Get("/transactions/sales/{id}/invoice", a.salesInvoicePrint)
+			protected.Get("/transactions/stock-transactions/{id}/withdrawal", a.stockTransferWithdrawalPrint)
 
 			protected.Route("/masters/{kind}", func(cr chi.Router) {
 				cr.Get("/", a.masterList)
@@ -922,6 +924,8 @@ type viewData struct {
 	PurchaseByStockReport              purchaseByStockCodeReportData
 	PurchaseBySupplierReport           purchaseBySupplierReportData
 	SalesReport                        salesReportData
+	SalesInvoice                       salesInvoicePage
+	StockTransferWithdrawal            stockTransferWithdrawalPage
 	SalesByORCIDRReport                salesByORCIDRNumberReportData
 	SalesMarkupReport                  salesMarkupByTransactionReportData
 	SalesSummaryByItemReport           salesSummaryByItemReportData

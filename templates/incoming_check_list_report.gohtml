@@ -19,7 +19,6 @@
     <fieldset class="report-coverage-fieldset">
       <legend>Specify Cut-off Date</legend>
       <label class="report-option-line">
-        <span>Cut-off:</span>
         <input type="date" name="cutoff_date" value="{{.IncomingCheckReport.CutoffDate}}">
       </label>
     </fieldset>
@@ -37,7 +36,7 @@
       <ul>
         {{if eq .IncomingCheckReport.ReportType "detailed"}}
           {{range $index, $group := .IncomingCheckReport.Groups}}
-          <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.Payee}}</button></li>
+          <li class="report-tree-branch collapsed"><button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$group.Payee}}</button></li>
           {{else}}<li><span class="report-tree-empty">No incoming checks</span></li>{{end}}
         {{else}}
           {{range $index, $row := .IncomingCheckReport.SummaryRows}}
@@ -82,8 +81,8 @@
       <div class="report-paper-scroll">
         <article class="report-paper {{.IncomingCheckReport.PaperClass}}">
           <header class="report-paper-header">
-            <h1>{{.IncomingCheckReport.Title}}</h1>
             {{if eq .IncomingCheckReport.ReportType "summary-postdated"}}
+            <h1>{{.IncomingCheckReport.Title}}</h1>
             <h2>INCOMING CHECK ACCOUNT SUMMARY (Postdated)</h2>
             <p>{{.IncomingCheckReport.CutoffLabel}}</p>
             {{else}}
@@ -100,7 +99,7 @@
               <tr><td colspan="3" class="empty">No postdated incoming checks after the cut-off date.</td></tr>
               {{end}}
             </tbody>
-            <tfoot><tr><td colspan="2">GRAND TOTAL:</td><td class="num">{{.IncomingCheckReport.GrandTotal}}</td></tr></tfoot>
+            <tfoot><tr><td colspan="2">G R A N D&nbsp;&nbsp; T O T A L:</td><td class="num">{{.IncomingCheckReport.GrandTotal}}</td></tr></tfoot>
           </table>
           {{else}}
           {{range $index, $group := .IncomingCheckReport.Groups}}

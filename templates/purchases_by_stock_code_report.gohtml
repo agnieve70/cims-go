@@ -60,12 +60,12 @@
     <aside class="report-preview-tree">
       <div>Preview</div>
       <ul>
-        {{range $index, $group := .PurchaseByStockReport.Groups}}
+        {{range $supplier := .PurchaseByStockReport.PreviewSuppliers}}
         <li class="report-tree-branch collapsed">
-          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$group.StockName}}</button>
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{$supplier.Page}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$supplier.Supplier}}</button>
           <ul>
-            {{range $rowIndex, $row := $group.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="purchase-stock-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="purchase-stock-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.Reference}}</button></li>
+            {{range $item := $supplier.Items}}
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{$item.Page}}" data-report-scroll-target="{{$item.TargetID}}" data-report-filter-target="{{$item.FilterTarget}}">{{$item.Label}}</button></li>
             {{end}}
           </ul>
         </li>
@@ -105,23 +105,28 @@
             <p>{{.PurchaseByStockReport.RangeLabel}}</p>
           </header>
           {{range $index, $group := .PurchaseByStockReport.Groups}}
-          <section class="report-detail-group purchase-stock-group" data-report-page="{{add $index 1}}">
-            <div class="purchase-stock-name">{{$group.StockName}}</div>
+          <section id="purchase-stock-group-{{add $index 1}}" class="report-detail-group purchase-stock-group" data-report-page="{{add $index 1}}">
+            <div class="purchase-stock-name">
+              <span data-report-filter-item>{{$group.StockName}}</span>
+              {{range $group.FilterTotals}}<span data-report-filter-item data-report-filter-only data-report-filter-groups="{{.FilterKey}}">{{.Supplier}}</span>{{end}}
+            </div>
             <div class="purchase-stock-meta"><span>Stock Code: <strong>{{$group.StockCode}}</strong></span><span>Stock Name: <strong>{{$group.StockName}}</strong></span></div>
             <table class="report-table purchase-stock-table">
               <thead><tr><th>Reference</th><th>Date</th><th>Supplier</th><th>Quantity</th><th>Cost</th><th>Amount</th></tr></thead>
               <tbody>
                 {{range $rowIndex, $row := $group.Rows}}
-                <tr id="purchase-stock-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Supplier}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
+                <tr id="purchase-stock-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item data-report-filter-groups="{{$row.FilterKey}}"><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Supplier}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
                 {{end}}
               </tbody>
-              <tfoot><tr><td colspan="3">Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr></tfoot>
+              <tfoot>
+                <tr data-report-filter-item><td colspan="3">Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr>
+                {{range $group.FilterTotals}}
+                <tr data-report-filter-item data-report-filter-only data-report-filter-groups="{{.FilterKey}}"><td colspan="3">Total:</td><td class="num">{{.TotalQty}}</td><td></td><td class="num">{{.TotalAmt}}</td></tr>
+                {{end}}
+              </tfoot>
             </table>
           </section>
           {{else}}<p class="report-empty">No purchase records for the selected coverage.</p>{{end}}
-          {{if .PurchaseByStockReport.Groups}}
-          <table class="report-table purchase-stock-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.PurchaseByStockReport.TotalQuantity}}</td><td class="num">{{.PurchaseByStockReport.TotalAmount}}</td></tr></tfoot></table>
-          {{end}}
         </article>
       </div>
     </section>

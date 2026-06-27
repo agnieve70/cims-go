@@ -1,0 +1,175 @@
+{{template "head" .}}
+<main class="stw-print-page">
+  <section class="stw-sheet" aria-label="Stock Transfer Withdrawal">
+    <img class="stw-background" src="{{.StockTransferWithdrawal.TemplateURL}}" alt="">
+    <div class="stw-field stw-date">{{.StockTransferWithdrawal.Date}}</div>
+    <div class="stw-field stw-date-year">{{.StockTransferWithdrawal.DateYear}}</div>
+    <div class="stw-field stw-from">{{.StockTransferWithdrawal.From}}</div>
+    <div class="stw-field stw-to">{{.StockTransferWithdrawal.To}}</div>
+    {{range $index, $row := .StockTransferWithdrawal.Rows}}
+      {{if lt $index 20}}
+      <div class="stw-field stw-row stw-qty stw-row-{{add $index 1}}">{{$row.Qty}}</div>
+      <div class="stw-field stw-row stw-article stw-row-{{add $index 1}}">{{$row.Article}}</div>
+      <div class="stw-field stw-row stw-unit-cost stw-row-{{add $index 1}}">{{$row.UnitCost}}</div>
+      <div class="stw-field stw-row stw-amount stw-row-{{add $index 1}}">{{$row.Amount}}</div>
+      {{end}}
+    {{end}}
+    <div class="stw-field stw-total-amount">{{.StockTransferWithdrawal.TotalAmount}}</div>
+  </section>
+</main>
+<style>
+  @page {
+    size: auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #aeb6bc;
+  }
+
+  .stw-print-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: start center;
+    padding: 16px;
+  }
+
+  .stw-sheet {
+    position: relative;
+    width: 718px;
+    height: 848px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+  }
+
+  .stw-background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+
+  .stw-field {
+    position: absolute;
+    z-index: 1;
+    color: #111;
+    font: 700 15px Arial, Helvetica, sans-serif;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .stw-date {
+    left: 438px;
+    top: 84px;
+    width: 180px;
+    text-align: center;
+    font-size: 17px;
+  }
+
+  .stw-date-year {
+    left: 662px;
+    top: 84px;
+    width: 42px;
+    text-align: center;
+    font-size: 17px;
+  }
+
+  .stw-from {
+    left: 60px;
+    top: 117px;
+    width: 260px;
+    font-size: 17px;
+  }
+
+  .stw-to {
+    left: 430px;
+    top: 117px;
+    width: 248px;
+    font-size: 17px;
+  }
+
+  .stw-row {
+    top: calc(158px + (var(--row) - 1) * 28px);
+  }
+
+  .stw-qty {
+    left: 18px;
+    width: 58px;
+    text-align: center;
+  }
+
+  .stw-article {
+    left: 82px;
+    width: 384px;
+  }
+
+  .stw-unit-cost {
+    left: 474px;
+    width: 92px;
+    text-align: right;
+  }
+
+  .stw-amount {
+    left: 573px;
+    width: 108px;
+    text-align: right;
+  }
+
+  .stw-row-1 { --row: 1; }
+  .stw-row-2 { --row: 2; }
+  .stw-row-3 { --row: 3; }
+  .stw-row-4 { --row: 4; }
+  .stw-row-5 { --row: 5; }
+  .stw-row-6 { --row: 6; }
+  .stw-row-7 { --row: 7; }
+  .stw-row-8 { --row: 8; }
+  .stw-row-9 { --row: 9; }
+  .stw-row-10 { --row: 10; }
+  .stw-row-11 { --row: 11; }
+  .stw-row-12 { --row: 12; }
+  .stw-row-13 { --row: 13; }
+  .stw-row-14 { --row: 14; }
+  .stw-row-15 { --row: 15; }
+  .stw-row-16 { --row: 16; }
+  .stw-row-17 { --row: 17; }
+  .stw-row-18 { --row: 18; }
+  .stw-row-19 { --row: 19; }
+  .stw-row-20 { --row: 20; }
+
+  .stw-total-amount {
+    left: 573px;
+    top: 733px;
+    width: 108px;
+    text-align: right;
+    font-size: 18px;
+  }
+
+  @media print {
+    html,
+    body {
+      background: #fff;
+    }
+
+    .stw-print-page {
+      display: block;
+      padding: 0;
+      min-height: 0;
+    }
+
+    .stw-sheet {
+      box-shadow: none;
+    }
+  }
+</style>
+<script>
+  window.addEventListener("load", function () {
+    window.print();
+  });
+</script>
+</body>
+</html>

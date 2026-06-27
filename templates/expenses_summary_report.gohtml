@@ -68,7 +68,6 @@
       <div>Preview</div>
       <ul>
         {{if eq .ExpenseReport.ReportType "detailed"}}
-          {{range .ExpenseReport.Pages}}<li><button type="button" class="report-tree-node" data-report-tree-page="{{.Number}}">Page {{.Number}}</button></li>{{else}}<li><span class="report-tree-empty">No expense records</span></li>{{end}}
         {{else}}
           {{range $index, $row := .ExpenseReport.SummaryRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Name}}</button></li>{{else}}<li><span class="report-tree-empty">No expense records</span></li>{{end}}
         {{end}}
@@ -129,8 +128,8 @@
               <tr><td colspan="3" class="empty">No expense records for the selected coverage.</td></tr>
               {{end}}
             </tbody>
-            <tfoot><tr><td colspan="2">Grand Total</td><td class="num">{{.ExpenseReport.GrandTotal}}</td></tr></tfoot>
           </table>
+          {{if .ExpenseReport.SummaryRows}}<div class="expenses-summary-grand-total"><span>Grand Total</span><strong>{{.ExpenseReport.GrandTotal}}</strong></div>{{end}}
           {{else}}
           {{range .ExpenseReport.Pages}}
           <section class="report-detail-group" data-report-page="{{.Number}}">

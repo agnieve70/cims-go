@@ -46,6 +46,7 @@ type purchaseReportLine struct {
 	EntryID    string
 	Date       string
 	ORCINumber string
+	Type       string
 	Gross      string
 	Net        string
 }
@@ -88,6 +89,7 @@ type purchaseByDRNumberGroup struct {
 
 type purchaseByDRNumberLine struct {
 	Supplier string
+	Type     string
 	Code     string
 	Stock    string
 	Quantity string
@@ -98,29 +100,53 @@ type purchaseByDRNumberLine struct {
 }
 
 type purchaseByStockCodeReportData struct {
-	Generated      bool
-	Coverage       string
-	Year           int
-	Month          int
-	FromDate       string
-	ToDate         string
-	PaperSize      string
-	PaperClass     string
-	Title          string
-	RangeLabel     string
-	CurrentPage    int
-	TotalPages     int
-	Groups         []purchaseByStockCodeGroup
-	TotalQuantity  string
-	TotalAmount    string
-	TotalQtyRaw    int64
-	TotalAmountRaw int64
+	Generated        bool
+	Coverage         string
+	Year             int
+	Month            int
+	FromDate         string
+	ToDate           string
+	PaperSize        string
+	PaperClass       string
+	Title            string
+	RangeLabel       string
+	CurrentPage      int
+	TotalPages       int
+	PreviewSuppliers []purchaseByStockCodePreviewSupplier
+	Groups           []purchaseByStockCodeGroup
+	TotalQuantity    string
+	TotalAmount      string
+	TotalQtyRaw      int64
+	TotalAmountRaw   int64
+}
+
+type purchaseByStockCodePreviewSupplier struct {
+	Supplier string
+	Page     int
+	Items    []purchaseByStockCodePreviewItem
+}
+
+type purchaseByStockCodePreviewItem struct {
+	Label        string
+	Page         int
+	TargetID     string
+	FilterTarget string
 }
 
 type purchaseByStockCodeGroup struct {
-	StockCode string
-	StockName string
-	Rows      []purchaseByStockCodeLine
+	StockCode    string
+	StockName    string
+	Rows         []purchaseByStockCodeLine
+	FilterTotals []purchaseByStockCodeFilterTotal
+	TotalQty     string
+	TotalAmt     string
+	QtyRaw       int64
+	AmtRaw       int64
+}
+
+type purchaseByStockCodeFilterTotal struct {
+	FilterKey string
+	Supplier  string
 	TotalQty  string
 	TotalAmt  string
 	QtyRaw    int64
@@ -130,10 +156,12 @@ type purchaseByStockCodeGroup struct {
 type purchaseByStockCodeLine struct {
 	Reference string
 	Date      string
+	Type      string
 	Supplier  string
 	Quantity  string
 	Cost      string
 	Amount    string
+	FilterKey string
 	QtyRaw    int64
 	AmtRaw    int64
 }
@@ -180,6 +208,7 @@ type purchaseBySupplierStockGroup struct {
 type purchaseBySupplierLine struct {
 	Reference string
 	Date      string
+	Type      string
 	Code      string
 	Stock     string
 	Quantity  string
@@ -223,6 +252,7 @@ type salesReportLine struct {
 	EntryID    string
 	Date       string
 	ORCINumber string
+	Type       string
 	Gross      string
 	Net        string
 }
@@ -261,10 +291,12 @@ type salesByORCIDRNumberGroup struct {
 	TotalAmt  string
 	QtyRaw    int64
 	AmtRaw    int64
+	CashSort  int
 }
 
 type salesByORCIDRNumberLine struct {
 	Customer string
+	Type     string
 	Code     string
 	Stock    string
 	Quantity string
@@ -343,12 +375,16 @@ type salesSummaryByItemCategoryGroup struct {
 }
 
 type salesSummaryByItemLine struct {
-	StockCode string
-	StockName string
-	Quantity  string
-	Amount    string
-	QtyRaw    int64
-	AmtRaw    int64
+	StockCode  string
+	StockName  string
+	Quantity   string
+	Amount     string
+	CashAmount string
+	ChargeAmt  string
+	QtyRaw     int64
+	AmtRaw     int64
+	CashRaw    int64
+	ChargeRaw  int64
 }
 
 type salesByCustomerReportData struct {
@@ -410,14 +446,18 @@ type salesByCustomerSummaryByItemCustomerGroup struct {
 }
 
 type salesByCustomerSummaryByItemLine struct {
-	Code     string
-	Stock    string
-	Quantity string
-	Price    string
-	Amount   string
-	QtyRaw   int64
-	PriceRaw int64
-	AmtRaw   int64
+	Code       string
+	Stock      string
+	Quantity   string
+	Price      string
+	CashAmount string
+	ChargeAmt  string
+	Amount     string
+	QtyRaw     int64
+	PriceRaw   int64
+	CashRaw    int64
+	ChargeRaw  int64
+	AmtRaw     int64
 }
 
 type salesByCustomerCategoryGroup struct {
@@ -441,6 +481,7 @@ type salesByCustomerGroup struct {
 type salesByCustomerLine struct {
 	Reference string
 	Date      string
+	Type      string
 	Code      string
 	Stock     string
 	Quantity  string
@@ -492,6 +533,7 @@ type salesByStockNameGroup struct {
 type salesByStockNameLine struct {
 	Reference string
 	Date      string
+	Type      string
 	Customer  string
 	Quantity  string
 	Price     string
@@ -924,18 +966,23 @@ type dailySalesCollectionReportData struct {
 }
 
 type dailySalesCollectionSection struct {
-	Key      string
-	Title    string
-	Rows     []dailySalesCollectionLine
-	Total    string
-	TotalRaw int64
+	Key           string
+	Title         string
+	Rows          []dailySalesCollectionLine
+	Total         string
+	CheckTotal    string
+	TotalRaw      int64
+	CheckTotalRaw int64
 }
 
 type dailySalesCollectionLine struct {
-	Name      string
-	Reference string
-	Amount    string
-	Raw       int64
+	Name        string
+	Reference   string
+	Amount      string
+	CheckAmount string
+	SortKey     string
+	Raw         int64
+	CheckRaw    int64
 }
 
 type stockSalesTransferReportData struct {
@@ -1048,6 +1095,7 @@ type stockTransferSummaryReportData struct {
 	CurrentPage    int
 	TotalPages     int
 	Categories     []stockTransferSummaryCategory
+	Pages          []stockTransferSummaryPage
 	TotalQuantity  string
 	TotalAmount    string
 	TotalQtyRaw    int64
@@ -1057,15 +1105,29 @@ type stockTransferSummaryReportData struct {
 type stockTransferSummaryCategory struct {
 	Name          string
 	Branches      []stockTransferSummaryBranch
+	PageNumber    int
 	TotalQuantity string
 	TotalAmount   string
 	TotalQtyRaw   int64
 	TotalAmtRaw   int64
 }
 
+type stockTransferSummaryPage struct {
+	CategoryName   string
+	Branches       []stockTransferSummaryBranch
+	TotalQuantity  string
+	TotalAmount    string
+	ShowGrandTotal bool
+	GrandQuantity  string
+	GrandAmount    string
+	UsedUnits      int
+}
+
 type stockTransferSummaryBranch struct {
 	Name          string
 	Rows          []stockTransferSummaryLine
+	PageNumber    int
+	TargetID      string
 	TotalQuantity string
 	TotalAmount   string
 	TotalQtyRaw   int64
@@ -1469,6 +1531,7 @@ type stockReorderPointLine struct {
 
 type stockSummaryCategory struct {
 	Name        string
+	TreeRows    []stockSummaryLine
 	Rows        []stockSummaryLine
 	TotalSOH    string
 	Amount      string
@@ -1479,6 +1542,7 @@ type stockSummaryCategory struct {
 type stockSummaryLine struct {
 	StockCode   string
 	StockName   string
+	TargetID    string
 	SOH         string
 	UnitCost    string
 	Amount      string
@@ -1974,9 +2038,9 @@ func (a *App) apLedgerReport(w http.ResponseWriter, r *http.Request) {
 	report.ToDate = to.Format("2006-01-02")
 	report.RangeLabel = apLedgerRangeLabel(from, to)
 	if report.ReportType == "summary" {
-		report.AsOfLabel = "Summary as of: " + to.Format("January 02, 2006")
+		report.AsOfLabel = "Summary as of: " + reportLongDate(to)
 	} else {
-		report.AsOfLabel = "Report as of: " + to.Format("January 02, 2006")
+		report.AsOfLabel = "Report as of: " + reportLongDate(to)
 	}
 	report.Generated = true
 
@@ -2013,9 +2077,9 @@ func (a *App) arLedgerReport(w http.ResponseWriter, r *http.Request) {
 	report.ToDate = to.Format("2006-01-02")
 	report.RangeLabel = arLedgerRangeLabel(from, to)
 	if report.ReportType == "summary" {
-		report.AsOfLabel = "Summary as of: " + to.Format("January 02, 2006")
+		report.AsOfLabel = "Summary as of: " + reportLongDate(to)
 	} else {
-		report.AsOfLabel = "Report as of: " + to.Format("January 02, 2006")
+		report.AsOfLabel = "Report as of: " + reportLongDate(to)
 	}
 	report.Generated = true
 
@@ -2626,7 +2690,7 @@ func (a *App) stockReorderPointReport(w http.ResponseWriter, r *http.Request) {
 	report.PaperClass = "report-paper-size-" + report.PaperSize
 	cutoff := parseReportDate(strings.TrimSpace(r.URL.Query().Get("cutoff_date")), a.now())
 	report.CutoffDate = cutoff.Format("2006-01-02")
-	report.CutoffLabel = "Stock Summary As Of: " + cutoff.Format("January 02, 2006")
+	report.CutoffLabel = "Stock Summary As Of: " + reportLongDate(cutoff)
 	report.Generated = true
 
 	rows, err := a.store.StockReorderPointReportRows(r.Context(), cutoff)
@@ -2652,7 +2716,7 @@ func (a *App) stockSummaryReport(w http.ResponseWriter, r *http.Request) {
 	report.PaperClass = "report-paper-size-" + report.PaperSize
 	cutoff := parseReportDate(strings.TrimSpace(r.URL.Query().Get("cutoff_date")), a.now())
 	report.CutoffDate = cutoff.Format("2006-01-02")
-	report.CutoffLabel = "Stock Summary As Of: " + cutoff.Format("January 02, 2006")
+	report.CutoffLabel = "Stock Summary As Of: " + reportLongDate(cutoff)
 	report.Generated = true
 
 	rows, err := a.store.StockSummaryReportRows(r.Context(), cutoff)
@@ -2693,7 +2757,7 @@ func (a *App) defaultPurchaseReportData(r *http.Request) purchaseReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2709,7 +2773,7 @@ func (a *App) defaultPurchaseByDRNumberReportData(r *http.Request) purchaseByDRN
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2725,7 +2789,7 @@ func (a *App) defaultPurchaseByStockCodeReportData(r *http.Request) purchaseBySt
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2741,7 +2805,7 @@ func (a *App) defaultPurchaseBySupplierReportData(r *http.Request) purchaseBySup
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2758,7 +2822,7 @@ func (a *App) defaultSalesReportData(r *http.Request) salesReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2774,7 +2838,7 @@ func (a *App) defaultSalesByORCIDRNumberReportData(r *http.Request) salesByORCID
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2790,7 +2854,7 @@ func (a *App) defaultSalesMarkupByTransactionReportData(r *http.Request) salesMa
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2806,7 +2870,7 @@ func (a *App) defaultSalesSummaryByItemReportData(r *http.Request) salesSummaryB
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2822,7 +2886,7 @@ func (a *App) defaultSalesByCustomerReportData(r *http.Request) salesByCustomerR
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2838,7 +2902,7 @@ func (a *App) defaultSalesByCustomerSummaryByItemReportData(r *http.Request) sal
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2854,7 +2918,7 @@ func (a *App) defaultSalesByStockNameReportData(r *http.Request) salesByStockNam
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2871,7 +2935,7 @@ func (a *App) defaultAPLedgerReportData(r *http.Request) apLedgerReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2888,7 +2952,7 @@ func (a *App) defaultARLedgerReportData(r *http.Request) arLedgerReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2901,7 +2965,7 @@ func (a *App) defaultIncomingCheckReportData(r *http.Request) incomingCheckRepor
 		CutoffDate:  now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON RICE & CORN MILL",
 		CutoffLabel: "Check Date Cut-Off: " + now.Format("02-Jan-2006"),
 		CurrentPage: 1,
 		TotalPages:  1,
@@ -2915,7 +2979,7 @@ func (a *App) defaultOutgoingCheckReportData(r *http.Request) outgoingCheckRepor
 		CutoffDate:  now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON RICE & CORN MILL",
 		CutoffLabel: "Check Date Cut-Off: " + now.Format("02-Jan-2006"),
 		CurrentPage: 1,
 		TotalPages:  1,
@@ -2933,7 +2997,7 @@ func (a *App) defaultExpenseReportData(r *http.Request) expenseReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter-landscape",
 		PaperClass:  "report-paper-size-letter-landscape",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2949,7 +3013,7 @@ func (a *App) defaultIncomeStatementReportData(r *http.Request) incomeStatementR
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -2965,7 +3029,7 @@ func (a *App) defaultIncentiveReportData(r *http.Request) incentiveReportData {
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -3151,7 +3215,7 @@ func (a *App) defaultStockLedgerReportData(r *http.Request) stockLedgerReportDat
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
+		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -3177,8 +3241,8 @@ func (a *App) defaultStockReorderPointReportData() stockReorderPointReportData {
 		CutoffDate:  now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
-		CutoffLabel: "Stock Summary As Of: " + now.Format("January 02, 2006"),
+		Title:       "SORONGON AGRIVET",
+		CutoffLabel: "Stock Summary As Of: " + reportLongDate(now),
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -3190,8 +3254,8 @@ func (a *App) defaultStockSummaryReportData() stockSummaryReportData {
 		CutoffDate:  now.Format("2006-01-02"),
 		PaperSize:   "letter",
 		PaperClass:  "report-paper-size-letter",
-		Title:       "CIMS",
-		CutoffLabel: "Stock Summary As Of: " + now.Format("January 02, 2006"),
+		Title:       "SORONGON AGRIVET",
+		CutoffLabel: "Stock Summary As Of: " + reportLongDate(now),
 		CurrentPage: 1,
 		TotalPages:  1,
 	}
@@ -3247,7 +3311,7 @@ func normalizedLedgerReportType(value string) string {
 
 func normalizedPaperSize(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "a4", "legal", "letter-landscape":
+	case "a4", "legal", "letter-landscape", "a4-landscape", "legal-landscape":
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
 		return "letter"
@@ -3825,56 +3889,61 @@ func parseReportDate(value string, fallback time.Time) time.Time {
 }
 
 func purchaseRangeLabel(from, to time.Time) string {
-	return "Purchases From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Purchases From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func salesRangeLabel(from, to time.Time) string {
-	return "Sales From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Sales From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func apLedgerRangeLabel(from, to time.Time) string {
-	return "Ledger From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Ledger From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func arLedgerRangeLabel(from, to time.Time) string {
-	return "Ledger From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Ledger From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func expenseRangeLabel(from, to time.Time) string {
-	return "Purchases From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Purchases From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func incomeStatementRangeLabel(from, to time.Time) string {
-	return "From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func incentiveRangeLabel(from, to time.Time) string {
-	return "Sales From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Sales From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func stockSalesTransferRangeLabel(from, to time.Time) string {
-	return "Sales and Transfers From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Sales From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func stockTransferSummaryRangeLabel(from, to time.Time) string {
-	return "Sales From: " + from.Format("January 02, 2006") + " To: " + to.Format("January 02, 2006")
+	return "Sales From: " + reportLongDate(from) + " To: " + reportLongDate(to)
 }
 
 func stockLedgerRangeLabel(from, to time.Time) string {
 	return "Period Covered : " + from.Format("1/2/2006") + " ~ " + to.Format("1/2/2006")
 }
 
+func reportLongDate(value time.Time) string {
+	months := []string{"Enero", "Pebrero", "Marso", "Abril", "Mayo", "Hunyo", "Hulyo", "Agosto", "Setyembre", "Oktubre", "Nobyembre", "Disyembre"}
+	return months[int(value.Month())-1] + value.Format(" 02, 2006")
+}
+
 func stockAgingBucketLabels(cutoff time.Time) []string {
-	labels := make([]string, 0, 6)
+	labels := make([]string, 0, 5)
 	for bucket := 0; bucket < 5; bucket++ {
+		ageLabel := strconv.Itoa((bucket + 1) * 30)
 		end := cutoff.AddDate(0, 0, -30*bucket)
 		if bucket > 0 {
 			end = end.AddDate(0, 0, -1)
 		}
 		start := cutoff.AddDate(0, 0, -30*(bucket+1))
-		labels = append(labels, start.Format("01/02/2006")+" ~ "+end.Format("01/02/2006"))
+		labels = append(labels, start.Format("01/02/2006")+" ~ "+end.Format("01/02/2006")+"("+ageLabel+")")
 	}
-	labels = append(labels, "Before "+cutoff.AddDate(0, 0, -150).Format("01/02/2006"))
 	return labels
 }
 
@@ -3910,6 +3979,7 @@ func (report *purchaseReportData) build(rows []models.PurchaseReportRow) {
 				EntryID:    row.EntryID,
 				Date:       row.EntryDate,
 				ORCINumber: row.ORCINumber,
+				Type:       paymentTypeLabel(row.Type),
 				Gross:      moneyString(row.GrossCents),
 				Net:        moneyString(row.NetCents),
 			})
@@ -3957,6 +4027,7 @@ func (report *purchaseByDRNumberReportData) build(rows []models.PurchaseByDRNumb
 		}
 		group.Rows = append(group.Rows, purchaseByDRNumberLine{
 			Supplier: supplier,
+			Type:     paymentTypeLabel(row.Type),
 			Code:     stockCode,
 			Stock:    stockName,
 			Quantity: qtyDecimalString(row.Quantity),
@@ -4024,6 +4095,7 @@ func (report *purchaseByStockCodeReportData) build(rows []models.PurchaseByStock
 		group.Rows = append(group.Rows, purchaseByStockCodeLine{
 			Reference: reference,
 			Date:      row.PurchaseDate,
+			Type:      paymentTypeLabel(row.Type),
 			Supplier:  supplier,
 			Quantity:  qtyDecimalString(row.Quantity),
 			Cost:      moneyString(row.UnitCostCents),
@@ -4057,6 +4129,74 @@ func (report *purchaseByStockCodeReportData) build(rows []models.PurchaseByStock
 	report.TotalAmount = moneyString(report.TotalAmountRaw)
 	if len(report.Groups) > 0 {
 		report.TotalPages = len(report.Groups)
+	}
+	report.buildSupplierPreview()
+}
+
+func (report *purchaseByStockCodeReportData) buildSupplierPreview() {
+	supplierByKey := map[string]*purchaseByStockCodePreviewSupplier{}
+	stockBySupplier := map[string]map[string]bool{}
+	for groupIndex := range report.Groups {
+		group := &report.Groups[groupIndex]
+		page := groupIndex + 1
+		filterKeyBySupplier := map[string]string{}
+		filterTotalsByKey := map[string]*purchaseByStockCodeFilterTotal{}
+		filterKeys := []string{}
+		for rowIndex := range group.Rows {
+			row := &group.Rows[rowIndex]
+			supplier := strings.TrimSpace(row.Supplier)
+			if supplier == "" {
+				supplier = "No Supplier"
+			}
+			supplierKey := strings.ToLower(supplier)
+			previewSupplier := supplierByKey[supplierKey]
+			if previewSupplier == nil {
+				previewSupplier = &purchaseByStockCodePreviewSupplier{
+					Supplier: supplier,
+					Page:     page,
+				}
+				supplierByKey[supplierKey] = previewSupplier
+				stockBySupplier[supplierKey] = map[string]bool{}
+			}
+			filterKey := filterKeyBySupplier[supplierKey]
+			if filterKey == "" {
+				filterKey = "purchase-stock-filter-" + strconv.Itoa(page) + "-" + strconv.Itoa(len(filterKeyBySupplier)+1)
+				filterKeyBySupplier[supplierKey] = filterKey
+				filterTotalsByKey[filterKey] = &purchaseByStockCodeFilterTotal{FilterKey: filterKey, Supplier: supplier}
+				filterKeys = append(filterKeys, filterKey)
+			}
+			row.FilterKey = filterKey
+			filterTotal := filterTotalsByKey[filterKey]
+			filterTotal.QtyRaw += row.QtyRaw
+			filterTotal.AmtRaw += row.AmtRaw
+
+			stockKey := strings.ToLower(group.StockCode + "|" + group.StockName)
+			if stockBySupplier[supplierKey][stockKey] {
+				continue
+			}
+			stockBySupplier[supplierKey][stockKey] = true
+			previewSupplier.Items = append(previewSupplier.Items, purchaseByStockCodePreviewItem{
+				Label:        group.StockCode,
+				Page:         page,
+				TargetID:     "purchase-stock-group-" + strconv.Itoa(page),
+				FilterTarget: filterKey,
+			})
+		}
+		for _, filterKey := range filterKeys {
+			filterTotal := filterTotalsByKey[filterKey]
+			filterTotal.TotalQty = qtyDecimalString(filterTotal.QtyRaw)
+			filterTotal.TotalAmt = moneyString(filterTotal.AmtRaw)
+			group.FilterTotals = append(group.FilterTotals, *filterTotal)
+		}
+	}
+
+	keys := make([]string, 0, len(supplierByKey))
+	for key := range supplierByKey {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		report.PreviewSuppliers = append(report.PreviewSuppliers, *supplierByKey[key])
 	}
 }
 
@@ -4098,6 +4238,7 @@ func (report *purchaseBySupplierReportData) build(rows []models.PurchaseBySuppli
 		line := purchaseBySupplierLine{
 			Reference: reference,
 			Date:      row.PurchaseDate,
+			Type:      paymentTypeLabel(row.Type),
 			Code:      stockCode,
 			Stock:     stockName,
 			Quantity:  qtyDecimalString(row.Quantity),
@@ -4294,6 +4435,7 @@ func (report *salesReportData) build(rows []models.SalesReportRow) {
 				EntryID:    row.EntryID,
 				Date:       row.EntryDate,
 				ORCINumber: row.ORCINumber,
+				Type:       paymentTypeLabel(row.Type),
 				Gross:      moneyString(row.GrossCents),
 				Net:        moneyString(row.NetCents),
 			})
@@ -4319,10 +4461,12 @@ func (report *salesByORCIDRNumberReportData) build(rows []models.SalesByORCIDRNu
 		if reference == "" {
 			reference = "No Reference"
 		}
-		group := groupsByReference[reference]
+		cashSort := salesCashSort(row.Type)
+		groupKey := strconv.Itoa(cashSort) + "|" + strings.ToLower(reference)
+		group := groupsByReference[groupKey]
 		if group == nil {
-			group = &salesByORCIDRNumberGroup{Reference: reference, Date: row.SalesDate}
-			groupsByReference[reference] = group
+			group = &salesByORCIDRNumberGroup{Reference: reference, Date: row.SalesDate, CashSort: cashSort}
+			groupsByReference[groupKey] = group
 		}
 		if group.Date == "" {
 			group.Date = row.SalesDate
@@ -4341,6 +4485,7 @@ func (report *salesByORCIDRNumberReportData) build(rows []models.SalesByORCIDRNu
 		}
 		group.Rows = append(group.Rows, salesByORCIDRNumberLine{
 			Customer: customer,
+			Type:     paymentTypeLabel(row.Type),
 			Code:     stockCode,
 			Stock:    stockName,
 			Quantity: qtyDecimalString(row.Quantity),
@@ -4355,15 +4500,23 @@ func (report *salesByORCIDRNumberReportData) build(rows []models.SalesByORCIDRNu
 		report.TotalAmountRaw += row.AmountCents
 	}
 
-	references := make([]string, 0, len(groupsByReference))
-	for reference := range groupsByReference {
-		references = append(references, reference)
+	groupKeys := make([]string, 0, len(groupsByReference))
+	for groupKey := range groupsByReference {
+		groupKeys = append(groupKeys, groupKey)
 	}
-	sort.Slice(references, func(i, j int) bool {
-		return strings.ToLower(references[i]) < strings.ToLower(references[j])
+	sort.Slice(groupKeys, func(i, j int) bool {
+		left := groupsByReference[groupKeys[i]]
+		right := groupsByReference[groupKeys[j]]
+		if left.CashSort != right.CashSort {
+			return left.CashSort < right.CashSort
+		}
+		if !strings.EqualFold(left.Reference, right.Reference) {
+			return strings.ToLower(left.Reference) < strings.ToLower(right.Reference)
+		}
+		return left.Date < right.Date
 	})
-	for _, reference := range references {
-		group := groupsByReference[reference]
+	for _, groupKey := range groupKeys {
+		group := groupsByReference[groupKey]
 		sort.SliceStable(group.Rows, func(i, j int) bool {
 			left := strings.ToLower(group.Rows[i].Customer + "|" + group.Rows[i].Code + "|" + group.Rows[i].Stock)
 			right := strings.ToLower(group.Rows[j].Customer + "|" + group.Rows[j].Code + "|" + group.Rows[j].Stock)
@@ -4378,6 +4531,13 @@ func (report *salesByORCIDRNumberReportData) build(rows []models.SalesByORCIDRNu
 	if len(report.Groups) > 0 {
 		report.TotalPages = len(report.Groups)
 	}
+}
+
+func salesCashSort(paymentType string) int {
+	if strings.EqualFold(paymentTypeLabel(paymentType), "Cash") {
+		return 1
+	}
+	return 0
 }
 
 func (report *salesMarkupByTransactionReportData) build(rows []models.SalesMarkupByTransactionReportRow) {
@@ -4460,6 +4620,11 @@ func (report *salesSummaryByItemReportData) build(rows []models.SalesByStockName
 		}
 		line.QtyRaw += row.Quantity
 		line.AmtRaw += row.AmountCents
+		if strings.EqualFold(paymentTypeLabel(row.Type), "Cash") {
+			line.CashRaw += row.AmountCents
+		} else {
+			line.ChargeRaw += row.AmountCents
+		}
 		categoryGroup.QtyRaw += row.Quantity
 		categoryGroup.AmtRaw += row.AmountCents
 		report.TotalQtyRaw += row.Quantity
@@ -4486,6 +4651,8 @@ func (report *salesSummaryByItemReportData) build(rows []models.SalesByStockName
 			line := rowsByStock[category][key]
 			line.Quantity = qtyDecimalString(line.QtyRaw)
 			line.Amount = moneyString(line.AmtRaw)
+			line.CashAmount = moneyString(line.CashRaw)
+			line.ChargeAmt = moneyString(line.ChargeRaw)
 			categoryGroup.Rows = append(categoryGroup.Rows, *line)
 		}
 		categoryGroup.TotalQty = qtyDecimalString(categoryGroup.QtyRaw)
@@ -4537,6 +4704,7 @@ func (report *salesByCustomerReportData) build(rows []models.SalesByCustomerRepo
 		customerGroup.Rows = append(customerGroup.Rows, salesByCustomerLine{
 			Reference: reference,
 			Date:      row.SalesDate,
+			Type:      paymentTypeLabel(row.Type),
 			Code:      stockCode,
 			Stock:     stockName,
 			Quantity:  qtyDecimalString(row.Quantity),
@@ -4633,6 +4801,11 @@ func (report *salesByCustomerSummaryByItemReportData) build(rows []models.SalesB
 		}
 		line.QtyRaw += row.Quantity
 		line.AmtRaw += row.AmountCents
+		if strings.EqualFold(paymentTypeLabel(row.Type), "Cash") {
+			line.CashRaw += row.AmountCents
+		} else {
+			line.ChargeRaw += row.AmountCents
+		}
 		customerGroup.QtyRaw += row.Quantity
 		customerGroup.AmtRaw += row.AmountCents
 		categoryGroup.QtyRaw += row.Quantity
@@ -4670,6 +4843,8 @@ func (report *salesByCustomerSummaryByItemReportData) build(rows []models.SalesB
 				line := rowsByItem[category][customer][key]
 				line.Quantity = qtyDecimalString(line.QtyRaw)
 				line.Price = moneyString(line.PriceRaw)
+				line.CashAmount = moneyString(line.CashRaw)
+				line.ChargeAmt = moneyString(line.ChargeRaw)
 				line.Amount = moneyString(line.AmtRaw)
 				customerGroup.Rows = append(customerGroup.Rows, *line)
 			}
@@ -4727,6 +4902,7 @@ func (report *salesByStockNameReportData) build(rows []models.SalesByStockNameRe
 		stockGroup.Rows = append(stockGroup.Rows, salesByStockNameLine{
 			Reference: reference,
 			Date:      row.SalesDate,
+			Type:      paymentTypeLabel(row.Type),
 			Customer:  customer,
 			Quantity:  qtyDecimalString(row.Quantity),
 			Price:     moneyString(row.PriceCents),
@@ -5416,28 +5592,36 @@ func (report *dailySalesCollectionReportData) build(rows []models.DailySalesColl
 			name = "Unspecified"
 		}
 		sections[idx].Rows = append(sections[idx].Rows, dailySalesCollectionLine{
-			Name:      name,
-			Reference: strings.TrimSpace(row.Reference),
-			Amount:    moneyString(row.AmountCents),
-			Raw:       row.AmountCents,
+			Name:        name,
+			Reference:   strings.TrimSpace(row.Reference),
+			Amount:      moneyString(row.AmountCents),
+			CheckAmount: moneyString(row.CheckAmountCents),
+			SortKey:     strings.TrimSpace(row.SortKey),
+			Raw:         row.AmountCents,
+			CheckRaw:    row.CheckAmountCents,
 		})
 		sections[idx].TotalRaw += row.AmountCents
+		sections[idx].CheckTotalRaw += row.CheckAmountCents
 	}
 
 	for idx := range sections {
 		sort.SliceStable(sections[idx].Rows, func(i, j int) bool {
+			if sections[idx].Rows[i].SortKey != "" || sections[idx].Rows[j].SortKey != "" {
+				return sections[idx].Rows[i].SortKey < sections[idx].Rows[j].SortKey
+			}
 			left := strings.ToLower(sections[idx].Rows[i].Name + "|" + sections[idx].Rows[i].Reference)
 			right := strings.ToLower(sections[idx].Rows[j].Name + "|" + sections[idx].Rows[j].Reference)
 			return left < right
 		})
 		sections[idx].Total = moneyString(sections[idx].TotalRaw)
+		sections[idx].CheckTotal = moneyString(sections[idx].CheckTotalRaw)
 	}
 	report.Sections = sections
 	report.CashSalesRaw = sections[sectionIndex["cash_sales"]].TotalRaw
 	report.ChargeSalesRaw = sections[sectionIndex["charge_sales"]].TotalRaw
 	report.CashReceiptsRaw = sections[sectionIndex["cash_receipts"]].TotalRaw
 	report.DisbursementsRaw = sections[sectionIndex["disbursements"]].TotalRaw
-	report.CheckDepositsRaw = sections[sectionIndex["check_deposits"]].TotalRaw
+	report.CheckDepositsRaw = sections[sectionIndex["check_deposits"]].CheckTotalRaw
 	report.TotalCashRemitRaw = report.CashSalesRaw + report.CashReceiptsRaw - report.DisbursementsRaw
 	report.TotalRemitRaw = report.TotalCashRemitRaw + report.CheckDepositsRaw
 	report.CashSales = moneyString(report.CashSalesRaw)
@@ -5567,6 +5751,14 @@ func (report *stockSalesTransferAmountReportData) build(rows []models.StockSales
 	report.TotalTransferMarkupPct = percentString(report.TotalTransferMarkupRaw, report.TotalTransferRaw)
 }
 
+const (
+	stockTransferSummaryPageBudget     = 720
+	stockTransferSummaryPageBaseUnits  = 90
+	stockTransferSummaryBranchBaseUnit = 62
+	stockTransferSummaryRowUnit        = 18
+	stockTransferSummaryGrandTotalUnit = 50
+)
+
 func (report *stockTransferSummaryReportData) build(rows []models.StockTransferSummaryReportRow) {
 	categoryMap := map[string]*stockTransferSummaryCategory{}
 	branchMap := map[string]map[string]*stockTransferSummaryBranch{}
@@ -5627,7 +5819,7 @@ func (report *stockTransferSummaryReportData) build(rows []models.StockTransferS
 	sort.Slice(categoryNames, func(i, j int) bool {
 		return strings.ToLower(categoryNames[i]) < strings.ToLower(categoryNames[j])
 	})
-	for _, categoryName := range categoryNames {
+	for categoryIndex, categoryName := range categoryNames {
 		category := categoryMap[categoryName]
 		branchNames := make([]string, 0, len(branchMap[categoryName]))
 		for branchName := range branchMap[categoryName] {
@@ -5649,13 +5841,72 @@ func (report *stockTransferSummaryReportData) build(rows []models.StockTransferS
 		}
 		category.TotalQuantity = qtyDecimalString(category.TotalQtyRaw)
 		category.TotalAmount = moneyString(category.TotalAmtRaw)
+		category.PageNumber = len(report.Pages) + 1
+		report.appendStockTransferSummaryPages(categoryIndex+1, category)
 		report.Categories = append(report.Categories, *category)
 	}
 	report.TotalQuantity = qtyDecimalString(report.TotalQtyRaw)
 	report.TotalAmount = moneyString(report.TotalAmountRaw)
-	if len(report.Categories) > 0 {
-		report.TotalPages = len(report.Categories)
+	report.appendStockTransferSummaryGrandTotal()
+	report.TotalPages = len(report.Pages)
+}
+
+func stockTransferSummaryBranchUnits(branch stockTransferSummaryBranch) int {
+	return stockTransferSummaryBranchBaseUnit + len(branch.Rows)*stockTransferSummaryRowUnit
+}
+
+func (report *stockTransferSummaryReportData) appendStockTransferSummaryPages(categoryIndex int, category *stockTransferSummaryCategory) {
+	page := stockTransferSummaryPage{
+		CategoryName:  category.Name,
+		TotalQuantity: category.TotalQuantity,
+		TotalAmount:   category.TotalAmount,
+		UsedUnits:     stockTransferSummaryPageBaseUnits,
 	}
+	flush := func() {
+		if len(page.Branches) == 0 {
+			return
+		}
+		report.Pages = append(report.Pages, page)
+		page = stockTransferSummaryPage{
+			CategoryName:  category.Name,
+			TotalQuantity: category.TotalQuantity,
+			TotalAmount:   category.TotalAmount,
+			UsedUnits:     stockTransferSummaryPageBaseUnits,
+		}
+	}
+
+	for branchIndex := range category.Branches {
+		branchUnits := stockTransferSummaryBranchUnits(category.Branches[branchIndex])
+		if len(page.Branches) > 0 && page.UsedUnits+branchUnits > stockTransferSummaryPageBudget {
+			flush()
+		}
+		pageNumber := len(report.Pages) + 1
+		category.Branches[branchIndex].PageNumber = pageNumber
+		category.Branches[branchIndex].TargetID = "stock-transfer-summary-branch-" + strconv.Itoa(categoryIndex) + "-" + strconv.Itoa(branchIndex+1)
+		page.Branches = append(page.Branches, category.Branches[branchIndex])
+		page.UsedUnits += branchUnits
+	}
+	flush()
+}
+
+func (report *stockTransferSummaryReportData) appendStockTransferSummaryGrandTotal() {
+	if len(report.Pages) == 0 {
+		return
+	}
+	lastPage := &report.Pages[len(report.Pages)-1]
+	if lastPage.UsedUnits+stockTransferSummaryGrandTotalUnit > stockTransferSummaryPageBudget && len(lastPage.Branches) > 0 {
+		report.Pages = append(report.Pages, stockTransferSummaryPage{
+			CategoryName:  lastPage.CategoryName,
+			TotalQuantity: lastPage.TotalQuantity,
+			TotalAmount:   lastPage.TotalAmount,
+			UsedUnits:     stockTransferSummaryPageBaseUnits,
+		})
+		lastPage = &report.Pages[len(report.Pages)-1]
+	}
+	lastPage.ShowGrandTotal = true
+	lastPage.GrandQuantity = report.TotalQuantity
+	lastPage.GrandAmount = report.TotalAmount
+	lastPage.UsedUnits += stockTransferSummaryGrandTotalUnit
 }
 
 func (report *stockTransferSummaryByItemReportData) build(rows []models.StockTransferSummaryByItemReportRow) {
@@ -6184,7 +6435,6 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				}
 			}
 			balance = forwarded
-			hasValue := forwarded != 0
 			group := stockLedgerStockGroup{
 				StockCode: state.code,
 				StockName: state.name,
@@ -6199,9 +6449,6 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				rowDate := parseReportDate(rowDateForParse(row.EntryDate), to)
 				if rowDate.Before(from) || rowDate.After(to) {
 					continue
-				}
-				if row.QtyDelta != 0 {
-					hasValue = true
 				}
 				balance += row.QtyDelta
 				line := stockLedgerLine{
@@ -6220,9 +6467,6 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 				}
 				group.Rows = append(group.Rows, line)
 			}
-			if !hasValue {
-				continue
-			}
 			category.Stocks = append(category.Stocks, group)
 		}
 		if len(category.Stocks) == 0 {
@@ -6237,7 +6481,7 @@ func (report *stockLedgerReportData) build(rows []models.StockLedgerReportRow, f
 
 func (report *stockAgingReportData) build(rows []models.StockAgingReportRow) {
 	categoryMap := map[string]*stockAgingCategory{}
-	report.Totals.Raw = make([]int64, 6)
+	report.Totals.Raw = make([]int64, 5)
 	for _, row := range rows {
 		categoryName := strings.TrimSpace(row.Category)
 		if categoryName == "" {
@@ -6248,7 +6492,7 @@ func (report *stockAgingReportData) build(rows []models.StockAgingReportRow) {
 			category = &stockAgingCategory{
 				Name: categoryName,
 				Totals: stockAgingTotals{
-					Raw: make([]int64, 6),
+					Raw: make([]int64, 5),
 				},
 			}
 			categoryMap[categoryName] = category
@@ -6261,14 +6505,18 @@ func (report *stockAgingReportData) build(rows []models.StockAgingReportRow) {
 		if stockName == "" {
 			stockName = "No Stock"
 		}
-		buckets := []int64{row.Bucket0, row.Bucket1, row.Bucket2, row.Bucket3, row.Bucket4, row.Bucket5}
+		buckets := []int64{row.Bucket0, row.Bucket1, row.Bucket2, row.Bucket3, row.Bucket4}
 		line := stockAgingLine{
 			StockCode: stockCode,
 			StockName: stockName,
 			Raw:       buckets,
 		}
 		for idx, value := range buckets {
-			line.Buckets = append(line.Buckets, qtyString(value))
+			if value == 0 {
+				line.Buckets = append(line.Buckets, "")
+			} else {
+				line.Buckets = append(line.Buckets, qtyString(value))
+			}
 			category.Totals.Raw[idx] += value
 			report.Totals.Raw[idx] += value
 		}
@@ -6305,6 +6553,13 @@ func (report *stockAgingReportData) build(rows []models.StockAgingReportRow) {
 func (report *stockReorderPointReportData) build(rows []models.StockReorderPointReportRow) {
 	categoryMap := map[string]*stockReorderPointCategory{}
 	for _, row := range rows {
+		deficit := row.Deficit
+		if deficit < 0 {
+			deficit = 0
+		}
+		if deficit == 0 {
+			continue
+		}
 		categoryName := strings.TrimSpace(row.Category)
 		if categoryName == "" {
 			categoryName = "Uncategorized"
@@ -6321,10 +6576,6 @@ func (report *stockReorderPointReportData) build(rows []models.StockReorderPoint
 		stockName := strings.TrimSpace(row.StockName)
 		if stockName == "" {
 			stockName = "No Stock"
-		}
-		deficit := row.Deficit
-		if deficit < 0 {
-			deficit = 0
 		}
 		category.Rows = append(category.Rows, stockReorderPointLine{
 			StockCode:    stockCode,
@@ -6369,6 +6620,9 @@ func (report *stockSummaryReportData) build(rows []models.StockSummaryReportRow)
 			category = &stockSummaryCategory{Name: categoryName}
 			categoryMap[categoryName] = category
 		}
+		if !row.HasStock {
+			continue
+		}
 		stockCode := strings.TrimSpace(row.StockCode)
 		if stockCode == "" {
 			stockCode = "N/A"
@@ -6377,7 +6631,7 @@ func (report *stockSummaryReportData) build(rows []models.StockSummaryReportRow)
 		if stockName == "" {
 			stockName = "No Stock"
 		}
-		category.Rows = append(category.Rows, stockSummaryLine{
+		line := stockSummaryLine{
 			StockCode:   stockCode,
 			StockName:   stockName,
 			SOH:         qtyDecimalString(row.SOH),
@@ -6386,7 +6640,12 @@ func (report *stockSummaryReportData) build(rows []models.StockSummaryReportRow)
 			SOHRaw:      row.SOH,
 			UnitCostRaw: row.UnitCostCents,
 			AmountRaw:   row.AmountCents,
-		})
+		}
+		category.TreeRows = append(category.TreeRows, line)
+		if row.SOH == 0 {
+			continue
+		}
+		category.Rows = append(category.Rows, line)
 		category.TotalSOHRaw += row.SOH
 		category.AmountRaw += row.AmountCents
 		report.GrandSOHRaw += row.SOH
@@ -6400,13 +6659,27 @@ func (report *stockSummaryReportData) build(rows []models.StockSummaryReportRow)
 	sort.Slice(categoryNames, func(i, j int) bool {
 		return strings.ToLower(categoryNames[i]) < strings.ToLower(categoryNames[j])
 	})
-	for _, categoryName := range categoryNames {
+	for categoryIndex, categoryName := range categoryNames {
 		category := categoryMap[categoryName]
 		sort.SliceStable(category.Rows, func(i, j int) bool {
 			left := strings.ToLower(category.Rows[i].StockCode + "|" + category.Rows[i].StockName)
 			right := strings.ToLower(category.Rows[j].StockCode + "|" + category.Rows[j].StockName)
 			return left < right
 		})
+		sort.SliceStable(category.TreeRows, func(i, j int) bool {
+			left := strings.ToLower(category.TreeRows[i].StockCode + "|" + category.TreeRows[i].StockName)
+			right := strings.ToLower(category.TreeRows[j].StockCode + "|" + category.TreeRows[j].StockName)
+			return left < right
+		})
+		targetByStock := map[string]string{}
+		for rowIndex := range category.Rows {
+			targetID := "stock-summary-row-" + strconv.Itoa(categoryIndex+1) + "-" + strconv.Itoa(rowIndex+1)
+			category.Rows[rowIndex].TargetID = targetID
+			targetByStock[category.Rows[rowIndex].StockCode+"\x00"+category.Rows[rowIndex].StockName] = targetID
+		}
+		for rowIndex := range category.TreeRows {
+			category.TreeRows[rowIndex].TargetID = targetByStock[category.TreeRows[rowIndex].StockCode+"\x00"+category.TreeRows[rowIndex].StockName]
+		}
 		category.TotalSOH = qtyDecimalString(category.TotalSOHRaw)
 		category.Amount = moneyString(category.AmountRaw)
 		report.Categories = append(report.Categories, *category)
@@ -6679,6 +6952,13 @@ func moneyString(cents int64) string {
 		cents = -cents
 	}
 	return sign + commaInt(cents/100) + "." + fmt2(cents%100)
+}
+
+func paymentTypeLabel(value string) string {
+	if strings.EqualFold(strings.TrimSpace(value), "cash") {
+		return "Cash"
+	}
+	return "Charge"
 }
 
 func percentString(numerator, denominator int64) string {

@@ -5,6 +5,7 @@ type PurchaseReportRow struct {
 	EntryID    string
 	EntryDate  string
 	ORCINumber string
+	Type       string
 	GrossCents int64
 	NetCents   int64
 }
@@ -12,6 +13,7 @@ type PurchaseReportRow struct {
 type PurchaseByDRNumberReportRow struct {
 	Reference     string
 	PurchaseDate  string
+	Type          string
 	Supplier      string
 	StockCode     string
 	StockName     string
@@ -23,6 +25,7 @@ type PurchaseByDRNumberReportRow struct {
 type PurchaseByStockCodeReportRow struct {
 	Reference     string
 	PurchaseDate  string
+	Type          string
 	Supplier      string
 	StockCode     string
 	StockName     string
@@ -34,6 +37,7 @@ type PurchaseByStockCodeReportRow struct {
 type PurchaseBySupplierReportRow struct {
 	Reference     string
 	PurchaseDate  string
+	Type          string
 	Supplier      string
 	StockCode     string
 	StockName     string
@@ -47,6 +51,7 @@ type SalesReportRow struct {
 	EntryID    string
 	EntryDate  string
 	ORCINumber string
+	Type       string
 	GrossCents int64
 	NetCents   int64
 }
@@ -54,6 +59,7 @@ type SalesReportRow struct {
 type SalesByORCIDRNumberReportRow struct {
 	Reference   string
 	SalesDate   string
+	Type        string
 	Customer    string
 	StockCode   string
 	StockName   string
@@ -77,6 +83,7 @@ type SalesByCustomerReportRow struct {
 	Customer    string
 	Reference   string
 	SalesDate   string
+	Type        string
 	StockCode   string
 	StockName   string
 	Quantity    int64
@@ -89,6 +96,7 @@ type SalesByStockNameReportRow struct {
 	Customer    string
 	Reference   string
 	SalesDate   string
+	Type        string
 	StockCode   string
 	StockName   string
 	Quantity    int64
@@ -165,10 +173,12 @@ type IncentiveReportRow struct {
 }
 
 type DailySalesCollectionReportRow struct {
-	Section     string
-	Name        string
-	Reference   string
-	AmountCents int64
+	Section          string
+	Name             string
+	Reference        string
+	AmountCents      int64
+	CheckAmountCents int64
+	SortKey          string
 }
 
 type StockSalesTransferReportRow struct {
@@ -292,6 +302,7 @@ type StockSummaryReportRow struct {
 	Category      string
 	StockCode     string
 	StockName     string
+	HasStock      bool
 	SOH           int64
 	UnitCostCents int64
 	AmountCents   int64

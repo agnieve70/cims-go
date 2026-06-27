@@ -71,14 +71,11 @@
       </div>
       <div class="report-paper-scroll">
         <article class="report-paper {{.StockSalesTransfer.PaperClass}} stock-transfer-paper">
-          <header class="report-paper-header"><h1>{{.StockSalesTransfer.Title}}</h1><h2>STOCK SALES AND TRANSFER REPORT</h2><p>{{.StockSalesTransfer.RangeLabel}}</p></header>
           {{range $index, $category := .StockSalesTransfer.Categories}}
           <section class="report-detail-group" data-report-page="{{add $index 1}}">
-            <div class="report-supplier-label">Category: <strong>{{$category.Name}}</strong></div>
-            <table class="report-table stock-transfer-table"><thead><tr><th>Stock Code</th><th>Stock Name</th><th>Sales Qty</th><th>Transfer Qty</th><th>Total Qty</th></tr></thead><tbody>{{range $category.Rows}}<tr><td>{{.StockCode}}</td><td>{{.StockName}}</td><td class="num">{{.SalesQty}}</td><td class="num">{{.TransferQty}}</td><td class="num">{{.TotalQty}}</td></tr>{{end}}</tbody><tfoot><tr><td colspan="2">TOTAL {{$category.Name}}</td><td class="num">{{$category.TotalSales}}</td><td class="num">{{$category.TotalTransfer}}</td><td class="num">{{$category.GrandTotal}}</td></tr></tfoot></table>
+            <table class="report-table stock-transfer-table"><thead><tr><th>Stock Code</th><th>Stock Name</th><th>Sales Qty</th><th>Transfer Qty</th><th>Total Qty</th></tr></thead><tbody><tr class="stock-transfer-category-row"><td>Category:</td><td><strong>{{$category.Name}}</strong></td><td></td><td></td><td></td></tr>{{range $category.Rows}}<tr><td>{{.StockCode}}</td><td>{{.StockName}}</td><td class="num">{{.SalesQty}}</td><td class="num">{{.TransferQty}}</td><td class="num">{{.TotalQty}}</td></tr>{{end}}</tbody><tfoot><tr><td colspan="2">Total :</td><td class="num">{{$category.TotalSales}}</td><td class="num">{{$category.TotalTransfer}}</td><td class="num">{{$category.GrandTotal}}</td></tr></tfoot></table>
           </section>
           {{else}}<p class="report-empty">No stock sales or transfer records for the selected coverage.</p>{{end}}
-          <table class="report-table stock-transfer-grand-total"><tfoot><tr><td>T O T A L</td><td class="num">{{.StockSalesTransfer.TotalSales}}</td><td class="num">{{.StockSalesTransfer.TotalTransfer}}</td><td class="num">{{.StockSalesTransfer.GrandTotal}}</td></tr></tfoot></table>
         </article>
       </div>
     </section>

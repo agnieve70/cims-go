@@ -12,7 +12,6 @@
     <fieldset class="report-coverage-fieldset">
       <legend>Select Date of Report</legend>
       <label class="report-option-line report-single-date-line">
-        <span>Date:</span>
         <input type="date" name="report_date" value="{{.DailySalesReport.ReportDate}}">
       </label>
     </fieldset>
@@ -27,11 +26,7 @@
   <div class="report-viewer-shell">
     <aside class="report-preview-tree">
       <div>Preview</div>
-      <ul>
-        {{range $index, $section := .DailySalesReport.Sections}}
-        <li><button type="button" class="report-tree-node" data-report-section="{{$section.Key}}">{{$section.Title}}</button></li>
-        {{end}}
-      </ul>
+      <ul></ul>
     </aside>
     <section class="report-preview">
       <div class="report-preview-toolbar">
@@ -67,24 +62,37 @@
       </div>
       <div class="report-paper-scroll">
         <article class="report-paper report-daily-sales-paper {{.DailySalesReport.PaperClass}}">
-          <header class="report-paper-header">
+          <header class="report-paper-header daily-sales-header">
             <h1>{{.DailySalesReport.Title}}</h1>
             <p>San Agustin, Digos City</p>
             <h2>DAILY SALES AND COLLECTION REPORT</h2>
             <p>{{.DailySalesReport.DateLabel}}</p>
           </header>
-          <table class="report-table report-daily-sales-table">
+          <table class="report-daily-sales-table">
+            <colgroup>
+              <col class="daily-sales-name-col">
+              <col class="daily-sales-ref-col">
+              <col class="daily-sales-amount-col">
+              <col class="daily-sales-check-col">
+            </colgroup>
             <tbody>
               {{range .DailySalesReport.Sections}}
-              <tr class="report-section-row" data-report-section-target="{{.Key}}"><th colspan="3">{{.Title}}</th></tr>
+              <tr class="daily-sales-section-row" data-report-section-target="{{.Key}}"><th colspan="4"><span class="daily-sales-section-label">{{.Title}}</span></th></tr>
               {{range .Rows}}
-              <tr><td>{{.Name}}</td><td>{{.Reference}}</td><td class="num">{{.Amount}}</td></tr>
+              <tr>
+                <td>{{.Name}}</td>
+                <td>{{.Reference}}</td>
+                <td class="num daily-sales-line-amount">{{if .Raw}}<span>{{.Amount}}</span>{{end}}</td>
+                <td class="num">{{if .CheckRaw}}{{.CheckAmount}}{{end}}</td>
+              </tr>
               {{end}}
-              <tr class="report-section-total"><td colspan="2">TOTAL {{.Title}}</td><td class="num">{{.Total}}</td></tr>
+              <tr class="daily-sales-total-row">
+                <td colspan="3">TOTAL {{.Title}}</td>
+                <td class="num daily-sales-total-amount">{{if .CheckTotalRaw}}{{.CheckTotal}}{{else}}{{if .TotalRaw}}{{.Total}}{{end}}{{end}}</td>
+              </tr>
               {{end}}
-              <tr class="report-section-row"><th colspan="3">TOTAL CASH REMITTANCE</th></tr>
-              <tr class="report-grand-total"><td colspan="2">TOTAL CASH REMITTANCE</td><td class="num">{{.DailySalesReport.TotalCashRemit}}</td></tr>
-              <tr class="report-grand-total"><td colspan="2">TOTAL REMITTANCE</td><td class="num">{{.DailySalesReport.TotalRemit}}</td></tr>
+              <tr class="daily-sales-summary-row"><td colspan="2">TOTAL CASH REMITTANCE</td><td class="num">{{.DailySalesReport.TotalCashRemit}}</td><td></td></tr>
+              <tr class="daily-sales-summary-row daily-sales-remittance-row"><td colspan="2">TOTAL REMITTANCE</td><td class="num">{{.DailySalesReport.TotalRemit}}</td><td></td></tr>
             </tbody>
           </table>
         </article>
@@ -114,18 +122,15 @@
           treeNode.classList.toggle("active", treeNode === node);
         });
         var target = document.querySelector("[data-report-section-target='" + key + "']");
-        if (target) target.scrollIntoView({block: "center", inline: "nearest"});
+        var scroller = document.querySelector(".report-paper-scroll");
+        if (target && scroller) {
+          var scrollerRect = scroller.getBoundingClientRect();
+          var targetRect = target.getBoundingClientRect();
+          var verticalOffset = targetRect.top - scrollerRect.top - ((scroller.clientHeight - targetRect.height) / 2);
+          scroller.scrollTop += verticalOffset;
+        }
       });
     });
-
-    var zoom = document.querySelector("[data-report-zoom]");
-    if (zoom) {
-      zoom.addEventListener("change", function () {
-        paper.style.transform = "scale(" + zoom.value + ")";
-        paper.style.transformOrigin = "top center";
-        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
-      });
-    }
 
     var exportCSV = function () {
       var lines = [];

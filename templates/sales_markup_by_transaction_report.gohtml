@@ -53,12 +53,6 @@
   <div class="report-viewer-shell">
     <aside class="report-preview-tree">
       <div>Preview</div>
-      <ul>
-        {{range $page := .SalesMarkupReport.Pages}}{{range $index, $row := $page.Rows}}
-        <li><button type="button" class="report-tree-node" data-report-tree-page="{{$page.Number}}" data-report-scroll-target="sales-markup-row-{{$page.Number}}-{{add $index 1}}" data-report-filter-target="sales-markup-row-{{$page.Number}}-{{add $index 1}}">{{$row.ReceiptNo}} - {{$row.ItemGroup}}</button></li>
-        {{end}}
-        {{else}}<li><span class="report-tree-empty">No markup records</span></li>{{end}}
-      </ul>
     </aside>
     <section class="report-preview">
       <div class="report-preview-toolbar">

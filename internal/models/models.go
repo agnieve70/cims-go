@@ -35,14 +35,24 @@ type Option struct {
 type Record map[string]string
 
 type DocumentListItem struct {
-	ID        int64
-	EntryID   string
-	EntryDate time.Time
-	Party     string
-	Branch    string
-	Reference string
-	DRRef     string
-	Status    string
-	Net       string
-	Encoder   string
+	ID          int64
+	EntryID     string
+	EntryDate   time.Time
+	Party       string
+	Branch      string
+	Reference   string
+	DRRef       string
+	Status      string
+	Net         string
+	Encoder     string
+	Transaction string
+	Transactee  string
+	Remarks     string
+	LastUpdate  string
+	UpdatedBy   string
+	TotalQty    string
+	GrossTotal  string
+	TotalLess   string
+	TotalAdd    string
+	NetTotal    string
 }

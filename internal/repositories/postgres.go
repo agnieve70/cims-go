@@ -278,13 +278,23 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			select d.id, d.entry_id, d.entry_date, d.kind,
 			       coalesce(nullif(s.company, ''), nullif(c.company, ''), s.code, c.code, '') as party,
 			       coalesce(b.name, '') as branch,
-			       coalesce(d.reference, '') as reference,
+			       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'transfer_id', ''), '') as reference,
 			       coalesce(dr.entry_id, '') as dr_ref,
+			       d.total,
+			       d.less_amount,
+			       d.add_amount,
 			       d.net,
-			       coalesce(u.display_name, '') as encoder
+			       coalesce(u.display_name, '') as encoder,
+			       coalesce(d.payload->'values'->>'transaction', '') as transaction,
+			       coalesce(nullif(bl.name, ''), nullif(bl.code, ''), '') as transactee,
+			       coalesce(d.remarks, '') as remarks,
+			       to_char(d.updated_at at time zone 'Asia/Manila', 'YYYY-MM-DD HH12:MI AM') as last_update,
+			       coalesce(uu.display_name, '') as updated_by
 			from documents d
 			left join branches b on b.id = d.branch_id
+			left join branches bl on bl.id = nullif(d.payload->'values'->>'branch_location', '')::bigint
 			left join users u on u.id = d.encoder_user_id
+			left join users uu on uu.id = d.last_update_by_user_id
 			left join suppliers s on d.party_type='supplier' and s.id=d.party_id
 			left join customers c on d.party_type='customer' and c.id=d.party_id
 			left join documents dr on dr.id = d.dr_reference_id
@@ -304,6 +314,14 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			from dr_consumptions dc
 			join listed l on l.kind = 'dr' and l.id = dc.dr_document_id
 			group by dc.dr_document_id
+		),
+		document_totals as (
+			select l.id,
+			       coalesce(sum(dl.qty), 0) as total_qty
+			from listed l
+			left join document_lines dl on dl.document_id = l.id and dl.group_key = 'details'
+			where l.kind in ('purchases', 'sales')
+			group by l.id
 		)
 		select l.id, l.entry_id, l.entry_date,
 		       l.party,
@@ -317,10 +335,17 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 		         when coalesce(u.consumed_qty, 0) >= coalesce(q.qty, 0) then 'Fully Used'
 		         else 'Partial'
 		       end,
-		       coalesce(l.net::text, '0'), l.encoder
+		       coalesce(l.net::text, '0'), l.encoder,
+		       l.transaction, l.transactee, l.remarks, l.last_update, l.updated_by,
+		       coalesce(trim(to_char(pt.total_qty, 'FM999G999G999G990D00')), ''),
+		       coalesce(trim(to_char(l.total, 'FM999G999G999G990D00')), ''),
+		       coalesce(trim(to_char(l.less_amount, 'FM999G999G999G990D00')), ''),
+		       coalesce(trim(to_char(l.add_amount, 'FM999G999G999G990D00')), ''),
+		       coalesce(trim(to_char(l.net, 'FM999G999G999G990D00')), '')
 		from listed l
 		left join dr_qty q on q.document_id = l.id
 		left join dr_used u on u.dr_document_id = l.id
+		left join document_totals pt on pt.id = l.id
 		order by l.id desc`, strings.Join(clauses, " and "))
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -330,7 +355,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 	var items []models.DocumentListItem
 	for rows.Next() {
 		var item models.DocumentListItem
-		if err := rows.Scan(&item.ID, &item.EntryID, &item.EntryDate, &item.Party, &item.Branch, &item.Reference, &item.DRRef, &item.Status, &item.Net, &item.Encoder); err != nil {
+		if err := rows.Scan(&item.ID, &item.EntryID, &item.EntryDate, &item.Party, &item.Branch, &item.Reference, &item.DRRef, &item.Status, &item.Net, &item.Encoder, &item.Transaction, &item.Transactee, &item.Remarks, &item.LastUpdate, &item.UpdatedBy, &item.TotalQty, &item.GrossTotal, &item.TotalLess, &item.TotalAdd, &item.NetTotal); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -344,6 +369,7 @@ func (s *PostgresStore) PurchaseReportRows(ctx context.Context, from, to time.Ti
 		       coalesce(d.entry_id, '') as entry_id,
 		       to_char(d.entry_date, 'MM/DD/YYYY') as entry_date,
 		       coalesce(d.payload->'values'->>'or_ci_number', d.reference, '') as or_ci_number,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(round(coalesce(d.total, d.net, 0) * 100), 0)::bigint as gross_cents,
 		       coalesce(round(coalesce(d.net, d.total, 0) * 100), 0)::bigint as net_cents
 		from documents d
@@ -359,7 +385,7 @@ func (s *PostgresStore) PurchaseReportRows(ctx context.Context, from, to time.Ti
 	var reportRows []models.PurchaseReportRow
 	for rows.Next() {
 		var row models.PurchaseReportRow
-		if err := rows.Scan(&row.Supplier, &row.EntryID, &row.EntryDate, &row.ORCINumber, &row.GrossCents, &row.NetCents); err != nil {
+		if err := rows.Scan(&row.Supplier, &row.EntryID, &row.EntryDate, &row.ORCINumber, &row.Type, &row.GrossCents, &row.NetCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -371,6 +397,7 @@ func (s *PostgresStore) PurchaseByDRNumberReportRows(ctx context.Context, from, 
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
@@ -392,7 +419,7 @@ func (s *PostgresStore) PurchaseByDRNumberReportRows(ctx context.Context, from, 
 	var reportRows []models.PurchaseByDRNumberReportRow
 	for rows.Next() {
 		var row models.PurchaseByDRNumberReportRow
-		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Type, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -404,6 +431,7 @@ func (s *PostgresStore) PurchaseByStockCodeReportRows(ctx context.Context, from,
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
@@ -425,7 +453,7 @@ func (s *PostgresStore) PurchaseByStockCodeReportRows(ctx context.Context, from,
 	var reportRows []models.PurchaseByStockCodeReportRow
 	for rows.Next() {
 		var row models.PurchaseByStockCodeReportRow
-		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Type, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -437,6 +465,7 @@ func (s *PostgresStore) PurchaseBySupplierReportRows(ctx context.Context, from, 
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
@@ -458,7 +487,7 @@ func (s *PostgresStore) PurchaseBySupplierReportRows(ctx context.Context, from, 
 	var reportRows []models.PurchaseBySupplierReportRow
 	for rows.Next() {
 		var row models.PurchaseBySupplierReportRow
-		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Reference, &row.PurchaseDate, &row.Type, &row.Supplier, &row.StockCode, &row.StockName, &row.Quantity, &row.UnitCostCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -472,6 +501,7 @@ func (s *PostgresStore) SalesReportRows(ctx context.Context, from, to time.Time)
 		       coalesce(d.entry_id, '') as entry_id,
 		       to_char(d.document_date, 'MM/DD/YYYY') as entry_date,
 		       coalesce(d.payload->'values'->>'or_ci_number', d.reference, '') as or_ci_number,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(round(coalesce(d.total, d.net, 0) * 100), 0)::bigint as gross_cents,
 		       coalesce(round(coalesce(d.net, d.total, 0) * 100), 0)::bigint as net_cents
 		from documents d
@@ -487,7 +517,7 @@ func (s *PostgresStore) SalesReportRows(ctx context.Context, from, to time.Time)
 	var reportRows []models.SalesReportRow
 	for rows.Next() {
 		var row models.SalesReportRow
-		if err := rows.Scan(&row.Customer, &row.EntryID, &row.EntryDate, &row.ORCINumber, &row.GrossCents, &row.NetCents); err != nil {
+		if err := rows.Scan(&row.Customer, &row.EntryID, &row.EntryDate, &row.ORCINumber, &row.Type, &row.GrossCents, &row.NetCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -499,6 +529,7 @@ func (s *PostgresStore) SalesByORCIDRNumberReportRows(ctx context.Context, from,
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as sales_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as customer,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
@@ -528,7 +559,7 @@ func (s *PostgresStore) SalesByORCIDRNumberReportRows(ctx context.Context, from,
 	var reportRows []models.SalesByORCIDRNumberReportRow
 	for rows.Next() {
 		var row models.SalesByORCIDRNumberReportRow
-		if err := rows.Scan(&row.Reference, &row.SalesDate, &row.Customer, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Reference, &row.SalesDate, &row.Type, &row.Customer, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -606,6 +637,7 @@ func (s *PostgresStore) SalesByCustomerReportRows(ctx context.Context, from, to 
 		       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as customer,
 		       coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as sales_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(round(dl.qty), 0)::bigint as quantity,
@@ -634,7 +666,7 @@ func (s *PostgresStore) SalesByCustomerReportRows(ctx context.Context, from, to 
 	var reportRows []models.SalesByCustomerReportRow
 	for rows.Next() {
 		var row models.SalesByCustomerReportRow
-		if err := rows.Scan(&row.Category, &row.Customer, &row.Reference, &row.SalesDate, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Category, &row.Customer, &row.Reference, &row.SalesDate, &row.Type, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -648,6 +680,7 @@ func (s *PostgresStore) SalesByStockNameReportRows(ctx context.Context, from, to
 		       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as customer,
 		       coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as sales_date,
+		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(round(dl.qty), 0)::bigint as quantity,
@@ -676,7 +709,7 @@ func (s *PostgresStore) SalesByStockNameReportRows(ctx context.Context, from, to
 	var reportRows []models.SalesByStockNameReportRow
 	for rows.Next() {
 		var row models.SalesByStockNameReportRow
-		if err := rows.Scan(&row.Category, &row.Customer, &row.Reference, &row.SalesDate, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Category, &row.Customer, &row.Reference, &row.SalesDate, &row.Type, &row.StockCode, &row.StockName, &row.Quantity, &row.PriceCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1103,39 +1136,72 @@ func (s *PostgresStore) IncentiveReportRows(ctx context.Context, from, to time.T
 func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, reportDate time.Time) ([]models.DailySalesCollectionReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
 		with sales_rows as (
-			select case when d.cash then 'cash_sales' else 'charge_sales' end as section,
+			select case
+			       	when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CHG([[:space:]_-]|[0-9])' then 'charge_sales'
+			       	when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CI([[:space:]_-]|[0-9])' then 'cash_sales'
+			       	when d.cash then 'cash_sales'
+			       	else 'charge_sales'
+			       end as section,
 			       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as name,
 			       trim(concat(case when d.cash then 'CSH ' else 'CHG ' end,
 			         coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), '')
 			       )) as reference,
-			       coalesce(d.net, d.total, 0) as amount
+			       coalesce(d.net, d.total, 0) as amount,
+			       0::numeric as check_amount,
+			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' || lpad(d.id::text, 20, '0') as sort_key
 			from documents d
 			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			where d.kind = 'sales'
 			  and d.document_date = $1::date
 		),
 		cash_receipts as (
-			select 'cash_receipts' as section,
+			select case
+			       	when upper(trim(coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), ''))) ~ '^CR([[:space:]_-]|[0-9])' then 'cash_receipts'
+			       	when upper(trim(coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), ''))) ~ '^CI([[:space:]_-]|[0-9])' then 'cash_sales'
+			       	when upper(trim(coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), ''))) ~ '^CHG([[:space:]_-]|[0-9])' then 'charge_sales'
+			       	else 'cash_receipts'
+			       end as section,
 			       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as name,
 			       coalesce(nullif(d.reference, ''), nullif(d.entry_id, ''), case when d.kind = 'rebates' then 'Rebates' else 'AR Credit' end) as reference,
 			       case
 			       	when coalesce(d.payload->'values'->>'cash_amount', '') ~ '^-?\d+(\.\d+)?$' then (d.payload->'values'->>'cash_amount')::numeric
 			       	else 0
-			       end as amount
+			       end as amount,
+			       coalesce((
+			       	select sum(case
+			       		when coalesce(check_line.payload->>'amount', '') ~ '^-?\d+(\.\d+)?$' then (check_line.payload->>'amount')::numeric
+			       		else coalesce(check_line.amount, check_line.check_amount, 0)
+			       	end)
+			       	from document_lines check_line
+			       	where check_line.document_id = d.id
+			       	  and check_line.group_key = 'checks'
+			       ), 0) as check_amount,
+			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' || lpad(d.id::text, 20, '0') as sort_key
 			from documents d
 			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			where d.kind in ('ar-credit', 'rebates')
 			  and d.entry_date::date = $1::date
 		),
 		disbursements as (
-			select 'disbursements' as section,
+			select case
+			       	when upper(trim(coalesce(nullif(dl.payload->>'reference', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CV([[:space:]_-]|[0-9])' then 'disbursements'
+			       	when upper(trim(coalesce(nullif(dl.payload->>'reference', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CR([[:space:]_-]|[0-9])' then 'cash_receipts'
+			       	else 'disbursements'
+			       end as section,
 			       coalesce(nullif(ec.name, ''), 'Uncategorized') as name,
 			       coalesce(nullif(dl.payload->>'reference', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), '') as reference,
 			       case
-			       	when coalesce(dl.cash_amount, 0) <> 0 then dl.cash_amount
-			       	when coalesce(dl.payload->>'cash', '') ~ '^-?\d+(\.\d+)?$' then (dl.payload->>'cash')::numeric
+			       	when coalesce(dl.amount, 0) <> 0 then dl.amount
+			       	when coalesce(dl.payload->>'total', '') ~ '^-?\d+(\.\d+)?$' then (dl.payload->>'total')::numeric
+			       	when coalesce(dl.cash_amount, 0) <> 0 or coalesce(dl.check_amount, 0) <> 0 then coalesce(dl.cash_amount, 0) + coalesce(dl.check_amount, 0)
+			       	when coalesce(dl.payload->>'cash', '') ~ '^-?\d+(\.\d+)?$' or coalesce(dl.payload->>'check', '') ~ '^-?\d+(\.\d+)?$' then
+			       		(case when coalesce(dl.payload->>'cash', '') ~ '^-?\d+(\.\d+)?$' then (dl.payload->>'cash')::numeric else 0 end) +
+			       		(case when coalesce(dl.payload->>'check', '') ~ '^-?\d+(\.\d+)?$' then (dl.payload->>'check')::numeric else 0 end)
 			       	else 0
-			       end as amount
+			       end as amount,
+			       0::numeric as check_amount,
+			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' ||
+			         lpad(d.id::text, 20, '0') || '-' || lpad(dl.line_no::text, 8, '0') as sort_key
 			from documents d
 			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
 			left join expense_charts ec on ec.id = dl.code_id
@@ -1147,19 +1213,28 @@ func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, repo
 			select 'check_deposits' as section,
 			       coalesce(nullif(c.company, ''), nullif(c.code, ''), nullif(d.payload->'values'->>'payee', ''), 'No Payee') as name,
 			       coalesce(nullif(dl.payload->>'number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), '') as reference,
+			       0::numeric as amount,
 			       case
 			       	when coalesce(dl.payload->>'amount', '') ~ '^-?\d+(\.\d+)?$' then (dl.payload->>'amount')::numeric
 			       	else coalesce(dl.amount, dl.check_amount, 0)
-			       end as amount
+			       end as check_amount,
+			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' ||
+			         lpad(d.id::text, 20, '0') || '-' || lpad(dl.line_no::text, 8, '0') as sort_key
 			from document_lines dl
 			join documents d on d.id = dl.document_id
 			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			where dl.group_key in ('checks', 'payments')
 			  and d.kind in ('ar-credit', 'rebates', 'sales', 'checks-in')
-			  and case
-			       	when coalesce(dl.payload->>'date', '') ~ '^\d{4}-\d{2}-\d{2}$' then (dl.payload->>'date')::date
-			       	else d.entry_date::date
-			      end = $1::date
+			  and (
+			  	(d.kind in ('ar-credit', 'rebates') and d.entry_date::date = $1::date)
+			  	or (
+			  		d.kind not in ('ar-credit', 'rebates')
+			  		and case
+			  			when coalesce(dl.payload->>'date', '') ~ '^\d{4}-\d{2}-\d{2}$' then (dl.payload->>'date')::date
+			  			else d.entry_date::date
+			  		end = $1::date
+			  	)
+			  )
 		),
 		all_rows as (
 			select * from sales_rows
@@ -1170,10 +1245,13 @@ func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, repo
 		select section,
 		       name,
 		       reference,
-		       coalesce(round(sum(amount) * 100), 0)::bigint as amount_cents
+		       coalesce(round(sum(amount) * 100), 0)::bigint as amount_cents,
+		       coalesce(round(sum(check_amount) * 100), 0)::bigint as check_amount_cents,
+		       min(sort_key) as sort_key
 		from all_rows
 		group by section, name, reference
 		having coalesce(sum(amount), 0) <> 0
+		    or coalesce(sum(check_amount), 0) <> 0
 		order by case section
 			when 'cash_sales' then 1
 			when 'charge_sales' then 2
@@ -1181,7 +1259,7 @@ func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, repo
 			when 'disbursements' then 4
 			when 'check_deposits' then 5
 			else 6
-		end, name, reference`, reportDate)
+		end, min(sort_key), name, reference`, reportDate)
 	if err != nil {
 		return nil, err
 	}
@@ -1189,7 +1267,7 @@ func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, repo
 	var reportRows []models.DailySalesCollectionReportRow
 	for rows.Next() {
 		var row models.DailySalesCollectionReportRow
-		if err := rows.Scan(&row.Section, &row.Name, &row.Reference, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Section, &row.Name, &row.Reference, &row.AmountCents, &row.CheckAmountCents, &row.SortKey); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1569,7 +1647,7 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 			       to_char(d.entry_date at time zone 'Asia/Manila', 'YYYYMMDDHH24MISSUS') || '-' ||
 			         lpad(d.id::text, 20, '0') || '-' ||
 			         lpad(sl.id::text, 20, '0') as sort_key,
-			       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), '') as reference,
+			       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.entry_id, ''), '') as reference,
 			       coalesce(nullif(
 			       	case
 			       		when d.party_type = 'supplier' then coalesce(s.company, s.code, '')
@@ -1583,26 +1661,49 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 			left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
 			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			left join branches b on b.id = coalesce(sl.branch_id, d.branch_id)
-			where case
+			where d.kind in ('purchases', 'sales', 'stock-transactions')
+			  and case
 			       	when d.kind = 'purchases' then d.document_date
 			       	when d.kind = 'sales' then d.document_date
 			       	when d.kind = 'stock-transactions' then d.document_date
 			       	else d.entry_date::date
 			      end <= $1::date
+		),
+		categories as (
+			select distinct trim(name) as category
+			from stock_categories
+			where coalesce(trim(name), '') <> ''
+			union
+			select distinct coalesce(nullif(st.category_group, ''), 'Uncategorized') as category
+			from stocks st
+		),
+		stock_rows as (
+			select st.id::text as stock_id,
+			       coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
+			       coalesce(st.code, '') as stock_code,
+			       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
+			       coalesce(to_char(l.movement_date, 'MM/DD/YYYY'), '') as entry_date,
+			       coalesce(l.sort_key, '') as sort_key,
+			       coalesce(l.reference, '') as reference,
+			       coalesce(l.company, '') as company,
+			       coalesce(l.kind, '') as kind,
+			       coalesce(l.qty_delta, 0)::bigint as qty_delta
+			from stocks st
+			left join ledger l on l.stock_id = st.id
 		)
-		select st.id::text as stock_id,
-		       coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
-		       coalesce(st.code, '') as stock_code,
-		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(to_char(l.movement_date, 'MM/DD/YYYY'), '') as entry_date,
-		       coalesce(l.sort_key, '') as sort_key,
-		       coalesce(l.reference, '') as reference,
-		       coalesce(l.company, '') as company,
-		       coalesce(l.kind, '') as kind,
-		       coalesce(l.qty_delta, 0)::bigint as qty_delta
-		from stocks st
-		left join ledger l on l.stock_id = st.id
-		order by category, stock_code, stock_name, l.movement_date, l.sort_key`, to)
+		select coalesce(sr.stock_id, 'category:' || c.category) as stock_id,
+		       c.category,
+		       coalesce(sr.stock_code, '') as stock_code,
+		       coalesce(sr.stock_name, 'No Stock') as stock_name,
+		       coalesce(sr.entry_date, '') as entry_date,
+		       coalesce(sr.sort_key, '') as sort_key,
+		       coalesce(sr.reference, '') as reference,
+		       coalesce(sr.company, '') as company,
+		       coalesce(sr.kind, '') as kind,
+		       coalesce(sr.qty_delta, 0)::bigint as qty_delta
+		from categories c
+		left join stock_rows sr on sr.category = c.category
+		order by c.category, stock_code, stock_name, entry_date, sort_key`, to)
 	if err != nil {
 		return nil, err
 	}
@@ -1684,11 +1785,10 @@ func (s *PostgresStore) StockAgingReportRows(ctx context.Context, cutoff time.Ti
 		       coalesce(round(sum(case when movement_date >= ($1::date - interval '60 days') and movement_date < ($1::date - interval '30 days') then remaining_qty else 0 end)), 0)::bigint as bucket1,
 		       coalesce(round(sum(case when movement_date >= ($1::date - interval '90 days') and movement_date < ($1::date - interval '60 days') then remaining_qty else 0 end)), 0)::bigint as bucket2,
 		       coalesce(round(sum(case when movement_date >= ($1::date - interval '120 days') and movement_date < ($1::date - interval '90 days') then remaining_qty else 0 end)), 0)::bigint as bucket3,
-		       coalesce(round(sum(case when movement_date >= ($1::date - interval '150 days') and movement_date < ($1::date - interval '120 days') then remaining_qty else 0 end)), 0)::bigint as bucket4,
-		       coalesce(round(sum(case when movement_date < ($1::date - interval '150 days') then remaining_qty else 0 end)), 0)::bigint as bucket5
+		       coalesce(round(sum(case when movement_date >= ($1::date - interval '150 days') and movement_date < ($1::date - interval '120 days') then remaining_qty else 0 end)), 0)::bigint as bucket4
 		from remaining_lots
 		group by category, stock_code, stock_name
-		having coalesce(sum(remaining_qty), 0) <> 0
+		having coalesce(sum(case when movement_date >= ($1::date - interval '150 days') then remaining_qty else 0 end), 0) <> 0
 		order by category, stock_code, stock_name`, cutoff)
 	if err != nil {
 		return nil, err
@@ -1697,7 +1797,7 @@ func (s *PostgresStore) StockAgingReportRows(ctx context.Context, cutoff time.Ti
 	var reportRows []models.StockAgingReportRow
 	for rows.Next() {
 		var row models.StockAgingReportRow
-		if err := rows.Scan(&row.Category, &row.StockCode, &row.StockName, &row.Bucket0, &row.Bucket1, &row.Bucket2, &row.Bucket3, &row.Bucket4, &row.Bucket5); err != nil {
+		if err := rows.Scan(&row.Category, &row.StockCode, &row.StockName, &row.Bucket0, &row.Bucket1, &row.Bucket2, &row.Bucket3, &row.Bucket4); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1728,8 +1828,7 @@ func (s *PostgresStore) StockReorderPointReportRows(ctx context.Context, cutoff 
 		       greatest(coalesce(round(st.min_inventory), 0)::bigint - coalesce(b.soh, 0)::bigint, 0)::bigint as deficit
 		from stocks st
 		left join balances b on b.stock_id = st.id
-		where coalesce(round(st.min_inventory), 0) > 0
-		  and coalesce(b.soh, 0) < coalesce(round(st.min_inventory), 0)
+		where greatest(coalesce(round(st.min_inventory), 0)::bigint - coalesce(b.soh, 0)::bigint, 0)::bigint > 0
 		order by category, stock_code, stock_name`, cutoff)
 	if err != nil {
 		return nil, err
@@ -1760,17 +1859,36 @@ func (s *PostgresStore) StockSummaryReportRows(ctx context.Context, cutoff time.
 			       	else d.entry_date::date
 			      end <= $1::date
 			group by sl.stock_id
+		),
+		categories as (
+			select distinct trim(name) as category
+			from stock_categories
+			where coalesce(trim(name), '') <> ''
+			union
+			select distinct coalesce(nullif(st.category_group, ''), 'Uncategorized') as category
+			from stocks st
+		),
+		stock_rows as (
+			select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
+			       coalesce(st.code, '') as stock_code,
+			       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
+			       true as has_stock,
+			       coalesce(b.soh, 0)::bigint as soh,
+			       coalesce(round(st.latest_cost * 100), 0)::bigint as unit_cost_cents,
+			       coalesce(round(coalesce(b.soh, 0) * st.latest_cost * 100), 0)::bigint as amount_cents
+			from stocks st
+			left join balances b on b.stock_id = st.id
 		)
-		select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
-		       coalesce(st.code, '') as stock_code,
-		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(b.soh, 0)::bigint as soh,
-		       coalesce(round(st.latest_cost * 100), 0)::bigint as unit_cost_cents,
-		       coalesce(round(coalesce(b.soh, 0) * st.latest_cost * 100), 0)::bigint as amount_cents
-		from stocks st
-		left join balances b on b.stock_id = st.id
-		where coalesce(b.soh, 0) <> 0
-		order by category, stock_code, stock_name`, cutoff)
+		select c.category,
+		       coalesce(sr.stock_code, '') as stock_code,
+		       coalesce(sr.stock_name, 'No Stock') as stock_name,
+		       coalesce(sr.has_stock, false) as has_stock,
+		       coalesce(sr.soh, 0)::bigint as soh,
+		       coalesce(sr.unit_cost_cents, 0)::bigint as unit_cost_cents,
+		       coalesce(sr.amount_cents, 0)::bigint as amount_cents
+		from categories c
+		left join stock_rows sr on sr.category = c.category
+		order by c.category, stock_code, stock_name`, cutoff)
 	if err != nil {
 		return nil, err
 	}
@@ -1778,7 +1896,7 @@ func (s *PostgresStore) StockSummaryReportRows(ctx context.Context, cutoff time.
 	var reportRows []models.StockSummaryReportRow
 	for rows.Next() {
 		var row models.StockSummaryReportRow
-		if err := rows.Scan(&row.Category, &row.StockCode, &row.StockName, &row.SOH, &row.UnitCostCents, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Category, &row.StockCode, &row.StockName, &row.HasStock, &row.SOH, &row.UnitCostCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -2344,16 +2462,6 @@ func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, ki
 	if existingKind != kind {
 		return errors.New("document kind mismatch")
 	}
-	if kind == "dr" {
-		var consumed bool
-		if err := tx.QueryRow(ctx, `select exists(select 1 from dr_consumptions where dr_document_id=$1)`, id).Scan(&consumed); err != nil {
-			return err
-		}
-		if consumed {
-			return errors.New("cannot edit DR that is already linked to other documents")
-		}
-	}
-
 	type balanceAdjustment struct {
 		partyType string
 		partyID   int64
@@ -2390,6 +2498,19 @@ func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, ki
 
 	if _, err := tx.Exec(ctx, `delete from dr_consumptions where consumer_document_id=$1`, id); err != nil {
 		return err
+	}
+	if kind == "dr" {
+		if _, err := tx.Exec(ctx, `
+			update document_lines consumer_line
+			set dr_line_id = null
+			from document_lines dr_line
+			where consumer_line.dr_line_id = dr_line.id
+			  and dr_line.document_id = $1`, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `delete from dr_consumptions where dr_document_id=$1`, id); err != nil {
+			return err
+		}
 	}
 	if _, err := tx.Exec(ctx, `delete from stock_ledger where document_id=$1`, id); err != nil {
 		return err

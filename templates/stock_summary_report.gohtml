@@ -24,15 +24,15 @@
 {{else}}
 <main class="page report-viewer-page">
   <div class="report-viewer-shell">
-    <aside class="report-preview-tree">
+    <aside class="report-preview-tree" data-report-always-full-tree>
       <div>Preview</div>
       <ul>
         {{range $index, $category := .StockSummaryReport.Categories}}
         <li class="report-tree-branch collapsed">
           <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button>
           <ul>
-            {{range $rowIndex, $row := $category.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
+            {{range $row := $category.TreeRows}}
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" {{if $row.TargetID}}data-report-scroll-target="{{$row.TargetID}}" data-report-highlight-target="{{$row.TargetID}}"{{else}}data-report-noop{{end}}>{{$row.StockName}}</button></li>
             {{end}}
           </ul>
         </li>
@@ -75,19 +75,18 @@
               </thead>
               <tbody>
                 {{range $rowIndex, $row := $category.Rows}}
-                <tr id="stock-summary-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.StockCode}}</td><td>{{$row.StockName}}</td><td class="num">{{$row.SOH}}</td><td class="num">{{$row.UnitCost}}</td><td class="num">{{$row.Amount}}</td></tr>
+                <tr id="{{$row.TargetID}}" data-report-filter-item><td>{{$row.StockCode}}</td><td>{{$row.StockName}}</td><td class="num">{{$row.SOH}}</td><td class="num">{{$row.UnitCost}}</td><td class="num">{{$row.Amount}}</td></tr>
+                {{else}}
+                <tr><td colspan="5">No stocks in this category.</td></tr>
                 {{end}}
               </tbody>
               <tfoot>
                 <tr><td colspan="2">Category Totals:</td><td class="num">{{$category.TotalSOH}}</td><td></td><td class="num">{{$category.Amount}}</td></tr>
               </tfoot>
             </table>
-          </section>
-          {{else}}<p class="report-empty">No stock balances for the selected cut-off date.</p>{{end}}
-          {{if .StockSummaryReport.Categories}}
-          <table class="report-table stock-summary-grand-total"><tfoot><tr><td>Grand Totals:</td><td class="num">{{.StockSummaryReport.GrandSOH}}</td><td class="num">{{.StockSummaryReport.GrandAmount}}</td></tr></tfoot></table>
-          {{end}}
-        </article>
+	          </section>
+	          {{else}}<p class="report-empty">No stock balances for the selected cut-off date.</p>{{end}}
+	        </article>
       </div>
     </section>
   </div>

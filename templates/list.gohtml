@@ -24,8 +24,10 @@
         </label>
         <label class="legacy-inline-field legacy-strip-search">
           <span>Search:</span>
+          <button type="submit" class="legacy-strip-icon-button" title="Search" aria-label="Search records"><img src="/static/icons/report-toolbar-find.svg" alt=""></button>
           <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
         </label>
+        <button type="submit" class="legacy-strip-refresh">Refresh</button>
       </div>
     </form>
     <div id="records-table"
@@ -34,7 +36,7 @@
         <thead>
           {{if eq .Form.Kind "stock-categories"}}
           <tr>
-            <th>ID ▲</th>
+            <th>ID</th>
             <th>Name</th>
             <th>Group</th>
             <th>APS Monitor</th>
@@ -68,7 +70,7 @@
     </div>
   </div>
 </main>
-<script src="/static/content-window.js?v=202606201840"></script>
+<script src="/static/content-window.js?v=202606230002"></script>
 {{template "foot" .}}
 
 {{define "master_rows"}}

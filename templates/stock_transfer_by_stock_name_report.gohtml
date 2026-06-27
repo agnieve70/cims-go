@@ -20,7 +20,7 @@
 {{else}}
 <main class="page report-viewer-page">
   <div class="report-viewer-shell">
-    <aside class="report-preview-tree"><div>Preview</div><ul>{{range $index, $category := .StockTransferByStockNameReport.Categories}}<li class="report-tree-branch collapsed"><button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button><ul>{{range $category.Stocks}}<li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}">{{.StockName}}</button></li>{{end}}</ul></li>{{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}</ul></aside>
+    <aside class="report-preview-tree"><div>Preview</div><ul>{{range $index, $category := .StockTransferByStockNameReport.Categories}}<li class="report-tree-branch collapsed"><button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button></li>{{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}</ul></aside>
     <section class="report-preview">
       <div class="report-preview-toolbar">
         <button type="button" class="report-tool" data-report-action="print" title="Print report" aria-label="Print report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-print.svg" alt=""></button>

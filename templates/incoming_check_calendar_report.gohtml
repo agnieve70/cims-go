@@ -37,10 +37,6 @@
         </div>
       </div>
     </div>
-    <div class="incoming-check-calendar-titlebar">
-      <span>{{.IncomingCheckCalendar.MonthName}} {{.IncomingCheckCalendar.Year}}</span>
-      <strong>Incoming Check Calendar</strong>
-    </div>
     <div class="incoming-check-calendar-grid" data-calendar-grid>
       {{range .IncomingCheckCalendar.Weekdays}}
       <div class="calendar-weekday {{.Weekend}}">{{.Name}}</div>

@@ -30,11 +30,6 @@
         {{range $index, $category := .StockReorderReport.Categories}}
         <li class="report-tree-branch collapsed">
           <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Name}}</button>
-          <ul>
-            {{range $rowIndex, $row := $category.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="stock-reorder-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="stock-reorder-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
-            {{end}}
-          </ul>
         </li>
         {{else}}<li><span class="report-tree-empty">No reorder point records</span></li>{{end}}
       </ul>
@@ -80,7 +75,7 @@
               </tbody>
             </table>
           </section>
-          {{else}}<p class="report-empty">No stocks are below reorder point for the selected cut-off date.</p>{{end}}
+          {{else}}<p class="report-empty">No stocks with SOH for the selected cut-off date.</p>{{end}}
         </article>
       </div>
     </section>

@@ -65,7 +65,7 @@
           <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$group.Supplier}}</button>
           <ul>
             {{range $stockIndex, $stockGroup := $group.StockGroups}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="purchase-supplier-stock-{{add $index 1}}-{{add $stockIndex 1}}" data-report-filter-target="purchase-supplier-stock-{{add $index 1}}-{{add $stockIndex 1}}">{{$stockGroup.StockName}}</button></li>
+              <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="purchase-supplier-row-{{add $index 1}}-{{add $stockIndex 1}}-1" data-report-highlight-target="purchase-supplier-stock-{{add $index 1}}-{{add $stockIndex 1}}">{{$stockGroup.StockName}}</button></li>
             {{end}}
           </ul>
         </li>
@@ -108,16 +108,16 @@
           <section class="report-detail-group purchase-supplier-group" data-report-page="{{add $index 1}}">
             <div class="purchase-supplier-meta">Supplier: <strong>{{$group.Supplier}}</strong></div>
             <table class="report-table purchase-supplier-table">
-              <thead><tr><th>Reference</th><th>Date</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Cost</th><th>Amount</th></tr></thead>
+              <thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Code</th><th>StockName</th><th>Quantity</th><th>Cost</th><th>Amount</th></tr></thead>
               <tbody>
                 {{range $stockIndex, $stockGroup := $group.StockGroups}}
                   {{range $rowIndex, $row := $stockGroup.Rows}}
-                  <tr id="purchase-supplier-row-{{add $index 1}}-{{add $stockIndex 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
+                  <tr id="purchase-supplier-row-{{add $index 1}}-{{add $stockIndex 1}}-{{add $rowIndex 1}}" data-report-filter-item data-report-filter-groups="purchase-supplier-stock-filter-{{add $index 1}}-{{add $stockIndex 1}}"><td>{{$row.Reference}}</td><td>{{$row.Date}}</td><td>{{$row.Type}}</td><td>{{$row.Code}}</td><td>{{$row.Stock}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Cost}}</td><td class="num">{{$row.Amount}}</td></tr>
                   {{end}}
-                  <tr id="purchase-supplier-stock-{{add $index 1}}-{{add $stockIndex 1}}" class="purchase-supplier-stock-total" data-report-filter-item><td colspan="4">Stock Total:</td><td class="num">{{$stockGroup.TotalQty}}</td><td></td><td class="num">{{$stockGroup.TotalAmt}}</td></tr>
+                  <tr id="purchase-supplier-stock-{{add $index 1}}-{{add $stockIndex 1}}" class="purchase-supplier-stock-total" data-report-filter-item data-report-filter-groups="purchase-supplier-stock-filter-{{add $index 1}}-{{add $stockIndex 1}}"><td colspan="5">Stock Total:</td><td class="num">{{$stockGroup.TotalQty}}</td><td></td><td class="num">{{$stockGroup.TotalAmt}}</td></tr>
                 {{end}}
               </tbody>
-              <tfoot><tr><td colspan="4">Supplier Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr></tfoot>
+              <tfoot><tr><td colspan="5">Supplier Total:</td><td class="num">{{$group.TotalQty}}</td><td></td><td class="num">{{$group.TotalAmt}}</td></tr></tfoot>
             </table>
           </section>
           {{else}}<p class="report-empty">No purchase records for the selected coverage.</p>{{end}}

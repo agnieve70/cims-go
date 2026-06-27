@@ -397,6 +397,12 @@
           <span>Sales Date:</span>
           <input name="sales_date" type="date" value="{{fieldValue $.Record "sales_date"}}">
         </label>
+        <label class="sales-field sales-cash">
+          <span class="purchase-checkbox-copy">
+            <input type="checkbox" name="cash" {{if truthy (fieldValue $.Record "cash")}}checked{{end}}>
+            <span>Cash</span>
+          </span>
+        </label>
         <label class="sales-field sales-or-ci">
           <span>OR/CI Number:</span>
           <input name="or_ci_number" value="{{fieldValue $.Record "or_ci_number"}}">
@@ -414,7 +420,7 @@
         <div class="purchase-supplier-picker-backdrop" data-sales-dr-picker-close></div>
         <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="sales-dr-picker-title">
           <div class="purchase-supplier-picker-titlebar">
-            <h3 id="sales-dr-picker-title">Stock Out List</h3>
+            <h3 id="sales-dr-picker-title">SO Number List</h3>
             <button type="button" class="purchase-supplier-picker-close" data-sales-dr-picker-close aria-label="Close">×</button>
           </div>
           <div class="purchase-supplier-picker-body">
@@ -427,7 +433,7 @@
                 <thead><tr><th>SO Number</th><th>Customer</th></tr></thead>
                 <tbody data-sales-dr-picker-results></tbody>
               </table>
-              <p class="purchase-supplier-picker-empty is-hidden" data-sales-dr-picker-empty>No matching Stock Out found.</p>
+              <p class="purchase-supplier-picker-empty is-hidden" data-sales-dr-picker-empty>No matching SO number found.</p>
             </div>
           </div>
         </div>
@@ -438,7 +444,7 @@
         <div class="section-head">
           <h2>{{$salesDetailsGroup.Label}}</h2>
           <button type="button" class="section-inline-action" data-sales-edit-stock-out disabled>Edit Stock Out File</button>
-          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}
+          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select an SO number first.</span>{{end}}
         </div>
         <div class="table-wrap modal-table">
           <table class="editable-grid sales-details-grid">
@@ -453,9 +459,9 @@
                 {{range $rows}}
                 <tr class="sales-detail-row" data-sales-detail-row>
                   <td class="row-no"></td>
-                  <td class="editable-cell" contenteditable="true" data-field="stock_code">{{fieldValue . "stock_label"}}</td>
-                  <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
-                  <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                  <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_code">{{fieldValue . "stock_label"}}</td>
+                  <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_name"></td>
+                  <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="qty">{{fieldValue . "qty"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
                   <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                   <td class="editable-cell number-cell" contenteditable="true" data-field="discount">{{fieldValue . "discount"}}</td>
@@ -509,15 +515,40 @@
           <label>Total Qty:<input readonly data-sales-total-qty></label>
           <label>Total Net Amnt:<input readonly data-sales-total-net></label>
         </div>
-        <div class="sales-summary-grid" data-sales-panel="markup">
-          <section class="sales-markup-summary">
-            <div class="table-wrap modal-table">
-              <table class="editable-grid">
-                <thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead>
-                <tbody id="sales-markup-summary-rows"></tbody>
-              </table>
+        <div class="sales-summary-body">
+          <div class="sales-summary-panels">
+            <div class="sales-summary-grid" data-sales-panel="markup">
+              <section class="sales-markup-summary">
+                <div class="table-wrap modal-table">
+                  <table class="editable-grid">
+                    <thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead>
+                    <tbody id="sales-markup-summary-rows"></tbody>
+                  </table>
+                </div>
+              </section>
             </div>
-          </section>
+            <section class="line-section modal-line-section purchase-line-section sales-line-payments is-hidden" data-sales-panel="payments">
+              <div class="section-head"><h2>{{$salesPaymentGroup.Label}}</h2></div>
+              <div class="sales-payment-grid">
+                <div class="table-wrap modal-table"><table class="editable-grid purchase-payment-grid"><thead><tr><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead><tbody id="rows-{{$salesPaymentGroup.Key}}">{{$rows := index $.LineRows $salesPaymentGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_payment_row" dictRow $salesPaymentGroup $.Options .}}{{end}}{{else}}{{template "direct_payment_row" dictLine $salesPaymentGroup $.Options}}{{end}}</tbody></table></div>
+                <section class="sales-payment-amount">
+                  <h2>AMOUNT</h2>
+                  <label>Check:<input readonly data-sales-check-total></label>
+                  <label>Balance:<input readonly data-sales-balance></label>
+                </section>
+              </div>
+            </section>
+            <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
+              <section class="purchase-adjustment">
+                <div class="section-head"><h2>{{$deductionGroup.Label}}</h2></div>
+                <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-deductions">{{$rows := index $.LineRows $deductionGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $deductionGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $deductionGroup $.Options}}{{end}}</tbody></table></div>
+              </section>
+              <section class="purchase-adjustment">
+                <div class="section-head"><h2>{{$salesAdditionalGroup.Label}}</h2></div>
+                <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $salesAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $salesAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $salesAdditionalGroup $.Options}}{{end}}</tbody></table></div>
+              </section>
+            </div>
+          </div>
           <section class="sales-totals">
             <label>Total:<input readonly data-sales-total></label>
             <label>Less (A):<input readonly data-sales-less-a></label>
@@ -526,21 +557,6 @@
             <label>Net:<input readonly data-sales-net></label>
           </section>
         </div>
-        <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
-          <section class="purchase-adjustment">
-            <div class="section-head"><h2>{{$deductionGroup.Label}}</h2></div>
-            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-deductions">{{$rows := index $.LineRows $deductionGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $deductionGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $deductionGroup $.Options}}{{end}}</tbody></table></div>
-          </section>
-          <section class="purchase-adjustment">
-            <div class="section-head"><h2>{{$salesAdditionalGroup.Label}}</h2></div>
-            <div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $salesAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $salesAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $salesAdditionalGroup $.Options}}{{end}}</tbody></table></div>
-          </section>
-        </div>
-      </section>
-
-      <section class="line-section modal-line-section purchase-line-section sales-line-payments is-hidden" data-sales-panel="payments">
-        <div class="section-head"><h2>{{$salesPaymentGroup.Label}}</h2></div>
-        <div class="table-wrap modal-table"><table class="editable-grid purchase-payment-grid"><thead><tr><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead><tbody id="rows-{{$salesPaymentGroup.Key}}">{{$rows := index $.LineRows $salesPaymentGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_payment_row" dictRow $salesPaymentGroup $.Options .}}{{end}}{{else}}{{template "direct_payment_row" dictLine $salesPaymentGroup $.Options}}{{end}}</tbody></table></div>
       </section>
       {{else if eq .Form.Kind "stock-transactions"}}
       <section class="transfer-legacy-form">
@@ -548,16 +564,60 @@
         <label class="transfer-field transfer-entry-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="transfer-field transfer-date"><span>Transfer Date:</span><input name="transfer_date" type="date" value="{{fieldValue $.Record "transfer_date"}}"></label>
         <label class="transfer-field transfer-id"><span>Transfer ID:</span><input name="transfer_id" value="{{fieldValue $.Record "transfer_id"}}"></label>
-        <label class="transfer-field transfer-transaction"><span>Transaction:</span><input name="transaction" value="{{fieldValue $.Record "transaction"}}"></label>
+        <label class="transfer-field transfer-transaction">
+          <span>Transaction:</span>
+          <select name="transaction">
+            {{$currentTransaction := fieldValue $.Record "transaction"}}
+            <option value="0 - Stock Transfer" {{if eq $currentTransaction "0 - Stock Transfer"}}selected{{end}}>0 - Stock Transfer</option>
+            <option value="1 - Sales Return" {{if eq $currentTransaction "1 - Sales Return"}}selected{{end}}>1 - Sales Return</option>
+            <option value="2 - Stock Return" {{if eq $currentTransaction "2 - Stock Return"}}selected{{end}}>2 - Stock Return</option>
+          </select>
+        </label>
         <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-        <label class="transfer-field transfer-dr-file"><span>Stock Out File:</span><select name="dr_document_id" required onchange="window.location=window.location.pathname + (this.value ? '?dr_document_id=' + this.value : '')"><option value="">Select</option>{{$currentDR := fieldValue $.Record "dr_document_id"}}{{$currentDRLabel := fieldValue $.Record "dr_document_label"}}{{if and $currentDR $currentDRLabel}}<option value="{{$currentDR}}" selected>{{$currentDRLabel}}</option>{{end}}{{range index $.Options "dr_documents"}}{{if and $currentDRLabel (eq .Value $currentDR)}}{{else}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}{{end}}</select></label>
+        <label class="transfer-field transfer-dr-file">
+          <span>SO Number:</span>
+          <span class="purchase-supplier-control">
+            <select name="dr_document_id" required data-transfer-dr-select>
+              <option value="">Select SO Number</option>
+              {{$currentDR := fieldValue $.Record "dr_document_id"}}
+              {{$currentDRLabel := fieldValue $.Record "dr_document_label"}}
+              {{if and $currentDR $currentDRLabel}}<option value="{{$currentDR}}" selected>{{$currentDRLabel}}</option>{{end}}
+              {{range index $.Options "dr_documents"}}
+                {{if and $currentDRLabel (eq .Value $currentDR)}}{{else}}<option value="{{.Value}}" {{if eq .Value $currentDR}}selected{{end}}>{{.Label}}</option>{{end}}
+              {{end}}
+            </select>
+            <button type="button" class="purchase-supplier-browse" data-transfer-dr-browse>Browse</button>
+          </span>
+        </label>
         <label class="transfer-field transfer-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
         <label class="transfer-field transfer-updated-by"><span>Last Update By:</span><input value="{{fieldValue $.Record "updated_by"}}" readonly tabindex="-1" aria-readonly="true"></label>
       </section>
+      <div class="purchase-supplier-picker is-hidden" data-transfer-dr-picker aria-hidden="true">
+        <div class="purchase-supplier-picker-backdrop" data-transfer-dr-picker-close></div>
+        <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-dr-picker-title">
+          <div class="purchase-supplier-picker-titlebar">
+            <h3 id="transfer-dr-picker-title">SO Number List</h3>
+            <button type="button" class="purchase-supplier-picker-close" data-transfer-dr-picker-close aria-label="Close">×</button>
+          </div>
+          <div class="purchase-supplier-picker-body">
+            <label class="purchase-supplier-picker-search">
+              <span>Search:</span>
+              <input type="search" data-transfer-dr-picker-search placeholder="Type SO number or customer name">
+            </label>
+            <div class="purchase-supplier-picker-table-wrap">
+              <table>
+                <thead><tr><th>SO Number</th><th>Customer</th></tr></thead>
+                <tbody data-transfer-dr-picker-results></tbody>
+              </table>
+              <p class="purchase-supplier-picker-empty is-hidden" data-transfer-dr-picker-empty>No matching SO number found.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{$transferDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section sales-line-details">
-        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select a Stock Out file first.</span>{{end}}</div>
+        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select an SO number first.</span>{{end}}</div>
         <div class="table-wrap modal-table">
           <table class="editable-grid sales-details-grid">
             <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th><th>Capital</th><th>Markup</th><th>MU %</th></tr></thead>
@@ -566,9 +626,9 @@
               {{if $rows}}{{range $rows}}
               <tr class="sales-detail-row">
                 <td class="row-no"></td>
-                <td class="editable-cell" contenteditable="true" data-field="stock_code">{{fieldValue . "stock_label"}}</td>
-                <td class="editable-cell" contenteditable="true" data-field="stock_name"></td>
-                <td class="editable-cell number-cell" contenteditable="true" data-field="qty">{{fieldValue . "qty"}}</td>
+                <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_code">{{fieldValue . "stock_label"}}</td>
+                <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_name"></td>
+                <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="qty">{{fieldValue . "qty"}}</td>
                 <td class="editable-cell number-cell" contenteditable="true" data-field="unit_cost">{{fieldValue . "unit_cost"}}</td>
                 <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="amount">{{fieldValue . "amount"}}</td>
                 <td class="editable-cell number-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="capital">{{fieldValue . "capital"}}</td>
@@ -602,25 +662,30 @@
           <button type="button" class="sales-tab is-active" data-sales-tab="markup">Markup Summary</button>
           <button type="button" class="sales-tab" data-sales-tab="adjustments">Discounts/Additionals/Summary</button>
         </div>
-        <div class="sales-summary-grid" data-sales-panel="markup">
-          <section class="sales-markup-summary"><div class="table-wrap modal-table"><table class="editable-grid"><thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead><tbody id="sales-markup-summary-rows"></tbody></table></div></section>
+        <div class="sales-summary-body transfer-summary-body">
+          <div class="sales-summary-panels">
+            <div class="sales-summary-grid" data-sales-panel="markup">
+              <section class="sales-markup-summary"><div class="table-wrap modal-table"><table class="editable-grid"><thead><tr><th>No.</th><th>Item Group</th><th>Total Net Amount</th><th>Total Capital</th><th>Total Markup (Amnt.)</th><th>Avg. Markup (%)</th></tr></thead><tbody id="sales-markup-summary-rows"></tbody></table></div></section>
+            </div>
+            <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
+              <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferDiscountGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-discounts">{{$rows := index $.LineRows $transferDiscountGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferDiscountGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferDiscountGroup $.Options}}{{end}}</tbody></table></div></section>
+              <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferAdditionalGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $transferAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferAdditionalGroup $.Options}}{{end}}</tbody></table></div></section>
+            </div>
+          </div>
           <section class="sales-totals"><label>Total:<input readonly data-sales-total></label><label>Less:<input readonly data-sales-less-a></label><label>Add:<input readonly data-sales-add></label><label>Net:<input readonly data-sales-net></label></section>
-        </div>
-        <div class="sales-adjustments is-hidden" data-sales-panel="adjustments">
-          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferDiscountGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-discounts">{{$rows := index $.LineRows $transferDiscountGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferDiscountGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferDiscountGroup $.Options}}{{end}}</tbody></table></div></section>
-          <section class="purchase-adjustment"><div class="section-head"><h2>{{$transferAdditionalGroup.Label}}</h2></div><div class="table-wrap modal-table"><table class="editable-grid purchase-adjustment-grid"><thead><tr><th>Particulars</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody id="rows-additionals">{{$rows := index $.LineRows $transferAdditionalGroup.Key}}{{if $rows}}{{range $rows}}{{template "direct_adjustment_row" dictRow $transferAdditionalGroup $.Options .}}{{end}}{{else}}{{template "direct_adjustment_row" dictLine $transferAdditionalGroup $.Options}}{{end}}</tbody></table></div></section>
         </div>
       </section>
       {{else if eq .Form.Kind "ap-credit"}}
-      <section class="credit-legacy-form">
+      <section class="credit-legacy-form ap-credit-legacy-form">
         <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
-        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><button type="button" disabled>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
-        <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
+        <input type="hidden" name="remarks" value="{{fieldValue $.Record "remarks"}}">
+        <div class="credit-payment-label">PAYMENT</div>
       </section>
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
@@ -628,13 +693,17 @@
         <div class="section-head"><h2>{{$creditChecksGroup.Label}}</h2></div>
         <div class="table-wrap modal-table">
           <table class="editable-grid checks-in-details-grid">
-            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead>
+            <thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th class="credit-hidden-check-nature">Nature</th></tr></thead>
             <tbody id="rows-{{$creditChecksGroup.Key}}">
               {{$rows := index $.LineRows $creditChecksGroup.Key}}
               {{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $creditChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $creditChecksGroup $.Options}}{{end}}
             </tbody>
           </table>
         </div>
+      </section>
+      <section class="credit-payment-totals">
+        <label>Check Amount:<input readonly data-credit-check-total></label>
+        <label>Total Payment:<input readonly data-credit-payment-total></label>
       </section>
       {{else if eq .Form.Kind "ar-credit"}}
       <section class="credit-legacy-form">
@@ -688,9 +757,9 @@
       </section>
       {{else if eq .Form.Kind "ap-debit"}}
       <section class="debit-legacy-form ap-debit-legacy-form">
-        <label class="debit-field debit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
+        <label class="debit-field debit-entry-id"><span>EntryID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="debit-field debit-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
-        <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_debit_company_name" list="ap-debit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-debit-party-id><datalist id="ap-debit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_debit_company_name" list="ap-debit-company-options" autocomplete="off" required><button type="button" disabled>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-debit-party-id><datalist id="ap-debit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.01" value="{{fieldValue $.Record "amount"}}" required></label>
         <label class="debit-field debit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="debit-field debit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
@@ -1397,7 +1466,6 @@
     <div class="modal-footer actions">
       {{if eq .Form.Kind "purchases"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1413,7 +1481,6 @@
       </div>
       {{else if eq .Form.Kind "dr"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1422,12 +1489,12 @@
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        {{if and .CanDelete (not .Embedded)}}<a class="button secondary" href="/transactions/stock-transactions/{{fieldValue .Record "record_id"}}/withdrawal" target="_blank" rel="noopener">Print STW</a>{{else}}<span class="button secondary is-disabled">Print STW</span>{{end}}
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
       </div>
       {{else if eq .Form.Kind "sales"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1437,6 +1504,7 @@
         <span class="legacy-toolbar-separator"></span>
         <button type="submit" class="legacy-toolbar-delete" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if or (not .CanDelete) .Embedded}}disabled{{end}} onclick="return confirm('Delete this sales record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
+        {{if and .CanDelete (not .Embedded)}}<a class="button secondary" href="/transactions/sales/{{fieldValue .Record "record_id"}}/invoice" target="_blank" rel="noopener">Print Invoice</a>{{else}}<span class="button secondary is-disabled">Print Invoice</span>{{end}}
         <a class="button secondary" href="/transactions/ar-debit/new">AR Debit File</a>
         <a class="button secondary" href="/transactions/ar-credit/new">AR Credit File</a>
         <span class="legacy-toolbar-spacer"></span>
@@ -1444,7 +1512,6 @@
       </div>
       {{else if eq .Form.Kind "stock-transactions"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1458,7 +1525,6 @@
       </div>
       {{else if eq .Form.Kind "ap-credit"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1472,7 +1538,6 @@
       </div>
       {{else if eq .Form.Kind "ar-credit"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1486,7 +1551,6 @@
       </div>
       {{else if eq .Form.Kind "rebates"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1500,7 +1564,6 @@
       </div>
       {{else if eq .Form.Kind "ap-debit"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1514,7 +1577,6 @@
       </div>
       {{else if eq .Form.Kind "ar-debit"}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1528,7 +1590,6 @@
       </div>
       {{else if or (eq .Form.Kind "expenses") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goPurchaseRecord('first')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1542,9 +1603,6 @@
       </div>
       {{else if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "other-income-chart")}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
-        {{if and .CanDelete (not .Embedded)}}
-        <button type="button" title="New" aria-label="New record" data-form-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg></button>
-        {{end}}
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
         <button type="button" title="First" aria-label="First record" onclick="goStockCategoryRecord('{{.FirstRecordID}}')" {{if or (not .CanDelete) .Embedded}}disabled{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6l-8 6 8 6z"/></svg></button>
@@ -1579,8 +1637,10 @@
         </label>
         <label class="legacy-inline-field legacy-strip-search">
           <span>Search:</span>
+          <button type="submit" class="legacy-strip-icon-button" title="Search" aria-label="Search records"><img src="/static/icons/report-toolbar-find.svg" alt=""></button>
           <input type="text" name="q" value="{{.Search}}" placeholder="{{if eq .Form.Kind "stock-categories"}}Search group name, parent group, or encoder{{else}}Search records{{end}}">
         </label>
+        <button type="submit" class="legacy-strip-refresh">Refresh</button>
       </div>
     </form>
     <table>
@@ -1588,7 +1648,7 @@
       <thead>
         {{if eq .Form.Kind "stock-categories"}}
         <tr>
-          <th>ID ▲</th>
+          <th>ID</th>
           <th>Name</th>
           <th>Group</th>
           <th>APS Monitor</th>
@@ -1979,7 +2039,10 @@
     }
 
     function parseMoney(value) {
-      var number = parseFloat(String(value || "").replace(/[,%]/g, ""));
+      var text = String(value || "").trim();
+      var negative = /^\(.*\)$/.test(text);
+      var number = parseFloat(text.replace(/[(),%]/g, ""));
+      if (negative && Number.isFinite(number)) number = -number;
       return Number.isFinite(number) ? number : 0;
     }
 
@@ -2003,6 +2066,19 @@
       var number = Number.isFinite(value) ? value : parseMoney(value);
       if (!Number.isFinite(number) || number === 0) return "0";
       return (number * 100).toFixed(2) + "%";
+    }
+
+    function formatAccountingZeroMoney(value) {
+      var number = Number.isFinite(value) ? value : parseMoney(value);
+      if (!Number.isFinite(number) || number === 0) return "0";
+      return number < 0 ? "(" + Math.abs(number).toFixed(2) + ")" : number.toFixed(2);
+    }
+
+    function formatAccountingZeroPercent(value) {
+      var number = Number.isFinite(value) ? value : parseMoney(value);
+      if (!Number.isFinite(number) || number === 0) return "0";
+      var formatted = Math.abs(number * 100).toFixed(2) + "%";
+      return number < 0 ? "(" + formatted + ")" : formatted;
     }
 
     function cellText(cell) {
@@ -2399,7 +2475,25 @@
       salesDRPickerState.root.setAttribute("aria-hidden", "true");
     }
 
+    var transferDRPickerState = {
+      root: document.querySelector("[data-transfer-dr-picker]"),
+      search: document.querySelector("[data-transfer-dr-picker-search]"),
+      results: document.querySelector("[data-transfer-dr-picker-results]"),
+      empty: document.querySelector("[data-transfer-dr-picker-empty]"),
+      matches: [],
+      selectedIndex: -1
+    };
+
+    if (transferDRPickerState.root) {
+      transferDRPickerState.root.classList.add("is-hidden");
+      transferDRPickerState.root.setAttribute("aria-hidden", "true");
+    }
+
     function navigateToSalesDRSelection(id) {
+      window.location = window.location.pathname + (id ? "?dr_document_id=" + encodeURIComponent(id) : "");
+    }
+
+    function navigateToTransferDRSelection(id) {
       window.location = window.location.pathname + (id ? "?dr_document_id=" + encodeURIComponent(id) : "");
     }
 
@@ -2411,6 +2505,10 @@
           String(document.customer || "").toLowerCase().indexOf(query) !== -1 ||
           String(document.label || "").toLowerCase().indexOf(query) !== -1;
       });
+    }
+
+    function filterTransferDRDocuments(query) {
+      return filterSalesDRDocuments(query);
     }
 
     function highlightSalesDRPickerRow(index) {
@@ -2488,6 +2586,84 @@
         salesDRPickerState.search.focus();
       } else {
         renderSalesDRPicker("");
+      }
+    }
+
+    function highlightTransferDRPickerRow(index) {
+      transferDRPickerState.selectedIndex = index;
+      if (!transferDRPickerState.results) return;
+      Array.prototype.forEach.call(transferDRPickerState.results.querySelectorAll("tr"), function (row, rowIndex) {
+        row.classList.toggle("is-active", rowIndex === index);
+        row.tabIndex = rowIndex === index ? 0 : -1;
+        row.setAttribute("aria-selected", rowIndex === index ? "true" : "false");
+      });
+    }
+
+    function focusTransferDRPickerRow(index) {
+      if (!transferDRPickerState.results || index < 0) return;
+      highlightTransferDRPickerRow(index);
+      var row = transferDRPickerState.results.querySelector("[data-transfer-dr-index='" + String(index) + "']");
+      if (!row) return;
+      row.focus();
+      if (typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderTransferDRPicker(query) {
+      if (!transferDRPickerState.results) return;
+      transferDRPickerState.matches = filterTransferDRDocuments(query);
+      transferDRPickerState.results.innerHTML = "";
+      transferDRPickerState.matches.forEach(function (drDocument, index) {
+        var row = window.document.createElement("tr");
+        row.setAttribute("data-transfer-dr-option", "");
+        row.setAttribute("data-transfer-dr-index", String(index));
+        row.tabIndex = -1;
+
+        var number = window.document.createElement("td");
+        number.textContent = drDocument.soNumber || drDocument.label;
+        row.appendChild(number);
+
+        var customer = window.document.createElement("td");
+        customer.textContent = drDocument.customer || "";
+        row.appendChild(customer);
+
+        transferDRPickerState.results.appendChild(row);
+      });
+      if (transferDRPickerState.empty) {
+        transferDRPickerState.empty.classList.toggle("is-hidden", transferDRPickerState.matches.length !== 0);
+      }
+      highlightTransferDRPickerRow(transferDRPickerState.matches.length ? 0 : -1);
+    }
+
+    function closeTransferDRPicker() {
+      if (!transferDRPickerState.root) return;
+      transferDRPickerState.root.classList.add("is-hidden");
+      transferDRPickerState.root.setAttribute("aria-hidden", "true");
+      transferDRPickerState.matches = [];
+      transferDRPickerState.selectedIndex = -1;
+      var button = document.querySelector("[data-transfer-dr-browse]");
+      if (button) button.focus();
+    }
+
+    function applyTransferDRSelection(drDocument) {
+      if (!drDocument) return;
+      var select = document.querySelector("[data-transfer-dr-select]");
+      if (select) select.value = drDocument.id;
+      closeTransferDRPicker();
+      navigateToTransferDRSelection(drDocument.id);
+    }
+
+    function openTransferDRPicker() {
+      if (!transferDRPickerState.root) return;
+      transferDRPickerState.root.classList.remove("is-hidden");
+      transferDRPickerState.root.setAttribute("aria-hidden", "false");
+      if (transferDRPickerState.search) {
+        transferDRPickerState.search.value = "";
+        renderTransferDRPicker("");
+        transferDRPickerState.search.focus();
+      } else {
+        renderTransferDRPicker("");
       }
     }
 
@@ -2856,8 +3032,8 @@
       var markupPctCell = row.querySelector("[data-field='markup_pct']");
       if (netCell) netCell.textContent = formatMoney(net);
       if (capitalCell) capitalCell.textContent = formatMoney(totalCapital);
-      if (markupCell) markupCell.textContent = formatZeroMoney(markup);
-      if (markupPctCell) markupPctCell.textContent = formatZeroPercent(markupPct);
+      if (markupCell) markupCell.textContent = formatAccountingZeroMoney(markup);
+      if (markupPctCell) markupPctCell.textContent = formatAccountingZeroPercent(markupPct);
       ["stock_label", "qty", "unit_cost", "amount", "capital", "discount", "other_discount", "markup", "markup_pct"].forEach(function (field) {
         if (field === "stock_label") {
           var code = cellText(row.querySelector("[data-field='stock_code']"));
@@ -2865,8 +3041,10 @@
           setHidden(row, field, name ? code + " - " + name : code);
         } else if (field === "capital") {
           setHidden(row, field, formatMoney(capital));
+        } else if (field === "markup") {
+          setHidden(row, field, formatZeroMoney(markup));
         } else if (field === "markup_pct") {
-          setHidden(row, field, cellText(row.querySelector("[data-field='markup_pct']")).replace("%", ""));
+          setHidden(row, field, formatZeroMoney(markupPct * 100));
         } else {
           setHidden(row, field, cellText(row.querySelector("[data-field='" + field + "']")));
         }
@@ -2928,7 +3106,8 @@
         syncSalesDetailRow(row);
         var groupName = ((row.querySelector("[data-field-input='stock_group']") || {}).value || "Ungrouped").trim() || "Ungrouped";
         if (!groups[groupName]) groups[groupName] = { net: 0, capital: 0, markup: 0 };
-        var rowNet = parseMoney(cellText(row.querySelector("[data-field='net_amount']")));
+        var netAmountCell = row.querySelector("[data-field='net_amount']");
+        var rowNet = parseMoney(cellText(netAmountCell || row.querySelector("[data-field='amount']")));
         var rowCapital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
         var rowMarkup = rowNet - rowCapital;
         totalQty += parseMoney(cellText(row.querySelector("[data-field='qty']")));
@@ -2944,6 +3123,8 @@
       var deductions = sumInputs("input[name='line_deductions_amount']") || sumInputs("input[name='line_discounts_amount']");
       var additionals = sumInputs("input[name='line_additionals_amount']");
       var net = gross - lineDiscount - deductions + additionals;
+      var checkTotal = sumInputs("input[name='line_payments_amount']");
+      var balance = net - checkTotal;
       [
         ["[data-sales-total-qty]", totalQty],
         ["[data-sales-total-net]", net],
@@ -2951,7 +3132,9 @@
         ["[data-sales-less-a]", deductions],
         ["[data-sales-less-m]", lineDiscount],
         ["[data-sales-add]", additionals],
-        ["[data-sales-net]", net]
+        ["[data-sales-net]", net],
+        ["[data-sales-check-total]", checkTotal],
+        ["[data-sales-balance]", balance]
       ].forEach(function (item) {
         var el = document.querySelector(item[0]);
         if (!el) return;
@@ -3271,6 +3454,19 @@
       });
     }
 
+    function updateCreditPaymentTotals() {
+      var checkTotal = 0;
+      document.querySelectorAll(".credit-line-checks .checks-in-detail-row").forEach(function (row) {
+        checkTotal += parseMoney(cellText(row.querySelector("[data-field='amount']")));
+      });
+      var cashInput = document.querySelector(".credit-cash input[name='cash_amount']");
+      var cashTotal = cashInput ? parseMoney(cashInput.value) : 0;
+      var checkTotalInput = document.querySelector("[data-credit-check-total]");
+      var paymentTotalInput = document.querySelector("[data-credit-payment-total]");
+      if (checkTotalInput) checkTotalInput.value = formatMoney(checkTotal);
+      if (paymentTotalInput) paymentTotalInput.value = formatMoney(cashTotal + checkTotal);
+    }
+
     function syncPurchasePaymentRow(row) {
       if (!row) return;
       ["number", "date", "bank_name", "amount", "nature"].forEach(function (field) {
@@ -3307,6 +3503,7 @@
     function hydrateChecksInRows() {
       document.querySelectorAll(".checks-in-detail-row").forEach(syncChecksInRow);
       renumberChecksInRows();
+      updateCreditPaymentTotals();
     }
 
     window.addChecksInRow = function (options) {
@@ -3320,6 +3517,7 @@
       row.querySelectorAll("input[type='hidden']").forEach(function (input) { input.value = ""; });
       tbody.appendChild(row);
       renumberChecksInRows();
+      updateCreditPaymentTotals();
       var first = row.querySelector(".editable-cell, .cell-date");
       if (first && !options.silent) first.focus();
       return row;
@@ -3571,10 +3769,22 @@
       openSalesDRPicker();
     });
 
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest("[data-transfer-dr-browse]");
+      if (!button) return;
+      openTransferDRPicker();
+    });
+
     document.addEventListener("change", function (event) {
       var select = event.target.closest && event.target.closest("[data-sales-dr-select]");
       if (!select) return;
       navigateToSalesDRSelection(select.value);
+    });
+
+    document.addEventListener("change", function (event) {
+      var select = event.target.closest && event.target.closest("[data-transfer-dr-select]");
+      if (!select) return;
+      navigateToTransferDRSelection(select.value);
     });
 
     document.addEventListener("keydown", function (event) {
@@ -3615,6 +3825,7 @@
       var paymentCell = event.target.closest && event.target.closest(".purchase-payment-row .editable-cell, .purchase-payment-row .cell-date");
       if (paymentCell) {
         syncPurchasePaymentRow(paymentCell.closest(".purchase-payment-row"));
+        updateSalesTotals();
       }
       var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
       if (salesCell) {
@@ -3634,7 +3845,9 @@
       var checksInCell = event.target.closest && event.target.closest(".checks-in-detail-row .editable-cell, .checks-in-detail-row .cell-date");
       if (checksInCell) {
         syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
+        updateCreditPaymentTotals();
       }
+      if (event.target.matches && event.target.matches(".credit-cash input[name='cash_amount']")) updateCreditPaymentTotals();
     });
 
     document.addEventListener("blur", function (event) {
@@ -3643,7 +3856,10 @@
       var adjustmentCell = event.target.closest && event.target.closest(".purchase-adjustment-row .editable-cell");
       if (adjustmentCell) syncPurchaseAdjustmentRow(adjustmentCell.closest(".purchase-adjustment-row"), adjustmentCell);
       var paymentCell = event.target.closest && event.target.closest(".purchase-payment-row .editable-cell, .purchase-payment-row .cell-date");
-      if (paymentCell) syncPurchasePaymentRow(paymentCell.closest(".purchase-payment-row"));
+      if (paymentCell) {
+        syncPurchasePaymentRow(paymentCell.closest(".purchase-payment-row"));
+        updateSalesTotals();
+      }
       var salesCell = event.target.closest && event.target.closest(".sales-detail-row .editable-cell");
       if (salesCell) {
         syncSalesDetailRow(salesCell.closest(".sales-detail-row"));
@@ -3660,7 +3876,11 @@
         updateOtherIncomeTotals();
       }
       var checksInCell = event.target.closest && event.target.closest(".checks-in-detail-row .editable-cell, .checks-in-detail-row .cell-date");
-      if (checksInCell) syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
+      if (checksInCell) {
+        syncChecksInRow(checksInCell.closest(".checks-in-detail-row"));
+        updateCreditPaymentTotals();
+      }
+      if (event.target.matches && event.target.matches(".credit-cash input[name='cash_amount']")) updateCreditPaymentTotals();
     }, true);
 
     if (purchaseSupplierPickerState.search) {
@@ -3912,6 +4132,90 @@
     document.querySelectorAll("[data-sales-dr-picker-close]").forEach(function (button) {
       button.addEventListener("click", function () {
         closeSalesDRPicker();
+      });
+    });
+
+    if (transferDRPickerState.search) {
+      transferDRPickerState.search.addEventListener("input", function () {
+        renderTransferDRPicker(transferDRPickerState.search.value);
+      });
+      transferDRPickerState.search.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeTransferDRPicker();
+          return;
+        }
+        if (event.key === "Tab") {
+          if (!transferDRPickerState.matches.length) return;
+          event.preventDefault();
+          focusTransferDRPickerRow(0);
+          return;
+        }
+        if (!transferDRPickerState.matches.length) return;
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusTransferDRPickerRow(Math.min(transferDRPickerState.selectedIndex + 1, transferDRPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusTransferDRPickerRow(Math.max(transferDRPickerState.selectedIndex - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyTransferDRSelection(transferDRPickerState.matches[transferDRPickerState.selectedIndex]);
+        }
+      });
+    }
+
+    if (transferDRPickerState.results) {
+      transferDRPickerState.results.addEventListener("click", function (event) {
+        var row = event.target.closest && event.target.closest("[data-transfer-dr-option]");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-transfer-dr-index"), 10);
+        applyTransferDRSelection(transferDRPickerState.matches[index]);
+      });
+      transferDRPickerState.results.addEventListener("keydown", function (event) {
+        var row = event.target.closest && event.target.closest("[data-transfer-dr-option]");
+        if (!row) return;
+        event.stopPropagation();
+        var index = parseInt(row.getAttribute("data-transfer-dr-index"), 10);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeTransferDRPicker();
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusTransferDRPickerRow(Math.min(index + 1, transferDRPickerState.matches.length - 1));
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusTransferDRPickerRow(Math.max(index - 1, 0));
+          return;
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyTransferDRSelection(transferDRPickerState.matches[index]);
+        }
+      });
+      transferDRPickerState.results.addEventListener("focusin", function (event) {
+        var row = event.target.closest && event.target.closest("[data-transfer-dr-option]");
+        if (!row) return;
+        highlightTransferDRPickerRow(parseInt(row.getAttribute("data-transfer-dr-index"), 10));
+      });
+      transferDRPickerState.results.addEventListener("mousemove", function (event) {
+        var row = event.target.closest && event.target.closest("[data-transfer-dr-option]");
+        if (!row) return;
+        highlightTransferDRPickerRow(parseInt(row.getAttribute("data-transfer-dr-index"), 10));
+      });
+    }
+
+    document.querySelectorAll("[data-transfer-dr-picker-close]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        closeTransferDRPicker();
       });
     });
 

@@ -1,0 +1,288 @@
+{{template "head" .}}
+<main class="invoice-print-page">
+  <section class="invoice-sheet invoice-sheet-{{.SalesInvoice.TemplateKind}}" aria-label="{{.SalesInvoice.Template}}">
+    <img class="invoice-background" src="{{.SalesInvoice.TemplateURL}}" alt="">
+    <div class="invoice-field invoice-date">{{.SalesInvoice.Date}}</div>
+    <div class="invoice-field invoice-date-year">{{.SalesInvoice.DateYear}}</div>
+    <div class="invoice-field invoice-customer-name">{{fieldValue .SalesInvoice.Customer "company"}}</div>
+    <div class="invoice-field invoice-tin">{{.SalesInvoice.CustomerTIN}}</div>
+    <div class="invoice-field invoice-address">{{fieldValue .SalesInvoice.Customer "address"}}</div>
+    {{range $index, $row := .SalesInvoice.Rows}}
+      {{if lt $index 13}}
+      <div class="invoice-field invoice-row invoice-description invoice-row-{{add $index 1}}">{{$row.Description}}</div>
+      <div class="invoice-field invoice-row invoice-qty invoice-row-{{add $index 1}}">{{$row.Qty}}</div>
+      <div class="invoice-field invoice-row invoice-unit-price invoice-row-{{add $index 1}}">{{$row.UnitPrice}}</div>
+      <div class="invoice-field invoice-row invoice-amount invoice-row-{{add $index 1}}">{{$row.Amount}}</div>
+      {{end}}
+    {{end}}
+    <div class="invoice-field invoice-total-sales">{{.SalesInvoice.TotalSales}}</div>
+    <div class="invoice-field invoice-less-vat">{{.SalesInvoice.LessVAT}}</div>
+    <div class="invoice-field invoice-net-vat">{{.SalesInvoice.NetOfVAT}}</div>
+    <div class="invoice-field invoice-discount">{{.SalesInvoice.Discount}}</div>
+    <div class="invoice-field invoice-add-vat">{{.SalesInvoice.AddVAT}}</div>
+    <div class="invoice-field invoice-withholding">{{.SalesInvoice.Withholding}}</div>
+    <div class="invoice-field invoice-amount-due">{{.SalesInvoice.AmountDue}}</div>
+  </section>
+</main>
+<style>
+  @page {
+    size: auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #aeb6bc;
+  }
+
+  .invoice-print-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: start center;
+    padding: 16px;
+  }
+
+  .invoice-sheet {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+  }
+
+  /*
+    Invoice fields are placed against these fixed canvases. Replace the
+    background image files as needed; the image is stretched into this canvas
+    so the overlay coordinates stay stable.
+  */
+  .invoice-sheet-sales {
+    width: 784px;
+    height: 1032px;
+  }
+
+  .invoice-sheet-charge {
+    width: 1014px;
+    height: 1214px;
+  }
+
+  .invoice-background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+
+  .invoice-field {
+    position: absolute;
+    z-index: 1;
+    color: #111;
+    font: 700 16px Arial, Helvetica, sans-serif;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .invoice-sheet-sales .invoice-date {
+    left: 610px;
+    top: 224px;
+    width: 86px;
+    text-align: center;
+  }
+
+  .invoice-sheet-sales .invoice-date-year {
+    left: 733px;
+    top: 224px;
+    width: 36px;
+    text-align: center;
+  }
+
+  .invoice-sheet-sales .invoice-customer-name {
+    left: 148px;
+    top: 256px;
+    width: 610px;
+    font-size: 16px;
+  }
+
+  .invoice-sheet-sales .invoice-tin {
+    left: 70px;
+    top: 286px;
+    width: 690px;
+  }
+
+  .invoice-sheet-sales .invoice-address {
+    left: 92px;
+    top: 310px;
+    width: 666px;
+  }
+
+  .invoice-sheet-sales .invoice-row {
+    top: calc(354px + (var(--row) - 1) * 24px);
+  }
+
+  .invoice-sheet-sales .invoice-description {
+    left: 36px;
+    width: 420px;
+  }
+
+  .invoice-sheet-sales .invoice-qty {
+    left: 462px;
+    width: 62px;
+    text-align: center;
+  }
+
+  .invoice-sheet-sales .invoice-unit-price {
+    left: 530px;
+    width: 74px;
+    text-align: right;
+  }
+
+  .invoice-sheet-sales .invoice-amount {
+    left: 610px;
+    width: 144px;
+    text-align: right;
+  }
+
+  .invoice-row-1 { --row: 1; }
+  .invoice-row-2 { --row: 2; }
+  .invoice-row-3 { --row: 3; }
+  .invoice-row-4 { --row: 4; }
+  .invoice-row-5 { --row: 5; }
+  .invoice-row-6 { --row: 6; }
+  .invoice-row-7 { --row: 7; }
+  .invoice-row-8 { --row: 8; }
+  .invoice-row-9 { --row: 9; }
+  .invoice-row-10 { --row: 10; }
+  .invoice-row-11 { --row: 11; }
+  .invoice-row-12 { --row: 12; }
+  .invoice-row-13 { --row: 13; }
+
+  .invoice-sheet-sales .invoice-total-sales,
+  .invoice-sheet-sales .invoice-less-vat,
+  .invoice-sheet-sales .invoice-net-vat,
+  .invoice-sheet-sales .invoice-discount,
+  .invoice-sheet-sales .invoice-add-vat,
+  .invoice-sheet-sales .invoice-withholding,
+  .invoice-sheet-sales .invoice-amount-due {
+    left: 610px;
+    width: 144px;
+    text-align: right;
+  }
+
+  .invoice-sheet-sales .invoice-total-sales { top: 719px; }
+  .invoice-sheet-sales .invoice-less-vat { top: 745px; }
+  .invoice-sheet-sales .invoice-net-vat { top: 771px; }
+  .invoice-sheet-sales .invoice-discount { top: 798px; }
+  .invoice-sheet-sales .invoice-add-vat { top: 823px; }
+  .invoice-sheet-sales .invoice-withholding { top: 849px; }
+  .invoice-sheet-sales .invoice-amount-due { top: 875px; font-size: 17px; }
+
+  .invoice-sheet-charge .invoice-date {
+    left: 785px;
+    top: 146px;
+    width: 116px;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-date-year {
+    left: 934px;
+    top: 146px;
+    width: 50px;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-customer-name {
+    left: 180px;
+    top: 176px;
+    width: 796px;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-tin {
+    left: 64px;
+    top: 222px;
+    width: 912px;
+  }
+
+  .invoice-sheet-charge .invoice-address {
+    left: 76px;
+    top: 248px;
+    width: 900px;
+  }
+
+  .invoice-sheet-charge .invoice-row {
+    top: calc(307px + (var(--row) - 1) * 32px);
+  }
+
+  .invoice-sheet-charge .invoice-description {
+    left: 36px;
+    width: 550px;
+  }
+
+  .invoice-sheet-charge .invoice-qty {
+    left: 590px;
+    width: 88px;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-unit-price {
+    left: 686px;
+    width: 92px;
+    text-align: right;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-amount {
+    left: 786px;
+    width: 190px;
+    text-align: right;
+    font-size: 18px;
+  }
+
+  .invoice-sheet-charge .invoice-total-sales,
+  .invoice-sheet-charge .invoice-less-vat,
+  .invoice-sheet-charge .invoice-net-vat,
+  .invoice-sheet-charge .invoice-discount,
+  .invoice-sheet-charge .invoice-add-vat,
+  .invoice-sheet-charge .invoice-withholding,
+  .invoice-sheet-charge .invoice-amount-due {
+    left: 786px;
+    width: 190px;
+    text-align: right;
+  }
+
+  .invoice-sheet-charge .invoice-total-sales { top: 790px; }
+  .invoice-sheet-charge .invoice-less-vat { top: 817px; }
+  .invoice-sheet-charge .invoice-net-vat { top: 846px; }
+  .invoice-sheet-charge .invoice-discount { top: 875px; }
+  .invoice-sheet-charge .invoice-add-vat { top: 916px; }
+  .invoice-sheet-charge .invoice-withholding { top: 946px; }
+  .invoice-sheet-charge .invoice-amount-due { top: 977px; font-size: 17px; }
+
+  @media print {
+    html,
+    body {
+      background: #fff;
+    }
+
+    .invoice-print-page {
+      display: block;
+      padding: 0;
+      min-height: 0;
+    }
+
+    .invoice-sheet {
+      box-shadow: none;
+    }
+  }
+</style>
+<script>
+  window.addEventListener("load", function () {
+    window.print();
+  });
+</script>
+</body>
+</html>

@@ -23,8 +23,10 @@
         </label>
         <label class="legacy-inline-field legacy-strip-search">
           <span>Search:</span>
+          <button type="submit" class="legacy-strip-icon-button" title="Search" aria-label="Search records"><img src="/static/icons/report-toolbar-find.svg" alt=""></button>
           <input type="text" name="q" value="{{.Search}}" placeholder="Search records">
         </label>
+        <button type="submit" class="legacy-strip-refresh">Refresh</button>
       </div>
     </form>
     <div id="documents-table"
@@ -36,17 +38,63 @@
          hx-swap="outerHTML">
       <table data-fill-empty-rows>
         <thead>
+          {{if eq .Form.Kind "purchases"}}
+          <tr><th>Entry ID</th><th>Purchase ...</th><th>Reference</th><th>Supplier</th><th>Total Qty</th><th>Gross Total</th><th>Total Deducti...</th><th>Total Additio...</th><th>Net Total</th><th>Encoder</th><th>Last Update</th><th>Updated By</th></tr>
+          {{else if eq .Form.Kind "sales"}}
+          <tr><th>Entry ID</th><th>Sales Date</th><th>Reference</th><th>Client</th><th>Total Qty</th><th>Gross Total</th><th>Total Deducti...</th><th>Total Additio...</th><th>Net Total</th><th>Encoder</th><th>Last Update</th><th>Updated By</th></tr>
+          {{else if eq .Form.Kind "stock-transactions"}}
+          <tr><th>Entry ID</th><th>Transacti...</th><th>Transaction</th><th>Transactee</th><th>Net Total</th><th>Reference</th><th>Remarks</th><th>Encoder</th><th>Last Update</th><th>Updated By</th></tr>
+          {{else}}
           <tr><th>Entry ID</th><th>Date</th><th>Company</th><th>Reference</th><th>DR Ref</th><th>Status</th><th>Branch</th><th>Net</th><th>Encoder</th></tr>
+          {{end}}
         </thead>
         <tbody>
           {{if .User.CanWrite}}
           <tr class="add-new-row" tabindex="0" ondblclick="window.location='{{.Form.RouteBase}}/new'" onkeydown="if(event.key==='Enter'){window.location='{{.Form.RouteBase}}/new'}">
             <td>Add new ...</td>
-            <td colspan="8"></td>
+            {{if or (eq .Form.Kind "purchases") (eq .Form.Kind "sales")}}<td colspan="11"></td>{{else if eq .Form.Kind "stock-transactions"}}<td colspan="9"></td>{{else}}<td colspan="8"></td>{{end}}
           </tr>
           {{end}}
           {{range .Documents}}
           <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
+            {{if eq $.Form.Kind "purchases"}}
+            <td>{{.EntryID}}</td>
+            <td>{{.EntryDate.Format "01/02/2006"}}</td>
+            <td>{{.Reference}}</td>
+            <td>{{.Party}}</td>
+            <td>{{.TotalQty}}</td>
+            <td>{{.GrossTotal}}</td>
+            <td>{{.TotalLess}}</td>
+            <td>{{.TotalAdd}}</td>
+            <td>{{.NetTotal}}</td>
+            <td>{{.Encoder}}</td>
+            <td>{{.LastUpdate}}</td>
+            <td>{{.UpdatedBy}}</td>
+            {{else if eq $.Form.Kind "sales"}}
+            <td>{{.EntryID}}</td>
+            <td>{{.EntryDate.Format "01/02/2006"}}</td>
+            <td>{{.Reference}}</td>
+            <td>{{.Party}}</td>
+            <td>{{.TotalQty}}</td>
+            <td>{{.GrossTotal}}</td>
+            <td>{{.TotalLess}}</td>
+            <td>{{.TotalAdd}}</td>
+            <td>{{.NetTotal}}</td>
+            <td>{{.Encoder}}</td>
+            <td>{{.LastUpdate}}</td>
+            <td>{{.UpdatedBy}}</td>
+            {{else if eq $.Form.Kind "stock-transactions"}}
+            <td>{{.EntryID}}</td>
+            <td>{{.EntryDate.Format "01/02/2006"}}</td>
+            <td>{{.Transaction}}</td>
+            <td>{{.Transactee}}</td>
+            <td>{{.Net}}</td>
+            <td>{{.Reference}}</td>
+            <td>{{.Remarks}}</td>
+            <td>{{.Encoder}}</td>
+            <td>{{.LastUpdate}}</td>
+            <td>{{.UpdatedBy}}</td>
+            {{else}}
             <td>{{.EntryID}}</td>
             <td>{{.EntryDate.Format "2006-01-02"}}</td>
             <td>{{.Party}}</td>
@@ -56,14 +104,15 @@
             <td>{{.Branch}}</td>
             <td>{{.Net}}</td>
             <td>{{.Encoder}}</td>
+            {{end}}
           </tr>
           {{else}}
-          <tr><td colspan="9" class="empty">No entries yet.</td></tr>
+          <tr><td colspan="{{if or (eq .Form.Kind "purchases") (eq .Form.Kind "sales")}}12{{else if eq .Form.Kind "stock-transactions"}}10{{else}}9{{end}}" class="empty">No entries yet.</td></tr>
           {{end}}
         </tbody>
       </table>
     </div>
   </div>
 </main>
-<script src="/static/content-window.js?v=202606201840"></script>
+<script src="/static/content-window.js?v=202606230002"></script>
 {{template "foot" .}}

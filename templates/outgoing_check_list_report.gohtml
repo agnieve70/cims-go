@@ -19,7 +19,6 @@
     <fieldset class="report-coverage-fieldset">
       <legend>Specify Cut-off Date</legend>
       <label class="report-option-line">
-        <span>Cut-off:</span>
         <input type="date" name="cutoff_date" value="{{.OutgoingCheckReport.CutoffDate}}">
       </label>
     </fieldset>
@@ -37,7 +36,7 @@
       <ul>
         {{if eq .OutgoingCheckReport.ReportType "detailed"}}
           {{range $index, $group := .OutgoingCheckReport.Groups}}
-          <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.Payee}}</button></li>
+          <li class="report-tree-branch collapsed"><button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$group.Payee}}</button></li>
           {{else}}<li><span class="report-tree-empty">No outgoing checks</span></li>{{end}}
         {{else}}
           {{range $index, $row := .OutgoingCheckReport.SummaryRows}}
@@ -100,7 +99,7 @@
               <tr><td colspan="3" class="empty">No postdated outgoing checks after the cut-off date.</td></tr>
               {{end}}
             </tbody>
-            <tfoot><tr><td colspan="2">GRAND TOTAL:</td><td class="num">{{.OutgoingCheckReport.GrandTotal}}</td></tr></tfoot>
+            <tfoot><tr><td colspan="2">G R A N D&nbsp;&nbsp; T O T A L:</td><td class="num">{{.OutgoingCheckReport.GrandTotal}}</td></tr></tfoot>
           </table>
           {{else}}
           {{range $index, $group := .OutgoingCheckReport.Groups}}

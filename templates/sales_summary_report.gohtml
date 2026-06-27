@@ -123,7 +123,7 @@
           </header>
           {{if eq .SalesReport.ReportType "summary"}}
           <table class="report-table report-summary-table">
-            <thead><tr><th>Customer:</th><th>Gross Amount</th><th>Net Amount</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Gross Amount</th><th>Net Amount</th></tr></thead>
             <tbody>
               {{range $index, $row := .SalesReport.SummaryRows}}
               <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.Customer}}</td><td class="num">{{$row.Gross}}</td><td class="num">{{$row.Net}}</td></tr>

@@ -56,10 +56,10 @@
       <ul>
         {{range $index, $category := .SalesSummaryByItemReport.Categories}}
         <li class="report-tree-branch collapsed">
-          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
+          <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle data-report-highlight-category="sales-summary-item-category-{{add $index 1}}" aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$category.Category}}</button>
           <ul>
             {{range $rowIndex, $row := $category.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="sales-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
+            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="sales-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-highlight-target="sales-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.StockName}}</button></li>
             {{end}}
           </ul>
         </li>
@@ -94,14 +94,13 @@
           </header>
           {{range $index, $category := .SalesSummaryByItemReport.Categories}}
           <section class="report-detail-group sales-summary-item-category" data-report-page="{{add $index 1}}">
-            <div class="sales-summary-item-category-head"><strong>{{$category.Category}}</strong><span>TOTAL QUANTITY:</span><span class="num">{{$category.TotalQty}}</span><span>TOTAL AMOUNT:</span><span class="num">{{$category.TotalAmt}}</span></div>
+            <div class="sales-summary-item-category-head"><strong data-report-category-name>{{$category.Category}}</strong><span>TOTAL QUANTITY:</span><span class="num">{{$category.TotalQty}}</span><span>TOTAL AMOUNT:</span><span class="num">{{$category.TotalAmt}}</span></div>
             <table class="report-table sales-summary-item-table">
               <thead><tr><th>Stock Code</th><th>Stock Name</th><th>Quantity</th><th>Amount</th></tr></thead>
               <tbody>{{range $rowIndex, $row := $category.Rows}}<tr id="sales-summary-item-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-item><td>{{$row.StockCode}}</td><td>{{$row.StockName}}</td><td class="num">{{$row.Quantity}}</td><td class="num">{{$row.Amount}}</td></tr>{{end}}</tbody>
             </table>
           </section>
           {{else}}<p class="report-empty">No sales records for the selected coverage.</p>{{end}}
-          {{if .SalesSummaryByItemReport.Categories}}<table class="report-table sales-summary-item-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.SalesSummaryByItemReport.TotalQuantity}}</td><td class="num">{{.SalesSummaryByItemReport.TotalAmount}}</td></tr></tfoot></table>{{end}}
         </article>
       </div>
     </section>

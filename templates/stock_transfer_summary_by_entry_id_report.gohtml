@@ -50,11 +50,6 @@
         {{range $index, $branch := .StockTransferSummaryByEntryID.Branches}}
         <li class="report-tree-branch collapsed">
           <button type="button" class="report-tree-node report-tree-parent" data-report-tree-page="{{add $index 1}}" data-report-tree-toggle aria-expanded="false"><span class="report-tree-expander" aria-hidden="true"></span>{{$branch.Name}}</button>
-          <ul>
-            {{range $rowIndex, $row := $branch.Rows}}
-            <li><button type="button" class="report-tree-node report-tree-child" data-report-tree-page="{{add $index 1}}" data-report-scroll-target="transfer-entry-summary-row-{{add $index 1}}-{{add $rowIndex 1}}" data-report-filter-target="transfer-entry-summary-row-{{add $index 1}}-{{add $rowIndex 1}}">{{$row.EntryID}}</button></li>
-            {{end}}
-          </ul>
         </li>
         {{else}}<li><span class="report-tree-empty">No stock transfers</span></li>{{end}}
       </ul>
@@ -105,9 +100,6 @@
             </table>
           </section>
           {{else}}<p class="report-empty">No stock transfers for the selected coverage.</p>{{end}}
-          {{if .StockTransferSummaryByEntryID.Branches}}
-          <table class="report-table stock-transfer-entry-summary-grand-total"><tfoot><tr><td>Grand Total:</td><td class="num">{{.StockTransferSummaryByEntryID.TotalQuantity}}</td><td class="num">{{.StockTransferSummaryByEntryID.TotalAmount}}</td><td class="num">{{.StockTransferSummaryByEntryID.NetTotal}}</td></tr></tfoot></table>
-          {{end}}
         </article>
       </div>
     </section>

@@ -59,11 +59,7 @@
   <div class="report-viewer-shell">
     <aside class="report-preview-tree">
       <div>Preview</div>
-      <ul>
-        {{range $index, $row := .IncentiveReport.Rows}}
-        <li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.AgriPost}}</button></li>
-        {{else}}<li><span class="report-tree-empty">No incentive records</span></li>{{end}}
-      </ul>
+      <ul></ul>
     </aside>
     <section class="report-preview">
       <div class="report-preview-toolbar">
@@ -116,13 +112,19 @@
               {{range $index, $row := .IncentiveReport.Rows}}
               <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.AgriPost}}</td><td class="num">{{$row.Qty}}</td><td class="num">{{$row.VIP}}</td><td class="num">{{$row.APS}}</td><td class="num">{{$row.Takals}}</td><td class="num">{{$row.Farm}}</td></tr>
               {{else}}
-              <tr><td colspan="6" class="empty">No incentive records for the selected coverage.</td></tr>
+              <tr class="incentive-report-empty-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>
               {{end}}
             </tbody>
             <tfoot>
+              {{if .IncentiveReport.Rows}}
               <tr><td>Total :</td><td class="num">{{.IncentiveReport.TotalQty}}</td><td class="num">{{.IncentiveReport.TotalVIP}}</td><td class="num">{{.IncentiveReport.TotalAPS}}</td><td class="num">{{.IncentiveReport.TotalTakals}}</td><td class="num">{{.IncentiveReport.TotalFarm}}</td></tr>
               <tr><td>Group Total :</td><td></td><td colspan="4" class="num">{{.IncentiveReport.GrandTotal}}</td></tr>
               <tr><td>Grand Total :</td><td></td><td colspan="4" class="num">{{.IncentiveReport.GrandTotal}}</td></tr>
+              {{else}}
+              <tr><td>Total :</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+              <tr><td>Group Total :</td><td></td><td colspan="4" class="num"></td></tr>
+              <tr><td>Grand Total :</td><td></td><td colspan="4" class="num"></td></tr>
+              {{end}}
             </tfoot>
           </table>
           <div class="report-page-label">Page 1 of {{.IncentiveReport.TotalPages}}</div>

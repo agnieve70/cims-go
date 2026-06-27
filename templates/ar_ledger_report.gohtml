@@ -73,7 +73,6 @@
           <li><button type="button" class="report-tree-node" data-report-tree-page="{{add $index 1}}">{{$group.CustomerName}}</button></li>
           {{else}}<li><span class="report-tree-empty">No AR ledger records</span></li>{{end}}
         {{else if eq .ARLedgerReport.ReportType "aging"}}
-          {{range $index, $row := .ARLedgerReport.AgingRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Company}}</button></li>{{else}}<li><span class="report-tree-empty">No AR ledger records</span></li>{{end}}
         {{else}}
           {{range $index, $row := .ARLedgerReport.SummaryRows}}<li><button type="button" class="report-tree-node" data-report-summary-row="{{add $index 1}}">{{$row.Company}}</button></li>{{else}}<li><span class="report-tree-empty">No AR ledger records</span></li>{{end}}
         {{end}}
@@ -122,7 +121,7 @@
           <header class="report-paper-header">
             <h1>{{.ARLedgerReport.Title}}</h1>
             <h2>{{if eq .ARLedgerReport.ReportType "aging"}}Accounts Receivable Aging{{else if eq .ARLedgerReport.ReportType "summary"}}Accounts Receivable Summary{{else}}Accounts Receivable Ledger{{end}}</h2>
-            <p>{{if eq .ARLedgerReport.ReportType "detailed"}}{{.ARLedgerReport.RangeLabel}}{{else}}{{.ARLedgerReport.AsOfLabel}}{{end}}</p>
+            {{if ne .ARLedgerReport.ReportType "detailed"}}<p>{{.ARLedgerReport.AsOfLabel}}</p>{{end}}
           </header>
           {{if eq .ARLedgerReport.ReportType "summary"}}
           <table class="report-table report-summary-table">
@@ -138,7 +137,7 @@
           </table>
           {{else if eq .ARLedgerReport.ReportType "aging"}}
           <table class="report-table report-aging-table">
-            <thead><tr><th>Company</th><th>Last Payment</th><th>0 to 30 Days</th><th>31 to 60 Days</th><th>61 to 90 Days</th><th>90 Days Over</th><th>Balance</th><th>Outstanding Check</th><th>Total Balance</th></tr></thead>
+            <thead><tr><th>Company</th><th>Last Payment</th><th>0 to30 Days</th><th>31 to 60 Days</th><th>61 to 90 Days</th><th>90 Days Over</th><th>Balance</th><th>Outstanding Check</th><th>Total Balance</th></tr></thead>
             <tbody>
               {{range $index, $row := .ARLedgerReport.AgingRows}}
               <tr data-report-summary-row="{{add $index 1}}"><td>{{$row.Company}}</td><td>{{$row.LastPayment}}</td><td class="num">{{$row.Bucket0}}</td><td class="num">{{$row.Bucket31}}</td><td class="num">{{$row.Bucket61}}</td><td class="num">{{$row.Bucket90}}</td><td class="num">{{$row.Balance}}</td><td class="num">{{$row.OutstandingCheck}}</td><td class="num">{{$row.TotalBalance}}</td></tr>
