@@ -870,6 +870,62 @@ func TestSalesEditSelectsCurrentSOAndRows(t *testing.T) {
 	}
 }
 
+func TestSalesEditRefreshesRowsFromSelectedSO(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":                "ENT-197",
+			"record_id":         "197",
+			"entry_date":        "2026-04-21",
+			"dr_document_id":    "7",
+			"dr_document_label": "SO-0007 - Customer A",
+			"party_id":          "3",
+		},
+		documentLines: map[string][]models.Record{
+			"details": {{
+				"dr_line_id":  "11",
+				"stock_id":    "5",
+				"stock_label": "OLD - Removed Stock",
+				"qty":         "4",
+				"unit_cost":   "12.50",
+			}},
+		},
+		dr: repositories.DRSelection{
+			Values: models.Record{"dr_document_id": "7", "party_id": "3"},
+			Rows: []models.Record{{
+				"dr_line_id":  "21",
+				"stock_id":    "8",
+				"stock_label": "NEW - Added Stock",
+				"qty":         "6",
+				"unit_cost":   "15.75",
+				"capital":     "15.75",
+			}},
+		},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit?dr_document_id=7", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `NEW - Added Stock`) || !strings.Contains(body, `name="line_details_qty" value="6" readonly`) {
+		t.Fatalf("body missing refreshed SO detail row")
+	}
+	if strings.Contains(body, `OLD - Removed Stock`) {
+		t.Fatalf("body still contains stale sales detail row")
+	}
+}
+
 func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 	store := &fakeStore{
 		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
@@ -995,6 +1051,8 @@ func TestStockTransactionFormIncludesStockOutPicker(t *testing.T) {
 		`data-transfer-dr-browse`,
 		`data-transfer-dr-picker-search`,
 		`data-transfer-dr-picker-results`,
+		`data-transfer-edit-stock-out`,
+		`data-transfer-stock-out-editor-frame`,
 		`SO-0007 - Customer A`,
 		`class="sales-summary-body transfer-summary-body"`,
 		`Discounts/Additionals/Summary`,
@@ -1003,6 +1061,62 @@ func TestStockTransactionFormIncludesStockOutPicker(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %s", want)
 		}
+	}
+}
+
+func TestStockTransactionEditRefreshesRowsFromSelectedSO(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":                "ST-197",
+			"record_id":         "197",
+			"entry_date":        "2026-04-21",
+			"dr_document_id":    "7",
+			"dr_document_label": "SO-0007 - Customer A",
+			"branch_location":   "1",
+		},
+		documentLines: map[string][]models.Record{
+			"details": {{
+				"dr_line_id":  "11",
+				"stock_id":    "5",
+				"stock_label": "OLD - Removed Stock",
+				"qty":         "4",
+				"unit_cost":   "12.50",
+			}},
+		},
+		dr: repositories.DRSelection{
+			Values: models.Record{"dr_document_id": "7", "party_id": "3"},
+			Rows: []models.Record{{
+				"dr_line_id":  "21",
+				"stock_id":    "8",
+				"stock_label": "NEW - Added Stock",
+				"qty":         "6",
+				"unit_cost":   "15.75",
+				"capital":     "15.75",
+			}},
+		},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/197/edit?dr_document_id=7", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `NEW - Added Stock`) || !strings.Contains(body, `name="line_details_qty" value="6" readonly`) {
+		t.Fatalf("body missing refreshed SO detail row")
+	}
+	if strings.Contains(body, `OLD - Removed Stock`) {
+		t.Fatalf("body still contains stale stock transaction detail row")
 	}
 }
 

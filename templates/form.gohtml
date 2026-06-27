@@ -617,7 +617,11 @@
 
       {{$transferDetailsGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section sales-line-details">
-        <div class="section-head"><h2>{{$transferDetailsGroup.Label}}</h2>{{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select an SO number first.</span>{{end}}</div>
+        <div class="section-head">
+          <h2>{{$transferDetailsGroup.Label}}</h2>
+          <button type="button" class="section-inline-action" data-transfer-edit-stock-out disabled>Edit Stock Out File</button>
+          {{if not (fieldValue $.Record "dr_document_id")}}<span class="muted">Select an SO number first.</span>{{end}}
+        </div>
         <div class="table-wrap modal-table">
           <table class="editable-grid sales-details-grid">
             <thead><tr><th>No.</th><th>Stock Code</th><th>Stock Name</th><th>Qty</th><th>Unit Cost</th><th>Amount</th><th>Capital</th><th>Markup</th><th>MU %</th></tr></thead>
@@ -654,6 +658,17 @@
           </table>
         </div>
       </section>
+
+      <div class="embedded-record-modal is-hidden" data-transfer-stock-out-editor aria-hidden="true">
+        <div class="embedded-record-modal-backdrop" data-transfer-stock-out-editor-close></div>
+        <div class="embedded-record-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-stock-out-editor-title">
+          <div class="embedded-record-modal-titlebar">
+            <h3 id="transfer-stock-out-editor-title">Edit Stock Out File</h3>
+            <button type="button" class="embedded-record-modal-close" data-transfer-stock-out-editor-close aria-label="Close">×</button>
+          </div>
+          <iframe class="embedded-record-modal-frame" data-transfer-stock-out-editor-frame title="Stock Out File Editor" loading="lazy"></iframe>
+        </div>
+      </div>
 
       {{$transferDiscountGroup := index .Form.LineGroups 1}}
       {{$transferAdditionalGroup := index .Form.LineGroups 2}}
@@ -1900,7 +1915,7 @@
       });
       formBody.querySelectorAll("button").forEach(function (button) {
         var originalDisabled = button.dataset.originalDisabled === "true";
-        var keepEnabledWhileLocked = button.matches("[data-purchase-tab], [data-sales-tab], [data-sales-edit-stock-out]");
+        var keepEnabledWhileLocked = button.matches("[data-purchase-tab], [data-sales-tab], [data-sales-edit-stock-out], [data-transfer-edit-stock-out]");
         button.disabled = locked && !keepEnabledWhileLocked ? true : originalDisabled;
         if (locked && !keepEnabledWhileLocked) button.setAttribute("tabindex", "-1");
         else restoreElementTabIndex(button);
@@ -3179,6 +3194,14 @@
     if (salesStockEditorState.root && salesStockEditorState.root.parentElement !== document.body) {
       document.body.appendChild(salesStockEditorState.root);
     }
+    var transferStockEditorState = {
+      root: document.querySelector("[data-transfer-stock-out-editor]"),
+      frame: document.querySelector("[data-transfer-stock-out-editor-frame]"),
+      trigger: document.querySelector("[data-transfer-edit-stock-out]")
+    };
+    if (transferStockEditorState.root && transferStockEditorState.root.parentElement !== document.body) {
+      document.body.appendChild(transferStockEditorState.root);
+    }
 
     function salesDetailRows() {
       return Array.prototype.slice.call(document.querySelectorAll(".sales-detail-row"));
@@ -3193,9 +3216,19 @@
       return select ? select.value : "";
     }
 
+    function selectedTransferDRDocumentID() {
+      var select = document.querySelector("[data-transfer-dr-select]");
+      return select ? select.value : "";
+    }
+
     function setSalesEditStockButtonState() {
       if (!salesStockEditorState.trigger) return;
       salesStockEditorState.trigger.disabled = !selectedSalesDRDocumentID();
+    }
+
+    function setTransferEditStockButtonState() {
+      if (!transferStockEditorState.trigger) return;
+      transferStockEditorState.trigger.disabled = !selectedTransferDRDocumentID();
     }
 
     function selectSalesDetailRow(row) {
@@ -3204,6 +3237,7 @@
         detailRow.classList.toggle("is-selected", detailRow === salesStockEditorState.activeRow);
       });
       setSalesEditStockButtonState();
+      setTransferEditStockButtonState();
     }
 
     function ensureSelectedSalesDetailRow() {
@@ -3234,12 +3268,32 @@
       }
     }
 
+    function closeTransferStockEditor() {
+      if (!transferStockEditorState.root) return;
+      transferStockEditorState.root.classList.add("is-hidden");
+      transferStockEditorState.root.setAttribute("aria-hidden", "true");
+      if (transferStockEditorState.frame) {
+        transferStockEditorState.frame.removeAttribute("src");
+      }
+      if (transferStockEditorState.trigger) {
+        transferStockEditorState.trigger.focus();
+      }
+    }
+
     function openSalesStockEditor() {
       var drDocumentID = selectedSalesDRDocumentID();
       if (!drDocumentID || !salesStockEditorState.root || !salesStockEditorState.frame) return;
       salesStockEditorState.root.classList.remove("is-hidden");
       salesStockEditorState.root.setAttribute("aria-hidden", "false");
       salesStockEditorState.frame.src = "/transactions/dr/" + encodeURIComponent(drDocumentID) + "/edit?embedded=1";
+    }
+
+    function openTransferStockEditor() {
+      var drDocumentID = selectedTransferDRDocumentID();
+      if (!drDocumentID || !transferStockEditorState.root || !transferStockEditorState.frame) return;
+      transferStockEditorState.root.classList.remove("is-hidden");
+      transferStockEditorState.root.setAttribute("aria-hidden", "false");
+      transferStockEditorState.frame.src = "/transactions/dr/" + encodeURIComponent(drDocumentID) + "/edit?embedded=1";
     }
 
     function resizeSalesStockEditorFrame() {
@@ -3253,6 +3307,22 @@
         );
         var maxHeight = Math.max(320, window.innerHeight - 110);
         salesStockEditorState.frame.style.height = Math.min(contentHeight, maxHeight) + "px";
+      } catch (error) {
+        // Same-origin iframe today; keep the CSS fallback if that ever changes.
+      }
+    }
+
+    function resizeTransferStockEditorFrame() {
+      if (!transferStockEditorState.frame) return;
+      try {
+        var frameDocument = transferStockEditorState.frame.contentDocument;
+        if (!frameDocument || !frameDocument.body) return;
+        var contentHeight = Math.max(
+          frameDocument.body.scrollHeight,
+          frameDocument.documentElement ? frameDocument.documentElement.scrollHeight : 0
+        );
+        var maxHeight = Math.max(320, window.innerHeight - 110);
+        transferStockEditorState.frame.style.height = Math.min(contentHeight, maxHeight) + "px";
       } catch (error) {
         // Same-origin iframe today; keep the CSS fallback if that ever changes.
       }
@@ -4379,10 +4449,17 @@
     if (salesStockEditorState.trigger) {
       salesStockEditorState.trigger.addEventListener("click", openSalesStockEditor);
     }
+    if (transferStockEditorState.trigger) {
+      transferStockEditorState.trigger.addEventListener("click", openTransferStockEditor);
+    }
     if (salesStockEditorState.frame) {
       salesStockEditorState.frame.addEventListener("load", resizeSalesStockEditorFrame);
     }
+    if (transferStockEditorState.frame) {
+      transferStockEditorState.frame.addEventListener("load", resizeTransferStockEditorFrame);
+    }
     window.addEventListener("resize", resizeSalesStockEditorFrame);
+    window.addEventListener("resize", resizeTransferStockEditorFrame);
 
     salesDetailRows().forEach(function (row) {
       row.addEventListener("click", function () {
@@ -4393,6 +4470,9 @@
     document.querySelectorAll("[data-sales-stock-out-editor-close]").forEach(function (button) {
       button.addEventListener("click", closeSalesStockEditor);
     });
+    document.querySelectorAll("[data-transfer-stock-out-editor-close]").forEach(function (button) {
+      button.addEventListener("click", closeTransferStockEditor);
+    });
 
     window.addEventListener("message", function (event) {
       if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
@@ -4401,12 +4481,15 @@
         closeSalesStockEditor();
       } else if (event.data.type === "cims-stock-out-saved") {
         closeSalesStockEditor();
-        var drDocumentID = /^\d+$/.test(String(event.data.id || "")) ? String(event.data.id) : selectedSalesDRDocumentID();
+        closeTransferStockEditor();
+        var selectedDRDocumentID = selectedSalesDRDocumentID() || selectedTransferDRDocumentID();
+        var drDocumentID = /^\d+$/.test(String(event.data.id || "")) ? String(event.data.id) : selectedDRDocumentID;
         if (drDocumentID) {
           window.location.replace(window.location.pathname + "?dr_document_id=" + encodeURIComponent(drDocumentID) + "&_=" + Date.now());
         }
       } else if (event.data.type === "cims-embedded-close") {
         closeSalesStockEditor();
+        closeTransferStockEditor();
       }
     });
 

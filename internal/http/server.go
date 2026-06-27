@@ -432,6 +432,21 @@ func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	if drIDParam := strings.TrimSpace(r.URL.Query().Get("dr_document_id")); drIDParam != "" {
+		refreshedRows, err := a.loadTransactionFormRows(r.Context(), form, values, drIDParam)
+		if err != nil {
+			a.renderFormError(w, r, form, values, lineRows, err)
+			return
+		}
+		if len(refreshedRows) > 0 {
+			if lineRows == nil {
+				lineRows = map[string][]models.Record{}
+			}
+			for group, rows := range refreshedRows {
+				lineRows[group] = rows
+			}
+		}
+	}
 	a.renderForm(w, r, form, values, "/transactions/"+form.Kind+"/"+strconv.FormatInt(id, 10), lineRows)
 }
 
