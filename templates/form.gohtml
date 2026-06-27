@@ -3713,6 +3713,87 @@
       return null;
     }
 
+    function isDeletableDetailGridRow(row) {
+      return !!row && (
+        row.hasAttribute("data-stock-picker-row") ||
+        row.classList.contains("sales-detail-row") ||
+        row.classList.contains("expense-detail-row") ||
+        row.classList.contains("other-income-detail-row") ||
+        row.classList.contains("checks-in-detail-row")
+      );
+    }
+
+    function clearEditableGridRow(row) {
+      if (!row) return;
+      if (row.hasAttribute("data-stock-picker-row")) {
+        clearStockPickerRow(row);
+        return;
+      }
+      row.querySelectorAll(".editable-cell").forEach(function (cell) {
+        cell.textContent = "";
+      });
+      row.querySelectorAll(".cell-combobox, .cell-date").forEach(function (input) {
+        input.value = "";
+      });
+      row.querySelectorAll("input[type='hidden']").forEach(function (input) {
+        input.value = "";
+      });
+    }
+
+    function refreshEditableGridAfterDelete(row) {
+      if (!row) return;
+      if (row.hasAttribute("data-stock-picker-row")) {
+        var kind = row.getAttribute("data-stock-picker-row") || "purchase";
+        if (kind === "dr") {
+          renumberDRDetails();
+          ensureStockPickerBlankRow("dr");
+        } else {
+          renumberPurchaseDetails();
+          updatePurchaseTotals();
+          ensureStockPickerBlankRow(kind);
+        }
+        return;
+      }
+      if (row.classList.contains("sales-detail-row")) {
+        hydrateSalesDetails();
+        return;
+      }
+      if (row.classList.contains("expense-detail-row")) {
+        hydrateExpenseRows();
+        return;
+      }
+      if (row.classList.contains("other-income-detail-row")) {
+        hydrateOtherIncomeRows();
+        return;
+      }
+      if (row.classList.contains("checks-in-detail-row")) {
+        hydrateChecksInRows();
+      }
+    }
+
+    function deleteEditableDetailGridRow(target) {
+      var currentTarget = getEditableGridTarget(target);
+      var row = getEditableGridRow(currentTarget);
+      if (!currentTarget || !isDeletableDetailGridRow(row)) return false;
+      var selector = getEditableGridRowSelector(row);
+      var rows = selector ? Array.prototype.slice.call(document.querySelectorAll(selector)) : [row];
+      var index = rows.indexOf(row);
+      var focusRow = rows[index + 1] || rows[index - 1] || row;
+      if (rows.length <= 1) {
+        clearEditableGridRow(row);
+        refreshEditableGridAfterDelete(row);
+        focusRow = row;
+      } else {
+        row.remove();
+        refreshEditableGridAfterDelete(row);
+      }
+      var nextTargets = getEditableGridTargets(focusRow);
+      if (nextTargets.length) {
+        focusEditableGridTarget(nextTargets[Math.min(index, nextTargets.length - 1)]);
+      }
+      return true;
+    }
+
     function findNextEditableGridRow(row) {
       var selector = getEditableGridRowSelector(row);
       if (!selector) return null;
@@ -3862,6 +3943,13 @@
       if (!input || event.key !== "Enter") return;
       event.preventDefault();
       openPurchaseStockPicker(input);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (!deleteEditableDetailGridRow(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
     });
 
     document.addEventListener("keydown", function (event) {
