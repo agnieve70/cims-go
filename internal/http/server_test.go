@@ -1154,12 +1154,18 @@ func TestMergeLinkedStockOutDetailRowsPreservesSalesEditableValues(t *testing.T)
 		"unit_cost":      "22.25",
 		"discount":       "1.50",
 		"other_discount": "0.75",
-		"capital":        "22.25",
-		"markup":         "15.00",
-		"markup_pct":     "10.00",
 	} {
 		if got[0][field] != want {
 			t.Fatalf("%s = %q, want %q", field, got[0][field], want)
+		}
+	}
+	for field, want := range map[string]string{
+		"capital":    "15.75",
+		"markup":     "",
+		"markup_pct": "",
+	} {
+		if got[0][field] != want {
+			t.Fatalf("%s = %q, want refreshed/calculated value %q", field, got[0][field], want)
 		}
 	}
 }
@@ -1194,13 +1200,19 @@ func TestMergeLinkedStockOutDetailRowsPreservesStockTransactionEditableValues(t 
 		t.Fatalf("qty = %q, want refreshed Stock Out qty", got[0]["qty"])
 	}
 	for field, want := range map[string]string{
-		"unit_cost":  "22.25",
-		"capital":    "22.25",
-		"markup":     "15.00",
-		"markup_pct": "10.00",
+		"unit_cost": "22.25",
 	} {
 		if got[0][field] != want {
 			t.Fatalf("%s = %q, want %q", field, got[0][field], want)
+		}
+	}
+	for field, want := range map[string]string{
+		"capital":    "15.75",
+		"markup":     "",
+		"markup_pct": "",
+	} {
+		if got[0][field] != want {
+			t.Fatalf("%s = %q, want refreshed/calculated value %q", field, got[0][field], want)
 		}
 	}
 	if got[0]["discount"] != "2.00" || got[0]["other_discount"] != "1.00" {

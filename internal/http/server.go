@@ -475,7 +475,7 @@ func mergeLinkedStockOutDetailRows(refreshedRows []models.Record, existingRows [
 	if len(refreshedRows) == 0 || len(existingRows) == 0 {
 		return refreshedRows
 	}
-	fields := []string{"unit_cost", "capital", "markup", "markup_pct"}
+	fields := []string{"unit_cost"}
 	if kind == "sales" {
 		fields = append(fields, "discount", "other_discount")
 	}
