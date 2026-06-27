@@ -3041,7 +3041,7 @@
       }
       var net = amount - discount - otherDiscount;
       var markup = net - totalCapital;
-      var markupPct = totalCapital ? markup / totalCapital : 0;
+      var markupPct = amount ? markup / amount : 0;
       var netCell = row.querySelector("[data-field='net_amount']");
       var markupCell = row.querySelector("[data-field='markup']");
       var markupPctCell = row.querySelector("[data-field='markup_pct']");
@@ -3098,7 +3098,7 @@
       tbody.innerHTML = "";
       Object.keys(groups).sort().forEach(function (groupName, index) {
         var group = groups[groupName];
-        var avgMarkup = group.capital ? group.markup / group.capital : 0;
+        var avgMarkup = group.amount ? group.markup / group.amount : 0;
         var tr = document.createElement("tr");
         [String(index + 1) + ".", groupName, formatMoney(group.net), formatMoney(group.capital), formatZeroMoney(group.markup), formatZeroPercent(avgMarkup)].forEach(function (value) {
           var td = document.createElement("td");
@@ -3120,16 +3120,18 @@
       rows.forEach(function (row) {
         syncSalesDetailRow(row);
         var groupName = ((row.querySelector("[data-field-input='stock_group']") || {}).value || "Ungrouped").trim() || "Ungrouped";
-        if (!groups[groupName]) groups[groupName] = { net: 0, capital: 0, markup: 0 };
+        if (!groups[groupName]) groups[groupName] = { amount: 0, net: 0, capital: 0, markup: 0 };
         var netAmountCell = row.querySelector("[data-field='net_amount']");
+        var rowAmount = parseMoney(cellText(row.querySelector("[data-field='amount']")));
         var rowNet = parseMoney(cellText(netAmountCell || row.querySelector("[data-field='amount']")));
         var rowCapital = parseMoney(cellText(row.querySelector("[data-field='capital']")));
         var rowMarkup = rowNet - rowCapital;
         totalQty += parseMoney(cellText(row.querySelector("[data-field='qty']")));
-        gross += parseMoney(cellText(row.querySelector("[data-field='amount']")));
+        gross += rowAmount;
         capital += rowCapital;
         lineDiscount += parseMoney(cellText(row.querySelector("[data-field='discount']"))) + parseMoney(cellText(row.querySelector("[data-field='other_discount']")));
         markup += rowMarkup;
+        groups[groupName].amount += rowAmount;
         groups[groupName].net += rowNet;
         groups[groupName].capital += rowCapital;
         groups[groupName].markup += rowMarkup;

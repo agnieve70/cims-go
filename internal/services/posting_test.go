@@ -81,14 +81,27 @@ func TestSalesTotalsMarkupAndBalance(t *testing.T) {
 	if total.TotalMarkup != 17250 {
 		t.Fatalf("TotalMarkup = %d, want 17250", total.TotalMarkup)
 	}
-	if total.AverageMarkupBP != 5391 {
-		t.Fatalf("AverageMarkupBP = %d, want 5391", total.AverageMarkupBP)
+	if total.AverageMarkupBP != 3450 {
+		t.Fatalf("AverageMarkupBP = %d, want 3450", total.AverageMarkupBP)
 	}
 	if total.Net != 48750 {
 		t.Fatalf("Net = %d, want 48750", total.Net)
 	}
 	if total.Balance != 33750 {
 		t.Fatalf("Balance = %d, want 33750", total.Balance)
+	}
+}
+
+func TestSalesMarkupPercentUsesAmountAsDenominator(t *testing.T) {
+	total := ComputeSales(SalesDocument{
+		Lines: []SalesLine{{Qty: 1, UnitCost: 1150000, Capital: 1000000}},
+	})
+
+	if total.TotalMarkup != 150000 {
+		t.Fatalf("TotalMarkup = %d, want 150000", total.TotalMarkup)
+	}
+	if total.AverageMarkupBP != 1304 {
+		t.Fatalf("AverageMarkupBP = %d, want 1304", total.AverageMarkupBP)
 	}
 }
 

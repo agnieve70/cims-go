@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -40,6 +41,7 @@ type fakeStore struct {
 	lastSavedDocKind      string
 	lastSavedDocID        int64
 	lastSavedDocInput     repositories.DocumentInput
+	drErr                 error
 	userByIDCalls         int
 	emptyIncentiveRows    bool
 }
@@ -134,6 +136,9 @@ func (s *fakeStore) GetDocument(context.Context, models.FormDefinition, int64) (
 }
 
 func (s *fakeStore) LoadDRSelection(context.Context, int64) (repositories.DRSelection, error) {
+	if s.drErr != nil {
+		return repositories.DRSelection{}, s.drErr
+	}
 	return s.dr, nil
 }
 
@@ -210,9 +215,9 @@ func (s *fakeStore) SalesByORCIDRNumberReportRows(context.Context, time.Time, ti
 
 func (s *fakeStore) SalesMarkupByTransactionReportRows(context.Context, time.Time, time.Time) ([]models.SalesMarkupByTransactionReportRow, error) {
 	return []models.SalesMarkupByTransactionReportRow{
-		{SalesDate: "01/02/2026", EntryID: "92196", SalesType: "Cash", ReceiptNo: "CI 011428", ItemGroup: "HOGS", MarkupCents: 9999, CapitalCents: 198000},
-		{SalesDate: "01/02/2026", EntryID: "92197", SalesType: "Cash", ReceiptNo: "CI 011429", ItemGroup: "GRAINS", MarkupCents: 3000, CapitalCents: 82418},
-		{SalesDate: "01/02/2026", EntryID: "92207", SalesType: "Charge", ReceiptNo: "CHG 005150", ItemGroup: "POULTRY SOLUTION", MarkupCents: 2610000, CapitalCents: 37716763},
+		{SalesDate: "01/02/2026", EntryID: "92196", SalesType: "Cash", ReceiptNo: "CI 011428", ItemGroup: "HOGS", MarkupCents: 9999, CapitalCents: 198000, AmountCents: 100000},
+		{SalesDate: "01/02/2026", EntryID: "92197", SalesType: "Cash", ReceiptNo: "CI 011429", ItemGroup: "GRAINS", MarkupCents: 3000, CapitalCents: 82418, AmountCents: 150000},
+		{SalesDate: "01/02/2026", EntryID: "92207", SalesType: "Charge", ReceiptNo: "CHG 005150", ItemGroup: "POULTRY SOLUTION", MarkupCents: 2610000, CapitalCents: 37716763, AmountCents: 50000000},
 	}, nil
 }
 
@@ -385,9 +390,9 @@ func (s *fakeStore) StockTransferByEntryIDReportRows(context.Context, time.Time,
 
 func (s *fakeStore) StockTransferMarkupByTransactionReportRows(context.Context, time.Time, time.Time) ([]models.StockTransferMarkupByTransactionReportRow, error) {
 	return []models.StockTransferMarkupByTransactionReportRow{
-		{TransferDate: "01/02/2026", EntryID: "33137", TransferTo: "HS STA.MARIA", ReceiptNo: "ST 23343", ItemGroup: "HOGS", MarkupCents: 442420, CapitalCents: 6744200},
-		{TransferDate: "01/02/2026", EntryID: "33137", TransferTo: "HS STA.MARIA", ReceiptNo: "ST 23343", ItemGroup: "SALTO", MarkupCents: -48790, CapitalCents: 171900},
-		{TransferDate: "01/02/2026", EntryID: "33138", TransferTo: "HERNANS DIGOS", ReceiptNo: "ST 23344", ItemGroup: "GALLIMAX", MarkupCents: 187485, CapitalCents: 2670536},
+		{TransferDate: "01/02/2026", EntryID: "33137", TransferTo: "HS STA.MARIA", ReceiptNo: "ST 23343", ItemGroup: "HOGS", MarkupCents: 442420, CapitalCents: 6744200, AmountCents: 8000000},
+		{TransferDate: "01/02/2026", EntryID: "33137", TransferTo: "HS STA.MARIA", ReceiptNo: "ST 23343", ItemGroup: "SALTO", MarkupCents: -48790, CapitalCents: 171900, AmountCents: 1200000},
+		{TransferDate: "01/02/2026", EntryID: "33138", TransferTo: "HERNANS DIGOS", ReceiptNo: "ST 23344", ItemGroup: "GALLIMAX", MarkupCents: 187485, CapitalCents: 2670536, AmountCents: 4500000},
 	}, nil
 }
 
@@ -926,6 +931,52 @@ func TestSalesEditRefreshesRowsFromSelectedSO(t *testing.T) {
 	}
 }
 
+func TestSalesEditKeepsSavedRowsWhenSelectedSOHasNoRemainingQuantity(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":                "ENT-197",
+			"record_id":         "197",
+			"entry_date":        "2026-04-21",
+			"dr_document_id":    "7",
+			"dr_document_label": "SO-0007 - Customer A",
+			"party_id":          "3",
+		},
+		documentLines: map[string][]models.Record{
+			"details": {{
+				"dr_line_id":  "11",
+				"stock_id":    "5",
+				"stock_label": "ST-01 - Test Stock",
+				"qty":         "4",
+				"unit_cost":   "12.50",
+			}},
+		},
+		drErr: errors.New("selected DR has no remaining quantity"),
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, "selected DR has no remaining quantity") {
+		t.Fatalf("body should not show no remaining quantity alert")
+	}
+	if !strings.Contains(body, `ST-01 - Test Stock`) || !strings.Contains(body, `name="line_details_qty" value="4" readonly`) {
+		t.Fatalf("body should keep saved sales detail row")
+	}
+}
+
 func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 	store := &fakeStore{
 		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
@@ -1120,6 +1171,52 @@ func TestStockTransactionEditRefreshesRowsFromSelectedSO(t *testing.T) {
 	}
 	if strings.Contains(body, `OLD - Removed Stock`) {
 		t.Fatalf("body still contains stale stock transaction detail row")
+	}
+}
+
+func TestStockTransactionEditKeepsSavedRowsWhenSelectedSOHasNoRemainingQuantity(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":                "ST-197",
+			"record_id":         "197",
+			"entry_date":        "2026-04-21",
+			"dr_document_id":    "7",
+			"dr_document_label": "SO-0007 - Customer A",
+			"branch_location":   "1",
+		},
+		documentLines: map[string][]models.Record{
+			"details": {{
+				"dr_line_id":  "11",
+				"stock_id":    "5",
+				"stock_label": "ST-01 - Test Stock",
+				"qty":         "4",
+				"unit_cost":   "12.50",
+			}},
+		},
+		drErr: errors.New("selected DR has no remaining quantity"),
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/197/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, "selected DR has no remaining quantity") {
+		t.Fatalf("body should not show no remaining quantity alert")
+	}
+	if !strings.Contains(body, `ST-01 - Test Stock`) || !strings.Contains(body, `name="line_details_qty" value="4" readonly`) {
+		t.Fatalf("body should keep saved stock transaction detail row")
 	}
 }
 
@@ -3097,7 +3194,7 @@ func TestSalesMarkupByTransactionReportRenders(t *testing.T) {
 	if !strings.Contains(body, "Sales Date") || !strings.Contains(body, "Receipt No.") || !strings.Contains(body, "Markup %") {
 		t.Fatalf("body missing sales markup columns")
 	}
-	if !strings.Contains(body, "99.99") || !strings.Contains(body, "5.05") || !strings.Contains(body, "26,100.00") {
+	if !strings.Contains(body, "99.99") || !strings.Contains(body, "10.00") || !strings.Contains(body, "26,100.00") {
 		t.Fatalf("body missing sales markup values")
 	}
 	if strings.Contains(body, `class="report-tree-node"`) || strings.Contains(body, "No markup records") {

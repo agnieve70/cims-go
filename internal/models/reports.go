@@ -76,6 +76,7 @@ type SalesMarkupByTransactionReportRow struct {
 	ItemGroup    string
 	MarkupCents  int64
 	CapitalCents int64
+	AmountCents  int64
 }
 
 type SalesByCustomerReportRow struct {
@@ -262,6 +263,7 @@ type StockTransferMarkupByTransactionReportRow struct {
 	ItemGroup    string
 	MarkupCents  int64
 	CapitalCents int64
+	AmountCents  int64
 }
 
 type StockLedgerReportRow struct {

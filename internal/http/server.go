@@ -414,6 +414,11 @@ func (a *App) transactionForm(w http.ResponseWriter, r *http.Request) {
 	values := models.Record{"entry_date": a.now().Format("2006-01-02")}
 	lineRows, err := a.loadTransactionFormRows(r.Context(), form, values, r.URL.Query().Get("dr_document_id"))
 	if err != nil {
+		if isNoRemainingDRQuantityError(err) {
+			values["dr_document_id"] = strings.TrimSpace(r.URL.Query().Get("dr_document_id"))
+			a.renderForm(w, r, form, values, "/transactions/"+form.Kind, nil)
+			return
+		}
 		a.renderFormError(w, r, form, values, nil, err)
 		return
 	}
@@ -441,6 +446,10 @@ func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
 		refreshedValues := cloneRecord(values)
 		refreshedRows, err := a.loadTransactionFormRows(r.Context(), form, refreshedValues, drIDParam)
 		if err != nil {
+			if isNoRemainingDRQuantityError(err) {
+				a.renderForm(w, r, form, values, "/transactions/"+form.Kind+"/"+strconv.FormatInt(id, 10), lineRows)
+				return
+			}
 			a.renderFormError(w, r, form, values, lineRows, err)
 			return
 		}
@@ -461,6 +470,10 @@ func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.renderForm(w, r, form, values, "/transactions/"+form.Kind+"/"+strconv.FormatInt(id, 10), lineRows)
+}
+
+func isNoRemainingDRQuantityError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "selected DR has no remaining quantity")
 }
 
 func cloneRecord(record models.Record) models.Record {

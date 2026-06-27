@@ -115,17 +115,19 @@ func ComputePurchase(doc PurchaseDocument) PurchaseTotals {
 
 func ComputeSales(doc SalesDocument) SalesTotals {
 	var total SalesTotals
+	var totalAmount int64
 	for _, line := range doc.Lines {
 		gross := line.Qty * line.UnitCost
 		net := gross - line.Discount - line.OtherDiscount
 		capital := line.Qty * line.Capital
 		total.TotalQty += line.Qty
+		totalAmount += gross
 		total.TotalNetAmount += net
 		total.TotalCapital += capital
 	}
 	total.TotalMarkup = total.TotalNetAmount - total.TotalCapital
-	if total.TotalCapital > 0 {
-		total.AverageMarkupBP = (total.TotalMarkup*10000 + total.TotalCapital/2) / total.TotalCapital
+	if totalAmount > 0 {
+		total.AverageMarkupBP = (total.TotalMarkup*10000 + totalAmount/2) / totalAmount
 	}
 	total.Less = adjustmentTotal(doc.Deductions)
 	total.Add = adjustmentTotal(doc.Additionals)

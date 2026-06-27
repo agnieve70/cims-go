@@ -574,10 +574,16 @@ func (s *PostgresStore) SalesMarkupByTransactionReportRows(ctx context.Context, 
 			       coalesce(nullif(d.entry_id, ''), d.id::text) as entry_id,
 			       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as sales_type,
 			       coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Receipt') as receipt_no,
-			       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
-			       case
-			         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
-			           then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+				       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
+				       case
+				         when coalesce(dl.amount, 0) <> 0 then dl.amount
+				         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+				           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+				         else coalesce(dl.qty, 0) * coalesce(dl.price, 0)
+				       end as amount,
+				       case
+				         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+				           then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
 			         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
 			       end as capital,
 			       case
@@ -610,9 +616,10 @@ func (s *PostgresStore) SalesMarkupByTransactionReportRows(ctx context.Context, 
 		       entry_id,
 		       sales_type,
 		       receipt_no,
-		       item_group,
-		       coalesce(round(markup * 100), 0)::bigint as markup_cents,
-		       coalesce(round(capital * 100), 0)::bigint as capital_cents
+			       item_group,
+			       coalesce(round(markup * 100), 0)::bigint as markup_cents,
+			       coalesce(round(capital * 100), 0)::bigint as capital_cents,
+			       coalesce(round(amount * 100), 0)::bigint as amount_cents
 		from sales_lines
 		where coalesce(markup, 0) <> 0 or coalesce(capital, 0) <> 0
 		order by sales_date, entry_id, sales_type, receipt_no, item_group`, from, to)
@@ -623,7 +630,7 @@ func (s *PostgresStore) SalesMarkupByTransactionReportRows(ctx context.Context, 
 	var reportRows []models.SalesMarkupByTransactionReportRow
 	for rows.Next() {
 		var row models.SalesMarkupByTransactionReportRow
-		if err := rows.Scan(&row.SalesDate, &row.EntryID, &row.SalesType, &row.ReceiptNo, &row.ItemGroup, &row.MarkupCents, &row.CapitalCents); err != nil {
+		if err := rows.Scan(&row.SalesDate, &row.EntryID, &row.SalesType, &row.ReceiptNo, &row.ItemGroup, &row.MarkupCents, &row.CapitalCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1575,11 +1582,17 @@ func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.C
 			select to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
 			       coalesce(nullif(d.entry_id, ''), d.id::text) as entry_id,
 			       coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as transfer_to,
-			       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Receipt') as receipt_no,
-			       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
-			       case
-			         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
-			           then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+				       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Receipt') as receipt_no,
+				       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
+				       case
+				         when coalesce(dl.amount, 0) <> 0 then dl.amount
+				         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+				           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+				         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+				       end as amount,
+				       case
+				         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+				           then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
 			         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
 			       end as capital,
 			       case
@@ -1613,9 +1626,10 @@ func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.C
 		       entry_id,
 		       transfer_to,
 		       receipt_no,
-		       item_group,
-		       coalesce(round(markup * 100), 0)::bigint as markup_cents,
-		       coalesce(round(capital * 100), 0)::bigint as capital_cents
+			       item_group,
+			       coalesce(round(markup * 100), 0)::bigint as markup_cents,
+			       coalesce(round(capital * 100), 0)::bigint as capital_cents,
+			       coalesce(round(amount * 100), 0)::bigint as amount_cents
 		from transfer_lines
 		where coalesce(markup, 0) <> 0 or coalesce(capital, 0) <> 0
 		order by transfer_date, entry_id, transfer_to, receipt_no, item_group`, from, to)
@@ -1626,7 +1640,7 @@ func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.C
 	var reportRows []models.StockTransferMarkupByTransactionReportRow
 	for rows.Next() {
 		var row models.StockTransferMarkupByTransactionReportRow
-		if err := rows.Scan(&row.TransferDate, &row.EntryID, &row.TransferTo, &row.ReceiptNo, &row.ItemGroup, &row.MarkupCents, &row.CapitalCents); err != nil {
+		if err := rows.Scan(&row.TransferDate, &row.EntryID, &row.TransferTo, &row.ReceiptNo, &row.ItemGroup, &row.MarkupCents, &row.CapitalCents, &row.AmountCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)

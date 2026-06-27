@@ -324,6 +324,7 @@ type salesMarkupByTransactionReportData struct {
 	TotalMarkup        string
 	TotalMarkupRaw     int64
 	TotalCapitalRaw    int64
+	TotalAmountRaw     int64
 	TotalMarkupPercent string
 }
 
@@ -337,6 +338,7 @@ type salesMarkupByTransactionLine struct {
 	MarkupPercent string
 	MarkupRaw     int64
 	CapitalRaw    int64
+	AmountRaw     int64
 }
 
 type salesMarkupByTransactionPage struct {
@@ -1397,6 +1399,7 @@ type stockTransferMarkupByTransactionReportData struct {
 	TotalMarkup        string
 	TotalMarkupRaw     int64
 	TotalCapitalRaw    int64
+	TotalAmountRaw     int64
 	TotalMarkupPercent string
 }
 
@@ -1410,6 +1413,7 @@ type stockTransferMarkupByTransactionLine struct {
 	MarkupPercent string
 	MarkupRaw     int64
 	CapitalRaw    int64
+	AmountRaw     int64
 	Negative      bool
 }
 
@@ -4565,15 +4569,17 @@ func (report *salesMarkupByTransactionReportData) build(rows []models.SalesMarku
 			ReceiptNo:     receiptNo,
 			ItemGroup:     itemGroup,
 			Markup:        moneyString(row.MarkupCents),
-			MarkupPercent: percentString(row.MarkupCents, row.CapitalCents),
+			MarkupPercent: percentString(row.MarkupCents, row.AmountCents),
 			MarkupRaw:     row.MarkupCents,
 			CapitalRaw:    row.CapitalCents,
+			AmountRaw:     row.AmountCents,
 		})
 		report.TotalMarkupRaw += row.MarkupCents
 		report.TotalCapitalRaw += row.CapitalCents
+		report.TotalAmountRaw += row.AmountCents
 	}
 	report.TotalMarkup = moneyString(report.TotalMarkupRaw)
-	report.TotalMarkupPercent = percentString(report.TotalMarkupRaw, report.TotalCapitalRaw)
+	report.TotalMarkupPercent = percentString(report.TotalMarkupRaw, report.TotalAmountRaw)
 	if len(report.Rows) > 0 {
 		for start := 0; start < len(report.Rows); start += 40 {
 			end := start + 40
@@ -6317,17 +6323,19 @@ func (report *stockTransferMarkupByTransactionReportData) build(rows []models.St
 			ReceiptNo:     receiptNo,
 			ItemGroup:     itemGroup,
 			Markup:        moneyString(row.MarkupCents),
-			MarkupPercent: percentString(row.MarkupCents, row.CapitalCents),
+			MarkupPercent: percentString(row.MarkupCents, row.AmountCents),
 			MarkupRaw:     row.MarkupCents,
 			CapitalRaw:    row.CapitalCents,
+			AmountRaw:     row.AmountCents,
 			Negative:      row.MarkupCents < 0,
 		}
 		report.Rows = append(report.Rows, line)
 		report.TotalMarkupRaw += row.MarkupCents
 		report.TotalCapitalRaw += row.CapitalCents
+		report.TotalAmountRaw += row.AmountCents
 	}
 	report.TotalMarkup = moneyString(report.TotalMarkupRaw)
-	report.TotalMarkupPercent = percentString(report.TotalMarkupRaw, report.TotalCapitalRaw)
+	report.TotalMarkupPercent = percentString(report.TotalMarkupRaw, report.TotalAmountRaw)
 	if len(report.Rows) > 0 {
 		for start := 0; start < len(report.Rows); start += 40 {
 			end := start + 40
