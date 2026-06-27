@@ -628,7 +628,7 @@
             <tbody id="rows-details">
               {{$rows := index $.LineRows "details"}}
               {{if $rows}}{{range $rows}}
-              <tr class="sales-detail-row">
+              <tr class="sales-detail-row" data-sales-detail-row>
                 <td class="row-no"></td>
                 <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_code">{{fieldValue . "stock_label"}}</td>
                 <td class="editable-cell calculated-cell" contenteditable="false" data-readonly-cell data-field="stock_name"></td>
@@ -3221,6 +3221,85 @@
       return select ? select.value : "";
     }
 
+    function linkedDetailEditStorageKey() {
+      return "cims-linked-detail-edits:" + window.location.pathname;
+    }
+
+    function linkedDetailEditableValue(row, field) {
+      var cell = row.querySelector("[data-field='" + field + "']");
+      var hidden = row.querySelector("[data-field-input='" + field + "']");
+      return cellText(cell) || (hidden ? hidden.value : "");
+    }
+
+    function linkedDetailEditableFields() {
+      var fields = ["unit_cost", "capital", "markup", "markup_pct"];
+      if (formShell && formShell.dataset.formKind === "sales") {
+        fields.push("discount", "other_discount");
+      }
+      return fields;
+    }
+
+    function saveLinkedDetailEditsForReload() {
+      if (!window.sessionStorage) return;
+      var editableFields = linkedDetailEditableFields();
+      var rows = salesDetailRows().map(function (row) {
+        var values = {};
+        editableFields.forEach(function (field) {
+          values[field] = linkedDetailEditableValue(row, field);
+        });
+        return {
+          drLineID: (row.querySelector("[data-field-input='dr_line_id']") || {}).value || "",
+          stockID: (row.querySelector("[data-field-input='stock_id']") || {}).value || "",
+          stockLabel: (row.querySelector("[data-field-input='stock_label']") || {}).value || "",
+          values: values
+        };
+      }).filter(function (row) {
+        return row.drLineID || row.stockID || row.stockLabel;
+      });
+      try {
+        window.sessionStorage.setItem(linkedDetailEditStorageKey(), JSON.stringify(rows));
+      } catch (error) {
+        // Storage can be unavailable in private contexts; server-side merge still handles saved edits.
+      }
+    }
+
+    function applyLinkedDetailEditsAfterReload() {
+      if (!window.sessionStorage) return;
+      var raw = window.sessionStorage.getItem(linkedDetailEditStorageKey());
+      if (!raw) return;
+      window.sessionStorage.removeItem(linkedDetailEditStorageKey());
+      var savedRows = [];
+      try {
+        savedRows = JSON.parse(raw) || [];
+      } catch (error) {
+        return;
+      }
+      var byDRLineID = {};
+      var byStockID = {};
+      var byStockLabel = {};
+      savedRows.forEach(function (row) {
+        if (row.drLineID) byDRLineID[row.drLineID] = row;
+        if (row.stockID) byStockID[row.stockID] = row;
+        if (row.stockLabel) byStockLabel[row.stockLabel] = row;
+      });
+      salesDetailRows().forEach(function (row) {
+        var drLineID = (row.querySelector("[data-field-input='dr_line_id']") || {}).value || "";
+        var stockID = (row.querySelector("[data-field-input='stock_id']") || {}).value || "";
+        var stockLabel = (row.querySelector("[data-field-input='stock_label']") || {}).value || "";
+        var saved = byDRLineID[drLineID] || byStockID[stockID] || byStockLabel[stockLabel];
+        if (!saved || !saved.values) return;
+        linkedDetailEditableFields().forEach(function (field) {
+          var value = saved.values[field];
+          if (value === undefined || value === null || value === "") return;
+          var cell = row.querySelector("[data-field='" + field + "']");
+          if (cell) cell.textContent = value;
+          setHidden(row, field, value);
+        });
+        syncSalesDetailRow(row);
+      });
+      updateSalesTotals();
+    }
+
     function setSalesEditStockButtonState() {
       if (!salesStockEditorState.trigger) return;
       salesStockEditorState.trigger.disabled = !selectedSalesDRDocumentID();
@@ -3746,11 +3825,9 @@
         var kind = row.getAttribute("data-stock-picker-row") || "purchase";
         if (kind === "dr") {
           renumberDRDetails();
-          ensureStockPickerBlankRow("dr");
         } else {
           renumberPurchaseDetails();
           updatePurchaseTotals();
-          ensureStockPickerBlankRow(kind);
         }
         return;
       }
@@ -3778,7 +3855,8 @@
       var selector = getEditableGridRowSelector(row);
       var rows = selector ? Array.prototype.slice.call(document.querySelectorAll(selector)) : [row];
       var index = rows.indexOf(row);
-      var focusRow = rows[index + 1] || rows[index - 1] || row;
+      var targetIndex = getEditableGridTargets(row).indexOf(currentTarget);
+      var focusRow = rows[index - 1] || rows[index + 1] || row;
       if (rows.length <= 1) {
         clearEditableGridRow(row);
         refreshEditableGridAfterDelete(row);
@@ -3789,7 +3867,7 @@
       }
       var nextTargets = getEditableGridTargets(focusRow);
       if (nextTargets.length) {
-        focusEditableGridTarget(nextTargets[Math.min(index, nextTargets.length - 1)]);
+        focusEditableGridTarget(nextTargets[Math.min(Math.max(targetIndex, 0), nextTargets.length - 1)]);
       }
       return true;
     }
@@ -4508,6 +4586,7 @@
     hydrateOtherIncomeRows();
     hydrateChecksInRows();
     hydrateSalesDetails();
+    applyLinkedDetailEditsAfterReload();
     updatePurchaseTotals();
     updateSalesTotals();
     setPurchaseTab("adjustments");
@@ -4568,6 +4647,7 @@
         applyUpdatedSalesStock(event.data.stock || {});
         closeSalesStockEditor();
       } else if (event.data.type === "cims-stock-out-saved") {
+        saveLinkedDetailEditsForReload();
         closeSalesStockEditor();
         closeTransferStockEditor();
         var selectedDRDocumentID = selectedSalesDRDocumentID() || selectedTransferDRDocumentID();

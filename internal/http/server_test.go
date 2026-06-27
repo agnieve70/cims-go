@@ -908,7 +908,7 @@ func TestSalesEditRefreshesRowsFromSelectedSO(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit?dr_document_id=7", nil)
+	req := httptest.NewRequest(http.MethodGet, "/transactions/sales/197/edit", nil)
 	req = req.WithContext(auth.WithUser(req.Context(), store.user))
 	rec := httptest.NewRecorder()
 
@@ -1102,7 +1102,7 @@ func TestStockTransactionEditRefreshesRowsFromSelectedSO(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/197/edit?dr_document_id=7", nil)
+	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/197/edit", nil)
 	req = req.WithContext(auth.WithUser(req.Context(), store.user))
 	rec := httptest.NewRecorder()
 
@@ -1115,8 +1115,96 @@ func TestStockTransactionEditRefreshesRowsFromSelectedSO(t *testing.T) {
 	if !strings.Contains(body, `NEW - Added Stock`) || !strings.Contains(body, `name="line_details_qty" value="6" readonly`) {
 		t.Fatalf("body missing refreshed SO detail row")
 	}
+	if !strings.Contains(body, `class="sales-detail-row" data-sales-detail-row`) {
+		t.Fatalf("stock transaction detail row missing shared Esc-delete marker")
+	}
 	if strings.Contains(body, `OLD - Removed Stock`) {
 		t.Fatalf("body still contains stale stock transaction detail row")
+	}
+}
+
+func TestMergeLinkedStockOutDetailRowsPreservesSalesEditableValues(t *testing.T) {
+	refreshed := []models.Record{{
+		"dr_line_id":  "21",
+		"stock_id":    "8",
+		"stock_label": "NEW - Added Stock",
+		"qty":         "9",
+		"unit_cost":   "15.75",
+		"capital":     "15.75",
+	}}
+	existing := []models.Record{{
+		"dr_line_id":     "11",
+		"stock_id":       "8",
+		"stock_label":    "NEW - Added Stock",
+		"qty":            "6",
+		"unit_cost":      "22.25",
+		"discount":       "1.50",
+		"other_discount": "0.75",
+		"capital":        "22.25",
+		"markup":         "15.00",
+		"markup_pct":     "10.00",
+	}}
+
+	got := mergeLinkedStockOutDetailRows(refreshed, existing, "sales")
+
+	if got[0]["qty"] != "9" {
+		t.Fatalf("qty = %q, want refreshed Stock Out qty", got[0]["qty"])
+	}
+	for field, want := range map[string]string{
+		"unit_cost":      "22.25",
+		"discount":       "1.50",
+		"other_discount": "0.75",
+		"capital":        "22.25",
+		"markup":         "15.00",
+		"markup_pct":     "10.00",
+	} {
+		if got[0][field] != want {
+			t.Fatalf("%s = %q, want %q", field, got[0][field], want)
+		}
+	}
+}
+
+func TestMergeLinkedStockOutDetailRowsPreservesStockTransactionEditableValues(t *testing.T) {
+	refreshed := []models.Record{{
+		"dr_line_id":     "21",
+		"stock_id":       "8",
+		"stock_label":    "NEW - Added Stock",
+		"qty":            "9",
+		"unit_cost":      "15.75",
+		"capital":        "15.75",
+		"discount":       "2.00",
+		"other_discount": "1.00",
+	}}
+	existing := []models.Record{{
+		"dr_line_id":     "11",
+		"stock_id":       "8",
+		"stock_label":    "NEW - Added Stock",
+		"qty":            "6",
+		"unit_cost":      "22.25",
+		"discount":       "1.50",
+		"other_discount": "0.75",
+		"capital":        "22.25",
+		"markup":         "15.00",
+		"markup_pct":     "10.00",
+	}}
+
+	got := mergeLinkedStockOutDetailRows(refreshed, existing, "stock-transactions")
+
+	if got[0]["qty"] != "9" {
+		t.Fatalf("qty = %q, want refreshed Stock Out qty", got[0]["qty"])
+	}
+	for field, want := range map[string]string{
+		"unit_cost":  "22.25",
+		"capital":    "22.25",
+		"markup":     "15.00",
+		"markup_pct": "10.00",
+	} {
+		if got[0][field] != want {
+			t.Fatalf("%s = %q, want %q", field, got[0][field], want)
+		}
+	}
+	if got[0]["discount"] != "2.00" || got[0]["other_discount"] != "1.00" {
+		t.Fatalf("stock transaction should not copy sales discount fields: got discount=%q other=%q", got[0]["discount"], got[0]["other_discount"])
 	}
 }
 

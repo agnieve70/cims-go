@@ -432,8 +432,14 @@ func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
-	if drIDParam := strings.TrimSpace(r.URL.Query().Get("dr_document_id")); drIDParam != "" {
-		refreshedRows, err := a.loadTransactionFormRows(r.Context(), form, values, drIDParam)
+	drIDParam := strings.TrimSpace(r.URL.Query().Get("dr_document_id"))
+	if drIDParam == "" && (form.Kind == "sales" || form.Kind == "stock-transactions") {
+		drIDParam = strings.TrimSpace(values["dr_document_id"])
+	}
+	if drIDParam != "" {
+		existingDetails := lineRows["details"]
+		refreshedValues := cloneRecord(values)
+		refreshedRows, err := a.loadTransactionFormRows(r.Context(), form, refreshedValues, drIDParam)
 		if err != nil {
 			a.renderFormError(w, r, form, values, lineRows, err)
 			return
@@ -443,11 +449,61 @@ func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
 				lineRows = map[string][]models.Record{}
 			}
 			for group, rows := range refreshedRows {
+				if group == "details" && len(rows) == 0 {
+					continue
+				}
+				if group == "details" {
+					rows = mergeLinkedStockOutDetailRows(rows, existingDetails, form.Kind)
+				}
+				values = refreshedValues
 				lineRows[group] = rows
 			}
 		}
 	}
 	a.renderForm(w, r, form, values, "/transactions/"+form.Kind+"/"+strconv.FormatInt(id, 10), lineRows)
+}
+
+func cloneRecord(record models.Record) models.Record {
+	clone := models.Record{}
+	for key, value := range record {
+		clone[key] = value
+	}
+	return clone
+}
+
+func mergeLinkedStockOutDetailRows(refreshedRows []models.Record, existingRows []models.Record, kind string) []models.Record {
+	if len(refreshedRows) == 0 || len(existingRows) == 0 {
+		return refreshedRows
+	}
+	fields := []string{"unit_cost", "capital", "markup", "markup_pct"}
+	if kind == "sales" {
+		fields = append(fields, "discount", "other_discount")
+	}
+	byDRLineID := map[string]models.Record{}
+	byStockID := map[string]models.Record{}
+	for _, row := range existingRows {
+		if drLineID := strings.TrimSpace(row["dr_line_id"]); drLineID != "" {
+			byDRLineID[drLineID] = row
+		}
+		if stockID := strings.TrimSpace(row["stock_id"]); stockID != "" {
+			byStockID[stockID] = row
+		}
+	}
+	for _, row := range refreshedRows {
+		existing := byDRLineID[strings.TrimSpace(row["dr_line_id"])]
+		if existing == nil {
+			existing = byStockID[strings.TrimSpace(row["stock_id"])]
+		}
+		if existing == nil {
+			continue
+		}
+		for _, field := range fields {
+			if value := strings.TrimSpace(existing[field]); value != "" {
+				row[field] = value
+			}
+		}
+	}
+	return refreshedRows
 }
 
 func (a *App) transactionCreate(w http.ResponseWriter, r *http.Request) {
