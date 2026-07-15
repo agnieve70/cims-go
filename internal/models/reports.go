@@ -159,9 +159,14 @@ type ExpenseReportRow struct {
 }
 
 type IncomeStatementRow struct {
-	Section     string
-	Label       string
-	AmountCents int64
+	Section             string
+	Label               string
+	Branch              string
+	AmountCents         int64
+	NetSalesCents       int64
+	SalesMarkupCents    int64
+	NetTransferCents    int64
+	TransferMarkupCents int64
 }
 
 type IncentiveReportRow struct {

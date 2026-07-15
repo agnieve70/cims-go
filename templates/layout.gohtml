@@ -16,7 +16,7 @@
       } catch (error) {}
     })();
   </script>
-  <link rel="stylesheet" href="/static/app.css?v=202606270002">
+  <link rel="stylesheet" href="/static/app.css?v=202607150001">
   <script src="/static/htmx.min.js?v=1.9.12"></script>
 </head>
 <body>
@@ -443,19 +443,23 @@
   })();
 
   (function () {
-    var paper = document.querySelector(".report-paper");
+    var papers = Array.prototype.slice.call(document.querySelectorAll(".report-paper"));
     var zoom = document.querySelector("[data-report-zoom]");
-    if (!paper || !zoom) return;
+    if (papers.length === 0 || !zoom) return;
 
     var reportZoomBase = 1.25;
     var applyReportZoom = function () {
       var displayZoom = Number(zoom.value) || 1;
       var actualZoom = displayZoom * reportZoomBase;
-      paper.style.transform = "scale(" + actualZoom + ")";
-      paper.style.transformOrigin = "top center";
-      paper.style.marginBottom = (60 + (paper.offsetHeight * (actualZoom - 1))) + "px";
+      papers.forEach(function (paper) {
+        paper.style.transform = "scale(" + actualZoom + ")";
+        paper.style.transformOrigin = "top center";
+        var paperHeight = paper.offsetHeight || paper.scrollHeight || 0;
+        paper.style.marginBottom = (60 + (paperHeight * (actualZoom - 1))) + "px";
+      });
     };
 
+    window.applyReportZoom = applyReportZoom;
     zoom.addEventListener("change", applyReportZoom);
     window.addEventListener("load", applyReportZoom);
     window.setTimeout(applyReportZoom, 0);

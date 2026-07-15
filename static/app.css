@@ -1612,6 +1612,17 @@ body.sidebar-collapsed .content-window-taskbar {
   overflow: hidden;
 }
 
+.report-daily-sales-paper[hidden] {
+  display: none;
+}
+
+.daily-sales-page-label {
+  margin: 16px 24px 0;
+  color: #000;
+  font-size: 11px;
+  text-align: left;
+}
+
 .daily-sales-header {
   color: #000080;
   text-align: center;
@@ -1661,8 +1672,12 @@ body.sidebar-collapsed .content-window-taskbar {
   width: 10%;
 }
 
+.daily-sales-total-col {
+  width: 12%;
+}
+
 .daily-sales-check-col {
-  width: 48%;
+  width: 36%;
 }
 
 .report-daily-sales-table th,
@@ -1698,10 +1713,14 @@ body.sidebar-collapsed .content-window-taskbar {
   white-space: nowrap;
 }
 
-.report-daily-sales-table .daily-sales-line-amount,
-.report-daily-sales-table .daily-sales-total-amount {
+.report-daily-sales-table .daily-sales-line-amount {
   border: 0;
   text-align: left;
+}
+
+.report-daily-sales-table .daily-sales-total-amount {
+  border: 0;
+  text-align: right;
 }
 
 .report-daily-sales-table .daily-sales-total-row td {
@@ -1720,7 +1739,7 @@ body.sidebar-collapsed .content-window-taskbar {
 
 .report-daily-sales-table .daily-sales-summary-row .num {
   border: 0;
-  text-align: left;
+  text-align: right;
 }
 
 .report-daily-sales-table .daily-sales-remittance-row .num {
@@ -3313,15 +3332,18 @@ body.sidebar-collapsed .content-window-taskbar {
 
 .income-statement-paper {
   box-sizing: border-box;
-  padding-left: 72px;
-  padding-right: 72px;
+  padding: 72px 48px 44px;
   overflow: hidden;
+}
+
+.income-statement-paper[hidden] {
+  display: none;
 }
 
 .income-statement-section {
   width: 100%;
   max-width: 100%;
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   overflow: hidden;
 }
 
@@ -3340,8 +3362,10 @@ body.sidebar-collapsed .content-window-taskbar {
 }
 
 .income-statement-table {
-  width: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border: 0;
   border-collapse: collapse;
   color: #000;
   font-size: 12px;
@@ -3349,9 +3373,18 @@ body.sidebar-collapsed .content-window-taskbar {
   box-sizing: border-box;
 }
 
+.income-statement-label-col {
+  width: 50%;
+}
+
+.income-statement-amount-col,
+.income-statement-total-col {
+  width: 25%;
+}
+
 .income-statement-table td {
   box-sizing: border-box;
-  padding: 2px 6px 2px 0;
+  padding: 2px 6px;
   border: 0;
   background: #fff;
   color: #000;
@@ -3359,7 +3392,9 @@ body.sidebar-collapsed .content-window-taskbar {
   line-height: 1.2;
   vertical-align: top;
   overflow-wrap: anywhere;
+  word-break: break-word;
   white-space: normal;
+  max-width: 0;
 }
 
 .income-statement-table tbody tr td,
@@ -3369,19 +3404,20 @@ body.sidebar-collapsed .content-window-taskbar {
 }
 
 .income-statement-table td:nth-child(1) {
-  width: 56%;
+  width: 50%;
 }
 
 .income-statement-table td:nth-child(2),
 .income-statement-table td:nth-child(3) {
-  width: 22%;
+  width: 25%;
 }
 
 .income-statement-table .num {
   text-align: right;
 }
 
-.income-statement-indent {
+.income-statement-indent,
+.income-statement-indent-row td:first-child {
   padding-left: 64px !important;
 }
 
@@ -3407,10 +3443,136 @@ body.sidebar-collapsed .content-window-taskbar {
 }
 
 .income-statement-net td {
-  border-top: 2px solid #000;
-  border-bottom: 2px solid #000;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
   padding-top: 5px;
   padding-bottom: 5px;
+}
+
+.income-statement-net td:first-child {
+  border-left: 1px solid #000;
+}
+
+.income-statement-net td:last-child {
+  border-right: 1px solid #000;
+}
+
+.income-statement-markup-table,
+.income-statement-transfer-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border: 1px solid #000;
+  border-collapse: collapse;
+  color: #000;
+  font-size: 10px;
+  table-layout: fixed;
+}
+
+.income-statement-markup-table th,
+.income-statement-markup-table td,
+.income-statement-transfer-table th,
+.income-statement-transfer-table td {
+  padding: 3px 4px;
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  color: #000;
+  line-height: 1.2;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 0;
+}
+
+.income-markup-category-col {
+  width: 26%;
+}
+
+.income-markup-money-col {
+  width: 12%;
+}
+
+.income-markup-percent-col {
+  width: 7%;
+}
+
+.income-statement-markup-table td:nth-child(4),
+.income-statement-markup-table td:nth-child(7) {
+  white-space: nowrap;
+}
+
+.income-statement-markup-table th,
+.income-statement-transfer-table th {
+  font-weight: 400;
+  text-align: center;
+}
+
+.income-statement-markup-table td:first-child,
+.income-statement-transfer-table td:first-child {
+  text-align: left;
+}
+
+.income-statement-markup-table .num,
+.income-statement-transfer-table .num {
+  text-align: right;
+}
+
+.income-statement-markup-table .income-statement-total td,
+.income-statement-transfer-table .income-statement-total td {
+  padding-top: 10px;
+  font-weight: 700;
+}
+
+.income-statement-transfer-group {
+  margin: 0 0 20px;
+  break-inside: avoid;
+}
+
+.income-statement-transfer-group h3 {
+  margin: 0 0 8px;
+  border: 0;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.income-statement-grand-transfer {
+  margin-top: 18px;
+}
+
+.income-statement-markup-paper {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.income-statement-markup-table th:nth-child(1),
+.income-statement-markup-table td:nth-child(1) {
+  width: 27%;
+}
+
+.income-statement-markup-table th:nth-child(2),
+.income-statement-markup-table td:nth-child(2),
+.income-statement-markup-table th:nth-child(5),
+.income-statement-markup-table td:nth-child(5) {
+  width: 13%;
+}
+
+.income-statement-markup-table th:nth-child(3),
+.income-statement-markup-table td:nth-child(3),
+.income-statement-markup-table th:nth-child(6),
+.income-statement-markup-table td:nth-child(6),
+.income-statement-markup-table th:nth-child(8),
+.income-statement-markup-table td:nth-child(8) {
+  width: 12%;
+}
+
+.income-statement-markup-table th:nth-child(4),
+.income-statement-markup-table td:nth-child(4),
+.income-statement-markup-table th:nth-child(7),
+.income-statement-markup-table td:nth-child(7) {
+  width: 5.5%;
 }
 
 .report-page-label {
@@ -6291,6 +6453,68 @@ tbody tr:nth-child(even) td {
   background: #ece8bd;
 }
 
+.transaction-actions-column {
+  width: 70px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.transaction-row-actions {
+  padding: 2px 4px;
+  cursor: default;
+}
+
+.transaction-row-actions-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.transaction-row-delete-form {
+  margin: 0;
+}
+
+.transaction-row-action {
+  display: inline-flex;
+  width: 25px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: 1px solid #9ca7b4;
+  border-radius: 2px;
+  background: #f3f2e7;
+  color: #1e4f80;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+
+.transaction-row-action:hover,
+.transaction-row-action:focus-visible {
+  border-color: #3d75aa;
+  background: #dcecff;
+}
+
+.transaction-row-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.transaction-row-delete {
+  color: #a42525;
+}
+
+.transaction-row-delete:hover,
+.transaction-row-delete:focus-visible {
+  border-color: #b53a3a;
+  background: #ffe3df;
+}
+
 .workspace-table {
   min-height: calc(100vh - 198px);
 }
@@ -7770,10 +7994,57 @@ html.theme-dark .report-daily-sales-paper .report-daily-sales-table td {
 }
 
 @media print {
+  .income-statement-paper[hidden] {
+    display: block !important;
+  }
+
+  .income-statement-paper,
+  html.theme-dark .income-statement-paper {
+    background: #fff !important;
+    color: #000 !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .income-statement-paper:last-child,
+  html.theme-dark .income-statement-paper:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .income-statement-paper h1,
+  .income-statement-paper h2,
+  html.theme-dark .income-statement-paper h1,
+  html.theme-dark .income-statement-paper h2 {
+    color: #000080 !important;
+  }
+
+  .income-statement-paper th,
+  .income-statement-paper td,
+  .income-statement-paper h3,
+  html.theme-dark .income-statement-paper th,
+  html.theme-dark .income-statement-paper td,
+  html.theme-dark .income-statement-paper h3 {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .report-daily-sales-paper[hidden] {
+    display: block !important;
+  }
+
   .report-daily-sales-paper,
   html.theme-dark .report-daily-sales-paper {
     background: #fff !important;
     color: #000 !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .report-daily-sales-paper:last-child,
+  html.theme-dark .report-daily-sales-paper:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 
   .report-daily-sales-paper .daily-sales-header,

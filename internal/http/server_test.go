@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -317,6 +318,9 @@ func (s *fakeStore) IncomeStatementRows(context.Context, time.Time, time.Time) (
 		{Section: "ending_inventory", Label: "Stock Inventory, End", AmountCents: 180000},
 		{Section: "operating_expenses", Label: "ADVANCES TO EMPLOYEES", AmountCents: 45000},
 		{Section: "other_income", Label: "Other Income", AmountCents: 25000},
+		{Section: "markup_category", Label: "HOGS", NetSalesCents: 1000000, SalesMarkupCents: 80000, NetTransferCents: 500000, TransferMarkupCents: 35000},
+		{Section: "markup_transfer_branch", Label: "HOGS", Branch: "HERNANS MALALAG", NetTransferCents: 300000, TransferMarkupCents: 21000},
+		{Section: "markup_transfer_branch", Label: "HOGS", Branch: "HERNANS MALITA", NetTransferCents: 200000, TransferMarkupCents: 14000},
 	}, nil
 }
 
@@ -338,7 +342,7 @@ func (s *fakeStore) DailySalesCollectionReportRows(context.Context, time.Time) (
 	return []models.DailySalesCollectionReportRow{
 		{Section: "cash_sales", Name: "Cash Customer", Reference: "CSH 0001", AmountCents: 120000},
 		{Section: "charge_sales", Name: "Customer A", Reference: "CHG 005965", AmountCents: 9562300},
-		{Section: "cash_receipts", Name: "Customer B", Reference: "AR Credit", AmountCents: 50000},
+		{Section: "cash_receipts", Name: "Customer B", Reference: "AR Credit", AmountCents: 50000, CheckAmountCents: 30000},
 		{Section: "disbursements", Name: "Fuel", Reference: "EXP-1", AmountCents: 25000},
 		{Section: "check_deposits", Name: "Customer C", Reference: "CHK-1", CheckAmountCents: 70000},
 	}, nil
@@ -821,6 +825,57 @@ func TestSalesEditIncludesDeleteButton(t *testing.T) {
 	}
 	if !strings.Contains(body, `action="/transactions/sales/197/delete"`) {
 		t.Fatalf("body missing sales delete form action")
+	}
+}
+
+func TestAllEditFormsIncludeDeleteButtonAndForm(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, form := range models.MasterForms() {
+		t.Run("master_"+form.Kind, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, form.RouteBase+"/1/edit", nil)
+			req = req.WithContext(auth.WithUser(req.Context(), store.user))
+			rec := httptest.NewRecorder()
+
+			app.Routes().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, `aria-label="Delete current record" form="master-delete-form"`) {
+				t.Fatalf("body missing delete button")
+			}
+			if !strings.Contains(body, `action="`+form.RouteBase+`/1/delete"`) {
+				t.Fatalf("body missing delete form action")
+			}
+		})
+	}
+
+	for _, form := range models.TransactionForms() {
+		t.Run("transaction_"+form.Kind, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, form.RouteBase+"/197/edit", nil)
+			req = req.WithContext(auth.WithUser(req.Context(), store.user))
+			rec := httptest.NewRecorder()
+
+			app.Routes().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, `aria-label="Delete current record" form="master-delete-form"`) {
+				t.Fatalf("body missing delete button")
+			}
+			if !strings.Contains(body, `action="`+form.RouteBase+`/197/delete"`) {
+				t.Fatalf("body missing delete form action")
+			}
+		})
 	}
 }
 
@@ -2189,6 +2244,14 @@ func TestIncomeStatementReportRenders(t *testing.T) {
 	if !strings.Contains(body, "ADVANCES TO EMPLOYEES") {
 		t.Fatalf("body missing operating expense row")
 	}
+	for _, want := range []string{"Sales Markup", "Transfer Markup", "Total Markup", "HOGS", "HERNANS MALALAG", "CATEGORY TOTAL", "GRAND TOTAL"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing income statement legacy markup content %q", want)
+		}
+	}
+	if !strings.Contains(body, `data-income-statement-page="2"`) || !strings.Contains(body, `data-income-statement-page="3"`) {
+		t.Fatalf("body missing generated income statement markup pages")
+	}
 	for _, previewNode := range []string{">Sales</button>", ">Cost of Sales</button>", ">Operating Expenses</button>", ">Other Income</button>", ">Net Income</button>"} {
 		if strings.Contains(body, previewNode) {
 			t.Fatalf("income statement preview should not render node %q", previewNode)
@@ -2196,6 +2259,38 @@ func TestIncomeStatementReportRenders(t *testing.T) {
 	}
 	if strings.Contains(body, `class="report-tree-node"`) || strings.Contains(body, `class="report-tree-empty"`) {
 		t.Fatalf("income statement preview pane should remain blank like the reference")
+	}
+}
+
+func TestIncomeStatementAccountingPagesFillRemainingSpace(t *testing.T) {
+	report := incomeStatementReportData{PaperSize: "letter"}
+	rows := []models.IncomeStatementRow{
+		{Section: "cash_sales", Label: "Cash Sales", AmountCents: 10000},
+		{Section: "charge_sales", Label: "Charge Sales", AmountCents: 20000},
+		{Section: "beginning_inventory", Label: "Stock Inventory, Beginning", AmountCents: 50000},
+		{Section: "ending_inventory", Label: "Stock Inventory, End", AmountCents: 10000},
+	}
+	for idx := 0; idx < 50; idx++ {
+		rows = append(rows, models.IncomeStatementRow{
+			Section:     "purchases",
+			Label:       fmt.Sprintf("Supplier %02d", idx+1),
+			AmountCents: 1000,
+		})
+	}
+
+	report.build(rows)
+
+	if len(report.AccountingPages) < 2 {
+		t.Fatalf("AccountingPages = %d, want at least 2", len(report.AccountingPages))
+	}
+	foundCostOfSalesOnFirstPage := false
+	for _, section := range report.AccountingPages[0].Sections {
+		if strings.HasPrefix(section.Title, "COST OF SALES") && len(section.Rows) > 0 {
+			foundCostOfSalesOnFirstPage = true
+		}
+	}
+	if !foundCostOfSalesOnFirstPage {
+		t.Fatalf("first page did not use remaining height for cost of sales rows: %#v", report.AccountingPages[0].Sections)
 	}
 }
 
@@ -2313,6 +2408,12 @@ func TestDailySalesCollectionReportRenders(t *testing.T) {
 	if !strings.Contains(body, "TOTAL CASH RECEIPTS") || !strings.Contains(body, "500.00") {
 		t.Fatalf("body missing cash receipts section total")
 	}
+	wantCashReceiptsTotal := `<td colspan="3">TOTAL CASH RECEIPTS</td>
+                <td class="num daily-sales-total-amount">500.00</td>
+                <td class="num">300.00</td>`
+	if !strings.Contains(body, wantCashReceiptsTotal) {
+		t.Fatalf("body missing cash receipts amount and check totals")
+	}
 	if !strings.Contains(body, "TOTAL CHECK DEPOSITS") || !strings.Contains(body, "700.00") {
 		t.Fatalf("body missing check deposits section total")
 	}
@@ -2326,6 +2427,37 @@ func TestDailySalesCollectionReportRenders(t *testing.T) {
 	}
 	if !strings.Contains(body, "TOTAL REMITTANCE") || !strings.Contains(body, "2,150.00") {
 		t.Fatalf("body missing remittance total")
+	}
+}
+
+func TestDailySalesCollectionReportPaginatesLongReports(t *testing.T) {
+	report := dailySalesCollectionReportData{PaperSize: "letter"}
+	rows := make([]models.DailySalesCollectionReportRow, 0, 50)
+	for idx := 0; idx < 50; idx++ {
+		rows = append(rows, models.DailySalesCollectionReportRow{
+			Section:     "cash_sales",
+			Name:        fmt.Sprintf("Customer %02d", idx+1),
+			Reference:   fmt.Sprintf("OR %06d", idx+1),
+			AmountCents: 10000,
+			SortKey:     fmt.Sprintf("%02d", idx+1),
+		})
+	}
+
+	report.build(rows)
+
+	if report.TotalPages < 2 {
+		t.Fatalf("TotalPages = %d, want at least 2", report.TotalPages)
+	}
+	if len(report.Pages) != report.TotalPages {
+		t.Fatalf("len(Pages) = %d, want %d", len(report.Pages), report.TotalPages)
+	}
+	if !report.Pages[len(report.Pages)-1].ShowSummary {
+		t.Fatalf("last page should show remittance summary")
+	}
+	for idx, page := range report.Pages[:len(report.Pages)-1] {
+		if page.ShowSummary {
+			t.Fatalf("page %d should not show remittance summary", idx+1)
+		}
 	}
 }
 

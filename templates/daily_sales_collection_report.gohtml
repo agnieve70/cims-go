@@ -61,41 +61,51 @@
         <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
       </div>
       <div class="report-paper-scroll">
-        <article class="report-paper report-daily-sales-paper {{.DailySalesReport.PaperClass}}">
+        {{range .DailySalesReport.Pages}}
+        <article class="report-paper report-daily-sales-paper {{$.DailySalesReport.PaperClass}}" data-daily-sales-page="{{.Number}}" {{if ne .Number 1}}hidden{{end}}>
           <header class="report-paper-header daily-sales-header">
-            <h1>{{.DailySalesReport.Title}}</h1>
+            <h1>{{$.DailySalesReport.Title}}</h1>
             <p>San Agustin, Digos City</p>
             <h2>DAILY SALES AND COLLECTION REPORT</h2>
-            <p>{{.DailySalesReport.DateLabel}}</p>
+            <p>{{$.DailySalesReport.DateLabel}}</p>
           </header>
           <table class="report-daily-sales-table">
             <colgroup>
               <col class="daily-sales-name-col">
               <col class="daily-sales-ref-col">
               <col class="daily-sales-amount-col">
+              <col class="daily-sales-total-col">
               <col class="daily-sales-check-col">
             </colgroup>
             <tbody>
-              {{range .DailySalesReport.Sections}}
-              <tr class="daily-sales-section-row" data-report-section-target="{{.Key}}"><th colspan="4"><span class="daily-sales-section-label">{{.Title}}</span></th></tr>
+              {{range .Sections}}
+              <tr class="daily-sales-section-row" data-report-section-target="{{.Key}}"><th colspan="5"><span class="daily-sales-section-label">{{.Title}}</span></th></tr>
               {{range .Rows}}
               <tr>
                 <td>{{.Name}}</td>
                 <td>{{.Reference}}</td>
                 <td class="num daily-sales-line-amount">{{if .Raw}}<span>{{.Amount}}</span>{{end}}</td>
+                <td></td>
                 <td class="num">{{if .CheckRaw}}{{.CheckAmount}}{{end}}</td>
               </tr>
               {{end}}
+              {{if .ShowTotal}}
               <tr class="daily-sales-total-row">
                 <td colspan="3">TOTAL {{.Title}}</td>
-                <td class="num daily-sales-total-amount">{{if .CheckTotalRaw}}{{.CheckTotal}}{{else}}{{if .TotalRaw}}{{.Total}}{{end}}{{end}}</td>
+                <td class="num daily-sales-total-amount">{{if .TotalRaw}}{{.Total}}{{end}}</td>
+                <td class="num">{{if .CheckTotalRaw}}{{.CheckTotal}}{{end}}</td>
               </tr>
               {{end}}
-              <tr class="daily-sales-summary-row"><td colspan="2">TOTAL CASH REMITTANCE</td><td class="num">{{.DailySalesReport.TotalCashRemit}}</td><td></td></tr>
-              <tr class="daily-sales-summary-row daily-sales-remittance-row"><td colspan="2">TOTAL REMITTANCE</td><td class="num">{{.DailySalesReport.TotalRemit}}</td><td></td></tr>
+              {{end}}
+              {{if .ShowSummary}}
+              <tr class="daily-sales-summary-row"><td colspan="3">TOTAL CASH REMITTANCE</td><td class="num">{{$.DailySalesReport.TotalCashRemit}}</td><td></td></tr>
+              <tr class="daily-sales-summary-row daily-sales-remittance-row"><td colspan="3">TOTAL REMITTANCE</td><td class="num">{{$.DailySalesReport.TotalRemit}}</td><td></td></tr>
+              {{end}}
             </tbody>
           </table>
+          <div class="report-page-label daily-sales-page-label">This is a computer generated report Page {{.Number}} of {{$.DailySalesReport.TotalPages}}</div>
         </article>
+        {{end}}
       </div>
     </section>
   </div>
@@ -103,17 +113,20 @@
 <script>
   (function () {
     var shell = document.querySelector(".report-viewer-shell");
-    var paper = document.querySelector(".report-paper");
-    if (!shell || !paper) return;
+    var papers = Array.prototype.slice.call(document.querySelectorAll("[data-daily-sales-page]"));
+    if (!shell || !papers.length) return;
 
     var pageInput = document.querySelector("[data-report-page-input]");
-    if (pageInput) pageInput.value = "1";
+    var currentPage = 1;
+    var totalPages = papers.length;
 
-    document.querySelectorAll("[data-report-page]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        if (pageInput) pageInput.value = "1";
+    var showPage = function (page) {
+      currentPage = Math.max(1, Math.min(totalPages, page));
+      papers.forEach(function (paper) {
+        paper.hidden = Number(paper.getAttribute("data-daily-sales-page")) !== currentPage;
       });
-    });
+      if (pageInput) pageInput.value = String(currentPage);
+    };
 
     document.querySelectorAll("[data-report-section]").forEach(function (node) {
       node.addEventListener("click", function () {
@@ -124,6 +137,8 @@
         var target = document.querySelector("[data-report-section-target='" + key + "']");
         var scroller = document.querySelector(".report-paper-scroll");
         if (target && scroller) {
+          var page = target.closest("[data-daily-sales-page]");
+          if (page) showPage(Number(page.getAttribute("data-daily-sales-page")) || 1);
           var scrollerRect = scroller.getBoundingClientRect();
           var targetRect = target.getBoundingClientRect();
           var verticalOffset = targetRect.top - scrollerRect.top - ((scroller.clientHeight - targetRect.height) / 2);
@@ -134,11 +149,13 @@
 
     var exportCSV = function () {
       var lines = [];
-      paper.querySelectorAll("tr").forEach(function (row) {
-        var cells = Array.prototype.map.call(row.children, function (cell) {
-          return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+      papers.forEach(function (paper) {
+        paper.querySelectorAll("tr").forEach(function (row) {
+          var cells = Array.prototype.map.call(row.children, function (cell) {
+            return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
+          });
+          lines.push(cells.join(","));
         });
-        lines.push(cells.join(","));
       });
       var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
       var link = document.createElement("a");
@@ -147,6 +164,31 @@
       link.click();
       URL.revokeObjectURL(link.href);
     };
+
+    document.querySelectorAll("[data-report-page]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        switch (button.getAttribute("data-report-page")) {
+        case "first":
+          showPage(1);
+          break;
+        case "previous":
+          showPage(currentPage - 1);
+          break;
+        case "next":
+          showPage(currentPage + 1);
+          break;
+        case "last":
+          showPage(totalPages);
+          break;
+        }
+      });
+    });
+    if (pageInput) {
+      pageInput.addEventListener("change", function () {
+        showPage(Number(pageInput.value) || 1);
+      });
+    }
+    showPage(1);
 
     document.querySelectorAll("[data-report-action]").forEach(function (button) {
       button.addEventListener("click", function () {

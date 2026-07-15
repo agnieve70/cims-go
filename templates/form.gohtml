@@ -49,6 +49,9 @@
   </td>
 </tr>
 {{end}}
+{{define "legacy_delete_button"}}
+        <button type="submit" class="legacy-toolbar-delete" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if or (not .CanDelete) .Embedded}}disabled{{end}} onclick="return confirm('Delete this record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+{{end}}
 <main class="page form-page{{if .Embedded}} form-page-embedded{{end}}">
   <form method="post" action="{{.Action}}" class="form-shell modal-form{{if .Embedded}} modal-form-embedded{{end}}" data-existing-record="{{if .CanDelete}}true{{else}}false{{end}}" data-form-kind="{{.Form.Kind}}" data-embedded="{{if .Embedded}}true{{else}}false{{end}}" data-embedded-saved="{{if .EmbeddedSaved}}true{{else}}false{{end}}">
     <div class="modal-titlebar">
@@ -1488,6 +1491,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <a class="button secondary" href="/transactions/ap-debit/new">AP Debit File</a>
         <a class="button secondary" href="/transactions/ap-credit/new">AP Credit File</a>
@@ -1503,6 +1507,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         {{if and .CanDelete (not .Embedded)}}<a class="button secondary" href="/transactions/stock-transactions/{{fieldValue .Record "record_id"}}/withdrawal" target="_blank" rel="noopener">Print STW</a>{{else}}<span class="button secondary is-disabled">Print STW</span>{{end}}
         <span class="legacy-toolbar-spacer"></span>
@@ -1534,6 +1539,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1547,6 +1553,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1560,6 +1567,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1573,6 +1581,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1586,6 +1595,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1599,11 +1609,12 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
       </div>
-      {{else if or (eq .Form.Kind "expenses") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
+      {{else if or (eq .Form.Kind "expenses") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in") (eq .Form.Kind "other-income")}}
       <div class="legacy-form-toolbar" aria-label="Record actions">
         <button type="submit" title="Save" aria-label="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4"/><path d="M8 15h8v5H8z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
@@ -1612,6 +1623,7 @@
         <button type="button" title="Next" aria-label="Next record" onclick="goPurchaseRecord('next')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l8 6-8 6z"/></svg></button>
         <button type="button" title="Last" aria-label="Last record" onclick="goPurchaseRecord('last')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6l8 6-8 6z"/></svg></button>
         <span class="legacy-toolbar-separator"></span>
+        {{template "legacy_delete_button" .}}
         <button type="button" title="Search" aria-label="Search" data-form-action="search" onclick="searchStockCategoryRecord()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></button>
         <span class="legacy-toolbar-spacer"></span>
         <button type="button" title="Open" aria-label="Open list" data-form-action="open-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7v12"/></svg></button>
@@ -1746,7 +1758,7 @@
   </div>
   {{end}}
 </main>
-{{if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "purchases") (eq .Form.Kind "dr") (eq .Form.Kind "sales") (eq .Form.Kind "stock-transactions") (eq .Form.Kind "ap-credit") (eq .Form.Kind "ar-credit") (eq .Form.Kind "rebates") (eq .Form.Kind "ap-debit") (eq .Form.Kind "ar-debit") (eq .Form.Kind "expenses") (eq .Form.Kind "other-income") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
+{{if or (eq .Form.Kind "stock-categories") (eq .Form.Kind "stocks") (eq .Form.Kind "branches") (eq .Form.Kind "suppliers") (eq .Form.Kind "customers") (eq .Form.Kind "expense-chart") (eq .Form.Kind "other-income-chart") (eq .Form.Kind "purchases") (eq .Form.Kind "dr") (eq .Form.Kind "sales") (eq .Form.Kind "stock-transactions") (eq .Form.Kind "ap-credit") (eq .Form.Kind "ar-credit") (eq .Form.Kind "rebates") (eq .Form.Kind "ap-debit") (eq .Form.Kind "ar-debit") (eq .Form.Kind "expenses") (eq .Form.Kind "other-income") (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out") (eq .Form.Kind "checks-in")}}
 {{if .CanDelete}}
 <form id="master-delete-form" method="post" action="{{.Form.RouteBase}}/{{if fieldValue .Record "record_id"}}{{fieldValue .Record "record_id"}}{{else}}{{fieldValue .Record "id"}}{{end}}/delete"></form>
 {{end}}
@@ -3795,13 +3807,7 @@
     }
 
     function isDeletableDetailGridRow(row) {
-      return !!row && (
-        row.hasAttribute("data-stock-picker-row") ||
-        row.classList.contains("sales-detail-row") ||
-        row.classList.contains("expense-detail-row") ||
-        row.classList.contains("other-income-detail-row") ||
-        row.classList.contains("checks-in-detail-row")
-      );
+      return !!getEditableGridRowSelector(row);
     }
 
     function clearEditableGridRow(row) {
@@ -3835,6 +3841,15 @@
       }
       if (row.classList.contains("sales-detail-row")) {
         hydrateSalesDetails();
+        return;
+      }
+      if (row.classList.contains("purchase-adjustment-row")) {
+        hydratePurchaseAdjustments();
+        return;
+      }
+      if (row.classList.contains("purchase-payment-row")) {
+        hydratePurchasePaymentRows();
+        updateSalesTotals();
         return;
       }
       if (row.classList.contains("expense-detail-row")) {

@@ -1,0 +1,3123 @@
+[
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/APSMon.exe",
+    "name": "APSMon.exe",
+    "size": 634880,
+    "sha256": "24f1cb4b2b62e20869bae68c8b834ec2dc238380c3006adddf4b51c032d2778b",
+    "machine": "0x14c",
+    "timestamp": 1368775774,
+    "subsystem": 2,
+    "entrypoint": "0x304c",
+    "image_base": "0x400000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 506736,
+        "raw_size": 507904,
+        "entropy": 5.709
+      },
+      {
+        "name": ".data",
+        "virtual_size": 39248,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 117998,
+        "raw_size": 118784,
+        "entropy": 4.736
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "EVENT_SINK_GetIDsOfNames",
+          "__vbaVarSub",
+          "ord_690",
+          "__vbaStrI2",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaVarMove",
+          "__vbaStrI4",
+          "__vbaVarVargNofree",
+          "__vbaFreeVar",
+          "ord_588",
+          "__vbaLenBstr",
+          "__vbaStrVarMove",
+          "__vbaLateIdCall",
+          "__vbaEnd",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "EVENT_SINK_Invoke",
+          "__vbaRaiseEvent",
+          "__vbaFreeObjList",
+          "__vbaStrErrVarCopy",
+          "_adj_fprem1",
+          "__vbaRecAnsiToUni",
+          "ord_519",
+          "__vbaResume",
+          "__vbaVarCmpNe",
+          "__vbaStrCat",
+          "ord_552",
+          "ord_553",
+          "ord_660",
+          "__vbaBoolErrVar",
+          "__vbaLsetFixstr",
+          "__vbaStrDate",
+          "__vbaSetSystemError",
+          "__vbaRecDestruct",
+          "__vbaHresultCheckObj",
+          "ord_557",
+          "_adj_fdiv_m32",
+          "__vbaAryVar",
+          "Zombie_GetTypeInfo",
+          "__vbaAryDestruct",
+          "__vbaCyErrVar",
+          "ord_591",
+          "__vbaLateMemSt",
+          "__vbaVarIndexLoadRefLock",
+          "__vbaExitProc",
+          "__vbaForEachCollObj",
+          "ord_300",
+          "__vbaCyAdd",
+          "ord_595",
+          "__vbaObjSet",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "ord_303",
+          "ord_702",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_598",
+          "ord_305",
+          "ord_306",
+          "__vbaStrFixstr",
+          "ord_520",
+          "__vbaBoolVar",
+          "ord_309",
+          "__vbaFpR8",
+          "__vbaBoolVarNull",
+          "_CIsin",
+          "ord_709",
+          "ord_631",
+          "ord_525",
+          "ord_632",
+          "__vbaNextEachCollObj",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "ord_528",
+          "__vbaGenerateBoundsError",
+          "__vbaCyI2",
+          "ord_529",
+          "__vbaStrCmp",
+          "__vbaExitEachColl",
+          "__vbaAryConstruct2",
+          "__vbaVarTstEq",
+          "ord_560",
+          "__vbaDateR8",
+          "__vbaR4Str",
+          "__vbaI2I4",
+          "__vbaObjVar",
+          "DllFunctionCall",
+          "__vbaVarLateMemSt",
+          "__vbaVarOr",
+          "ord_670",
+          "__vbaCastObjVar",
+          "__vbaLbound",
+          "__vbaRedimPreserve",
+          "__vbaStrR4",
+          "_adj_fpatan",
+          "__vbaR4Var",
+          "__vbaFixstrConstruct",
+          "__vbaLateIdCallLd",
+          "Zombie_GetTypeInfoCount",
+          "__vbaStrR8",
+          "__vbaR8Cy",
+          "__vbaRedim",
+          "__vbaRecUniToAnsi",
+          "EVENT_SINK_Release",
+          "__vbaVarSetUnk",
+          "__vbaNew",
+          "_CIsqrt",
+          "__vbaLateIdCallSt",
+          "__vbaObjIs",
+          "__vbaVarAnd",
+          "ord_311",
+          "EVENT_SINK_QueryInterface",
+          "__vbaFpCmpCy",
+          "__vbaStrUI1",
+          "__vbaExceptHandler",
+          "ord_711",
+          "ord_313",
+          "ord_712"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "2/10001/1033",
+        "size": 808,
+        "rva": "0x89bd0"
+      },
+      {
+        "path": "2/10002/1033",
+        "size": 808,
+        "rva": "0x898a8"
+      },
+      {
+        "path": "2/10003/1033",
+        "size": 808,
+        "rva": "0x89580"
+      },
+      {
+        "path": "2/10004/1033",
+        "size": 808,
+        "rva": "0x89258"
+      },
+      {
+        "path": "3/1/1033",
+        "size": 744,
+        "rva": "0xa35b4"
+      },
+      {
+        "path": "3/2/1033",
+        "size": 296,
+        "rva": "0xa348c"
+      },
+      {
+        "path": "3/3/1033",
+        "size": 296,
+        "rva": "0xa3364"
+      },
+      {
+        "path": "3/4/1033",
+        "size": 744,
+        "rva": "0xa307c"
+      },
+      {
+        "path": "3/5/1033",
+        "size": 296,
+        "rva": "0xa2f54"
+      },
+      {
+        "path": "3/6/1033",
+        "size": 744,
+        "rva": "0xa2c6c"
+      },
+      {
+        "path": "3/7/1033",
+        "size": 744,
+        "rva": "0xa2984"
+      },
+      {
+        "path": "3/8/1033",
+        "size": 296,
+        "rva": "0xa285c"
+      },
+      {
+        "path": "3/9/1033",
+        "size": 744,
+        "rva": "0xa2574"
+      },
+      {
+        "path": "3/10/1033",
+        "size": 296,
+        "rva": "0xa244c"
+      },
+      {
+        "path": "3/11/1033",
+        "size": 1384,
+        "rva": "0xa1ee4"
+      },
+      {
+        "path": "3/12/1033",
+        "size": 2216,
+        "rva": "0xa163c"
+      },
+      {
+        "path": "3/13/1033",
+        "size": 744,
+        "rva": "0xa1354"
+      },
+      {
+        "path": "3/14/1033",
+        "size": 296,
+        "rva": "0xa122c"
+      },
+      {
+        "path": "3/15/1033",
+        "size": 296,
+        "rva": "0xa1104"
+      },
+      {
+        "path": "3/16/1033",
+        "size": 744,
+        "rva": "0xa0e1c"
+      },
+      {
+        "path": "3/17/1033",
+        "size": 1384,
+        "rva": "0xa08b4"
+      },
+      {
+        "path": "3/18/1033",
+        "size": 2216,
+        "rva": "0xa000c"
+      },
+      {
+        "path": "3/19/1033",
+        "size": 3752,
+        "rva": "0x9f164"
+      },
+      {
+        "path": "3/20/1033",
+        "size": 744,
+        "rva": "0x9ee7c"
+      },
+      {
+        "path": "3/21/1033",
+        "size": 744,
+        "rva": "0x9eb94"
+      },
+      {
+        "path": "3/22/1033",
+        "size": 296,
+        "rva": "0x9ea6c"
+      },
+      {
+        "path": "3/23/1033",
+        "size": 744,
+        "rva": "0x9e784"
+      },
+      {
+        "path": "3/24/1033",
+        "size": 296,
+        "rva": "0x9e65c"
+      },
+      {
+        "path": "3/25/1033",
+        "size": 1384,
+        "rva": "0x9e0f4"
+      },
+      {
+        "path": "3/26/1033",
+        "size": 2216,
+        "rva": "0x9d84c"
+      },
+      {
+        "path": "3/27/1033",
+        "size": 1384,
+        "rva": "0x9d2e4"
+      },
+      {
+        "path": "3/28/1033",
+        "size": 2216,
+        "rva": "0x9ca3c"
+      },
+      {
+        "path": "3/29/1033",
+        "size": 1384,
+        "rva": "0x9c4d4"
+      },
+      {
+        "path": "3/30/1033",
+        "size": 2216,
+        "rva": "0x9bc2c"
+      },
+      {
+        "path": "3/31/1033",
+        "size": 3752,
+        "rva": "0x9ad84"
+      },
+      {
+        "path": "3/32/1033",
+        "size": 296,
+        "rva": "0x9ac5c"
+      },
+      {
+        "path": "3/33/1033",
+        "size": 744,
+        "rva": "0x9a974"
+      },
+      {
+        "path": "3/34/1033",
+        "size": 296,
+        "rva": "0x9a84c"
+      },
+      {
+        "path": "3/35/1033",
+        "size": 744,
+        "rva": "0x9a564"
+      },
+      {
+        "path": "3/36/1033",
+        "size": 1384,
+        "rva": "0x99ffc"
+      },
+      {
+        "path": "3/37/1033",
+        "size": 2216,
+        "rva": "0x99754"
+      },
+      {
+        "path": "3/38/1033",
+        "size": 3752,
+        "rva": "0x988ac"
+      },
+      {
+        "path": "3/39/1033",
+        "size": 1384,
+        "rva": "0x98344"
+      },
+      {
+        "path": "3/40/1033",
+        "size": 2216,
+        "rva": "0x97a9c"
+      },
+      {
+        "path": "3/41/1033",
+        "size": 744,
+        "rva": "0x977b4"
+      },
+      {
+        "path": "3/42/1033",
+        "size": 296,
+        "rva": "0x9768c"
+      },
+      {
+        "path": "3/43/1033",
+        "size": 1384,
+        "rva": "0x97124"
+      },
+      {
+        "path": "3/44/1033",
+        "size": 2216,
+        "rva": "0x9687c"
+      },
+      {
+        "path": "3/45/1033",
+        "size": 744,
+        "rva": "0x96594"
+      },
+      {
+        "path": "3/46/1033",
+        "size": 296,
+        "rva": "0x9646c"
+      },
+      {
+        "path": "3/47/1033",
+        "size": 1640,
+        "rva": "0x95e04"
+      },
+      {
+        "path": "3/48/1033",
+        "size": 744,
+        "rva": "0x95b1c"
+      },
+      {
+        "path": "3/49/1033",
+        "size": 296,
+        "rva": "0x959f4"
+      },
+      {
+        "path": "3/50/1033",
+        "size": 3752,
+        "rva": "0x94b4c"
+      },
+      {
+        "path": "3/51/1033",
+        "size": 744,
+        "rva": "0x94864"
+      },
+      {
+        "path": "3/52/1033",
+        "size": 1640,
+        "rva": "0x941fc"
+      },
+      {
+        "path": "3/53/1033",
+        "size": 296,
+        "rva": "0x940d4"
+      },
+      {
+        "path": "3/54/1033",
+        "size": 744,
+        "rva": "0x93dec"
+      },
+      {
+        "path": "3/55/1033",
+        "size": 296,
+        "rva": "0x93cc4"
+      },
+      {
+        "path": "3/56/1033",
+        "size": 296,
+        "rva": "0x93b9c"
+      },
+      {
+        "path": "3/57/1033",
+        "size": 744,
+        "rva": "0x938b4"
+      },
+      {
+        "path": "3/58/1033",
+        "size": 296,
+        "rva": "0x9378c"
+      },
+      {
+        "path": "3/59/1033",
+        "size": 296,
+        "rva": "0x93664"
+      },
+      {
+        "path": "3/60/1033",
+        "size": 744,
+        "rva": "0x9337c"
+      },
+      {
+        "path": "3/61/1033",
+        "size": 296,
+        "rva": "0x93254"
+      },
+      {
+        "path": "3/62/1033",
+        "size": 744,
+        "rva": "0x92f6c"
+      },
+      {
+        "path": "3/63/1033",
+        "size": 296,
+        "rva": "0x92e44"
+      },
+      {
+        "path": "3/64/1033",
+        "size": 744,
+        "rva": "0x92b5c"
+      },
+      {
+        "path": "3/65/1033",
+        "size": 296,
+        "rva": "0x92a34"
+      },
+      {
+        "path": "3/66/1033",
+        "size": 744,
+        "rva": "0x9274c"
+      },
+      {
+        "path": "3/67/1033",
+        "size": 296,
+        "rva": "0x92624"
+      },
+      {
+        "path": "3/68/1033",
+        "size": 744,
+        "rva": "0x9233c"
+      },
+      {
+        "path": "3/69/1033",
+        "size": 744,
+        "rva": "0x92054"
+      },
+      {
+        "path": "3/70/1033",
+        "size": 744,
+        "rva": "0x91d6c"
+      },
+      {
+        "path": "3/71/1033",
+        "size": 296,
+        "rva": "0x91c44"
+      },
+      {
+        "path": "3/72/1033",
+        "size": 744,
+        "rva": "0x9195c"
+      },
+      {
+        "path": "3/73/1033",
+        "size": 296,
+        "rva": "0x91834"
+      },
+      {
+        "path": "3/74/1033",
+        "size": 744,
+        "rva": "0x9154c"
+      },
+      {
+        "path": "3/75/1033",
+        "size": 296,
+        "rva": "0x91424"
+      },
+      {
+        "path": "3/76/1033",
+        "size": 2216,
+        "rva": "0x90b7c"
+      },
+      {
+        "path": "3/77/1033",
+        "size": 744,
+        "rva": "0x90894"
+      },
+      {
+        "path": "3/78/1033",
+        "size": 296,
+        "rva": "0x9076c"
+      },
+      {
+        "path": "3/79/1033",
+        "size": 296,
+        "rva": "0x90644"
+      },
+      {
+        "path": "3/80/1033",
+        "size": 744,
+        "rva": "0x9035c"
+      },
+      {
+        "path": "3/81/1033",
+        "size": 744,
+        "rva": "0x90074"
+      },
+      {
+        "path": "3/82/1033",
+        "size": 296,
+        "rva": "0x8ff4c"
+      },
+      {
+        "path": "3/83/1033",
+        "size": 744,
+        "rva": "0x8fc64"
+      },
+      {
+        "path": "3/84/1033",
+        "size": 296,
+        "rva": "0x8fb3c"
+      },
+      {
+        "path": "3/85/1033",
+        "size": 744,
+        "rva": "0x8f854"
+      },
+      {
+        "path": "3/86/1033",
+        "size": 296,
+        "rva": "0x8f72c"
+      },
+      {
+        "path": "3/87/1033",
+        "size": 296,
+        "rva": "0x8f604"
+      },
+      {
+        "path": "3/88/1033",
+        "size": 1384,
+        "rva": "0x8f09c"
+      },
+      {
+        "path": "3/89/1033",
+        "size": 744,
+        "rva": "0x8edb4"
+      },
+      {
+        "path": "3/90/1033",
+        "size": 2216,
+        "rva": "0x8e50c"
+      },
+      {
+        "path": "3/91/1033",
+        "size": 1640,
+        "rva": "0x8dea4"
+      },
+      {
+        "path": "3/92/1033",
+        "size": 3752,
+        "rva": "0x8cffc"
+      },
+      {
+        "path": "3/93/1033",
+        "size": 744,
+        "rva": "0x8cd14"
+      },
+      {
+        "path": "3/94/1033",
+        "size": 296,
+        "rva": "0x8cbec"
+      },
+      {
+        "path": "3/95/1033",
+        "size": 744,
+        "rva": "0x8c904"
+      },
+      {
+        "path": "3/96/1033",
+        "size": 296,
+        "rva": "0x8c7dc"
+      },
+      {
+        "path": "3/30001/0",
+        "size": 296,
+        "rva": "0x8c6b4"
+      },
+      {
+        "path": "3/30002/0",
+        "size": 1384,
+        "rva": "0x8c14c"
+      },
+      {
+        "path": "3/30003/0",
+        "size": 872,
+        "rva": "0x8bde4"
+      },
+      {
+        "path": "3/30004/0",
+        "size": 744,
+        "rva": "0x8bafc"
+      },
+      {
+        "path": "3/30005/0",
+        "size": 2216,
+        "rva": "0x8b254"
+      },
+      {
+        "path": "3/30006/0",
+        "size": 3240,
+        "rva": "0x8a5ac"
+      },
+      {
+        "path": "6/63/1033",
+        "size": 222,
+        "rva": "0xa3a9e"
+      },
+      {
+        "path": "6/64/1033",
+        "size": 80,
+        "rva": "0xa3c30"
+      },
+      {
+        "path": "6/126/1033",
+        "size": 210,
+        "rva": "0xa39cc"
+      },
+      {
+        "path": "6/188/1033",
+        "size": 46,
+        "rva": "0xa3c80"
+      },
+      {
+        "path": "6/251/1033",
+        "size": 304,
+        "rva": "0xa389c"
+      },
+      {
+        "path": "6/313/1033",
+        "size": 180,
+        "rva": "0xa3b7c"
+      },
+      {
+        "path": "6/376/1033",
+        "size": 64,
+        "rva": "0xa3cae"
+      },
+      {
+        "path": "14/1/0",
+        "size": 90,
+        "rva": "0x89ef8"
+      },
+      {
+        "path": "14/1001/1033",
+        "size": 90,
+        "rva": "0x89f96"
+      },
+      {
+        "path": "14/1002/1033",
+        "size": 34,
+        "rva": "0x89f74"
+      },
+      {
+        "path": "14/1003/1033",
+        "size": 34,
+        "rva": "0x89f52"
+      },
+      {
+        "path": "14/1004/1033",
+        "size": 34,
+        "rva": "0x8a58a"
+      },
+      {
+        "path": "14/1005/1033",
+        "size": 34,
+        "rva": "0x8a568"
+      },
+      {
+        "path": "14/1006/1033",
+        "size": 34,
+        "rva": "0x8a546"
+      },
+      {
+        "path": "14/1007/1033",
+        "size": 34,
+        "rva": "0x8a414"
+      },
+      {
+        "path": "14/1008/1033",
+        "size": 34,
+        "rva": "0x8a012"
+      },
+      {
+        "path": "14/1009/1033",
+        "size": 34,
+        "rva": "0x89ff0"
+      },
+      {
+        "path": "14/2001/1033",
+        "size": 34,
+        "rva": "0x8a524"
+      },
+      {
+        "path": "14/2002/1033",
+        "size": 34,
+        "rva": "0x8a502"
+      },
+      {
+        "path": "14/2003/1033",
+        "size": 34,
+        "rva": "0x8a4e0"
+      },
+      {
+        "path": "14/2004/1033",
+        "size": 34,
+        "rva": "0x8a4be"
+      },
+      {
+        "path": "14/2005/1033",
+        "size": 34,
+        "rva": "0x8a49c"
+      },
+      {
+        "path": "14/2006/1033",
+        "size": 34,
+        "rva": "0x8a3d0"
+      },
+      {
+        "path": "14/2007/1033",
+        "size": 48,
+        "rva": "0x8a3a0"
+      },
+      {
+        "path": "14/2008/1033",
+        "size": 34,
+        "rva": "0x8a37e"
+      },
+      {
+        "path": "14/2009/1033",
+        "size": 34,
+        "rva": "0x8a35c"
+      },
+      {
+        "path": "14/3001/1033",
+        "size": 48,
+        "rva": "0x8a32c"
+      },
+      {
+        "path": "14/3002/1033",
+        "size": 34,
+        "rva": "0x8a1ec"
+      },
+      {
+        "path": "14/3003/1033",
+        "size": 20,
+        "rva": "0x8a1d8"
+      },
+      {
+        "path": "14/3004/1033",
+        "size": 20,
+        "rva": "0x8a1c4"
+      },
+      {
+        "path": "14/3005/1033",
+        "size": 34,
+        "rva": "0x8a1a2"
+      },
+      {
+        "path": "14/3006/1033",
+        "size": 34,
+        "rva": "0x8a180"
+      },
+      {
+        "path": "14/3007/1033",
+        "size": 34,
+        "rva": "0x8a15e"
+      },
+      {
+        "path": "14/3008/1033",
+        "size": 34,
+        "rva": "0x8a13c"
+      },
+      {
+        "path": "14/3009/1033",
+        "size": 34,
+        "rva": "0x8a0f2"
+      },
+      {
+        "path": "14/4001/1033",
+        "size": 20,
+        "rva": "0x8a128"
+      },
+      {
+        "path": "14/4002/1033",
+        "size": 20,
+        "rva": "0x8a114"
+      },
+      {
+        "path": "14/4003/1033",
+        "size": 34,
+        "rva": "0x8a0d0"
+      },
+      {
+        "path": "14/4004/1033",
+        "size": 34,
+        "rva": "0x8a0ae"
+      },
+      {
+        "path": "14/4005/1033",
+        "size": 20,
+        "rva": "0x8a09a"
+      },
+      {
+        "path": "14/4006/1033",
+        "size": 34,
+        "rva": "0x8a078"
+      },
+      {
+        "path": "14/4007/1033",
+        "size": 34,
+        "rva": "0x8a056"
+      },
+      {
+        "path": "14/4008/1033",
+        "size": 34,
+        "rva": "0x8a034"
+      },
+      {
+        "path": "14/5001/1033",
+        "size": 34,
+        "rva": "0x8a436"
+      },
+      {
+        "path": "14/5002/1033",
+        "size": 34,
+        "rva": "0x8a30a"
+      },
+      {
+        "path": "14/5003/1033",
+        "size": 34,
+        "rva": "0x8a2e8"
+      },
+      {
+        "path": "14/5004/1033",
+        "size": 34,
+        "rva": "0x8a2c6"
+      },
+      {
+        "path": "14/5005/1033",
+        "size": 48,
+        "rva": "0x8a296"
+      },
+      {
+        "path": "14/5006/1033",
+        "size": 34,
+        "rva": "0x8a274"
+      },
+      {
+        "path": "14/5007/1033",
+        "size": 20,
+        "rva": "0x8a260"
+      },
+      {
+        "path": "14/5008/1033",
+        "size": 48,
+        "rva": "0x8a230"
+      },
+      {
+        "path": "14/5009/1033",
+        "size": 34,
+        "rva": "0x8a20e"
+      },
+      {
+        "path": "14/6001/1033",
+        "size": 48,
+        "rva": "0x8a46c"
+      },
+      {
+        "path": "14/6002/1033",
+        "size": 34,
+        "rva": "0x8a3f2"
+      },
+      {
+        "path": "14/6003/1033",
+        "size": 20,
+        "rva": "0x8a458"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 872,
+        "rva": "0x88ef0"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "MenuCtl",
+      "APSMon.MenuCtl",
+      "MyButton.ocx",
+      "vb6projectMyButton.MyButton",
+      "MyButton",
+      "MyRecordsetMySQL.ocx",
+      "MyRecordSetMySQL.MyRecordSetMS",
+      "MyRecordSetMS",
+      "AboutForm",
+      "SubForms",
+      "ChildForm",
+      "ReportFormTTX",
+      "ChildFormMdl",
+      "FormSetup",
+      "modFormating",
+      "ConnectForm",
+      "SelectService",
+      "ISFormParamEx",
+      "SelectDate",
+      "ISFormParamSD",
+      "MDIForm",
+      "CISMenu",
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "DeleteFileA",
+      "Form",
+      "ToDate",
+      "SHGetPathFromIDList",
+      "GetTempPathA",
+      "GetShortPathNameA",
+      "C:\\Windows\\SysWow64\\MSVBVM60.DLL\\3",
+      "TDateFrom",
+      "DateTo",
+      "lastupdate",
+      "updatedby",
+      "MyRecordSetMySQL",
+      "mnuDeleteEntry",
+      "mnuUpdateEntry",
+      "btnPrintLedger",
+      "drdate",
+      "txtDBServer",
+      "txtDatabaseName",
+      "tReportPath",
+      "mnuDataMenu",
+      "mnuDelete",
+      "ClsMenu",
+      "SC:\\Program Files (x86)\\Microsoft Visual Studio\\VB98\\MyButton.oca",
+      "vb6projectMyButton",
+      "SelectGrp",
+      "HideMenuClick",
+      "MenuHovered",
+      "MenuSelected",
+      "C:\\Program Files (x86)\\Common Files\\Crystal Decisions\\2.0\\crystalreportviewers\\ActiveXViewer\\crviewer9.oca",
+      "-\\C:\\Program Files (x86)\\Common Files\\System\\ado\\msado28.tlb",
+      "ADODB",
+      "LoadReportEx",
+      "cmdSelect",
+      "__vbaDateVar",
+      "Database",
+      "__vbaDateStr",
+      "__vbaStrDate",
+      "__vbaDateR8",
+      "GetDateInclusiveTCA",
+      "lblDate",
+      "ViewDate",
+      "Select Service",
+      "Form1",
+      "Select service for schedule",
+      "Cut-off Date",
+      "Specify report cut-off date:",
+      "Application might appear not responding for a while, please bear with it. If connecting time takes more than 5 minutes, database server might no longer responding to request, please end task and try again after a while.",
+      "Connecting to database server. Please wait......",
+      "Report Options",
+      "Specify Cut-off Date",
+      "Locate Customer",
+      "Customer",
+      "&Select",
+      "Specify Report Coverage",
+      "&To Date",
+      "DateFrom",
+      "&Date to Date",
+      "Report Caption",
+      "Check Amount (Date Inclusive):",
+      "Date To:",
+      "Date From:",
+      "Database Name:",
+      "Report Path:",
+      "Database Server:",
+      "Date:",
+      "Print Ledger",
+      "Delete Entry",
+      "Update Entry",
+      "Bodega Stock:",
+      "Last Update By:",
+      "Last Update:",
+      "Hide Menu",
+      "Main Menu",
+      "Right click here for some menu options",
+      "Customer Master File",
+      "After specifying keyword, press enter or click magnifying glass button, to search.",
+      "DataMenu",
+      "&Delete",
+      "MDIForm1",
+      "MenuID",
+      "NewForm",
+      "MenuText",
+      "Button",
+      "ReportFile",
+      "SelectedDate",
+      "Date accessed",
+      "Server is busy, System is unable to reestablish connection!",
+      "dscreport",
+      "mainmenu",
+      "stocksummary",
+      "Stock Summary",
+      "StockSummary",
+      "call `cims`.`Rpt_StockSummary_APS`(",
+      "stocksales",
+      "Stock Sales By Customer",
+      "StockSalesGPCustomer",
+      "call `cims`.`Rpt_StockSales_APS`(",
+      "stocktransfers",
+      "Stock Transfer",
+      "StockTransfer",
+      "Stock Transfer Summary",
+      "StockAging",
+      "call `cims`.`Rpt_StockAging_APS`(",
+      "select * from `cims`.`stocktransfersummary` where showinaps=1 and transferdate between",
+      "stockledger",
+      "Stock Ledger",
+      "StockLedger",
+      "call `cims`.`Rpt_StockLedger_APS`(",
+      "stockaging",
+      "Stock Aging",
+      "stockreorderpoint",
+      "Stock Reorder Point",
+      "StockSummaryROP",
+      "bycustomer",
+      "bycustomersummaryperitem",
+      "Stock Sales By Customer - Summary By Item",
+      "StockSalesGPCustomerSummaryByItem",
+      "bystockcode",
+      "Stock Sales By Stock Code",
+      "StockSalesGPStockCode",
+      "summarybyitem",
+      "Stock Sales Summary By Item",
+      "StockSalesSummaryItem",
+      "summarybybranch",
+      "Stock Transfer By Branch",
+      "StockTransferByBranch",
+      "stbyentryid",
+      "Stock Sales By Reference Number",
+      "StockSalesGPReference",
+      "stsummary",
+      "stsummarybyitem",
+      "StockTransferSummaryItem",
+      "Stock Transfer Summary By Item",
+      "stbystockname",
+      "StockTransferStockCode",
+      "Stock Transfer Summary By Stock Name",
+      "StockTransferEntryID",
+      "Stock Transfer By Entry ID",
+      "stsummarybyentryid",
+      "StockTransferSummaryEntryID",
+      "Stock Transfer Summary By Entry ID",
+      "Last Update",
+      "Updated By",
+      "APS Client Monitor Aging",
+      "APSCMAging",
+      "call `rpt_apscmaging`('",
+      "APS Client Monitor Aging 2",
+      "APSCMAging2",
+      "select * from vw_apsclients;",
+      "logindate",
+      "Date",
+      "logdate",
+      "formname",
+      "Entry Form",
+      "MSelectedBackColor",
+      "MSelectedLabel",
+      "CommandButton",
+      "MGroupButton",
+      "Database Name",
+      "\\Reports\\",
+      "FCommandButton",
+      "select * from EmployeeData where EmpCode='",
+      "SELECT cast(",
+      "D:\\SamCSS Reports\\",
+      "Report folder is invalid. Please check the configuration setup!",
+      "select last_day('",
+      "select",
+      "TranDate",
+      "DELETE FROM AdvancesLedger WHERE TranID=",
+      "select 1 as test;",
+      "Database Error",
+      "Cannot connect to database server.",
+      "Click RETRY after a while to reconnect again to the server.",
+      "ChildForms_View",
+      ".rpt",
+      "Subreport1",
+      "Subreport2",
+      "Subreport3",
+      "Subreport4",
+      "Subreport5",
+      "Subreport6",
+      "Subreport7",
+      "- CreatePath Function",
+      "DELETE FROM configdata WHERE ConfigItem='",
+      "SELECT DecValue RetValue FROM configdata WHERE ConfigItem='",
+      "SELECT StrValue RetValue FROM configdata WHERE ConfigItem='",
+      "INSERT INTO configdata (ConfigItem,DecValue,Reference) VALUES ('",
+      "INSERT INTO configdata (ConfigItem,StrValue,Reference) VALUES ('",
+      "select year(",
+      "select * from (select",
+      ") x where (",
+      "DB Server",
+      "Report Path",
+      "StockName",
+      "vw_Stocks",
+      "noserver",
+      "DRIVER={MySQL ODBC 5.1 Driver}; SERVER=",
+      "select * from c_particulars where pk=",
+      "delete from c_particulars where pk=",
+      "insert into c_particulars (pk,partname,partqty,partcost,partamount,partorder,parttype) values",
+      "select calculate_interestDays('",
+      "select * from maints;",
+      "SELECT idnum,company from c_recepients where (company LIKE '",
+      "select posted,concat(company,' ',checknumber,' ',bankname,' ',format(checkamount,2)) chkdata from vw_checkdata where checkdate='",
+      "select posted,concat(cast(checkdate as char),' ',company,' ',checknumber,' ',bankname,' ',format(checkamount,2)) chkdata from vw_checkdata where posted=0 and checkdate<'",
+      "' order by company,checkdate desc,pk;",
+      "select sum(checkamount) tca from c_outgoingchecks where checkdate between",
+      "select * from items where `name`='",
+      "select * from items where `code`='",
+      "SELECT",
+      "select aps_name from apsprofile where aps_id=",
+      "select * from apsclients where `cli_name`='",
+      "select * from apsprofile where `aps_name`='",
+      "Invalid date. Check specified dates.",
+      "Are you sure to post entry?",
+      "update apsvisits set transdate='",
+      "insert into apsvisits (`transno`,`idnum`,`transdate`,`sowno`,`fatteningno`,`boarno`,`pigletno`,`feedsused`,`medsused`,`feedsused_others`,`medsused_others`,`user`,`lastupdate`,`remarks`) values (",
+      "lastupdate=current_timestamp() where pk=",
+      "select last_insert_id() liid;",
+      "PrendaLedger",
+      "Update",
+      "select * from apsclients where cli_id=",
+      "select * from feeds order by f_id;",
+      "select * from meds order by m_id;",
+      "select * from apsvisits where idnum='",
+      "' order by transdate, pk;",
+      "transdate",
+      "Are you sure to delete entry number",
+      "delete from apsvisits where pk=",
+      "select * from apsvisits where pk=",
+      "select max(transno) mtn from apsvisits;",
+      "customformat",
+      "dtformat",
+      "(Format)",
+      "Double click icon to view customer record. Right click icon to edit or delete customer.",
+      "Developed by JackSoft. For Inquiries or Bug Reports Contact Cell No. +639184314040R",
+      "Developed by JackSoft. For Inquiries or Bug Reports Contact Cell No. +639184314040",
+      "Stock Sales",
+      "By Customer",
+      "By Stock Name",
+      "Summary By Item",
+      "By Customer (Summary By Item)",
+      "Stock Transfers",
+      "Summary",
+      "stsummaryoa",
+      "stbystocknameSe",
+      "By Entry ID",
+      "Summary By EntryID",
+      "By Branch",
+      "Entry ID",
+      "recordset",
+      "D:\\MyButton\\Icons\\Standard.bmp",
+      "Reports"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/MyRecordsetMySQL.ocx",
+    "name": "MyRecordsetMySQL.ocx",
+    "size": 253952,
+    "sha256": "fa02d67666f19ffb0d9730aa3b3d2e216059e72e046e8168617bace531b18082",
+    "machine": "0x14c",
+    "timestamp": 1365740852,
+    "subsystem": 2,
+    "entrypoint": "0x2758",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 201597,
+        "raw_size": 204800,
+        "entropy": 5.789
+      },
+      {
+        "name": ".data",
+        "virtual_size": 11824,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 17220,
+        "raw_size": 20480,
+        "entropy": 3.968
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 19572,
+        "raw_size": 20480,
+        "entropy": 5.97
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "EVENT_SINK_GetIDsOfNames",
+          "__vbaVarSub",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaStrI4",
+          "__vbaVarMove",
+          "__vbaVarVargNofree",
+          "__vbaFreeVar",
+          "__vbaLateIdCall",
+          "ord_588",
+          "__vbaAptOffset",
+          "__vbaLenBstr",
+          "__vbaStrVarMove",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "EVENT_SINK_Invoke",
+          "__vbaRaiseEvent",
+          "__vbaNextEachVar",
+          "__vbaFreeObjList",
+          "__vbaStrErrVarCopy",
+          "_adj_fprem1",
+          "__vbaRecAnsiToUni",
+          "__vbaVarSetVarAddref",
+          "__vbaResume",
+          "__vbaStrCat",
+          "__vbaVarCmpNe",
+          "__vbaBoolErrVar",
+          "ord_660",
+          "__vbaStrDate",
+          "__vbaRecDestruct",
+          "__vbaSetSystemError",
+          "__vbaHresultCheckObj",
+          "ord_557",
+          "_adj_fdiv_m32",
+          "Zombie_GetTypeInfo",
+          "__vbaAryDestruct",
+          "__vbaCyErrVar",
+          "ord_591",
+          "__vbaLateMemSt",
+          "__vbaForEachCollObj",
+          "__vbaExitProc",
+          "ord_300",
+          "ord_301",
+          "ord_595",
+          "__vbaObjSet",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "ord_303",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_304",
+          "ord_598",
+          "ord_306",
+          "ord_520",
+          "__vbaBoolVar",
+          "ord_307",
+          "ord_309",
+          "__vbaBoolVarNull",
+          "__vbaFpR8",
+          "_CIsin",
+          "ord_709",
+          "ord_525",
+          "__vbaNextEachCollObj",
+          "__vbaVarZero",
+          "ord_632",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "ord_528",
+          "__vbaGenerateBoundsError",
+          "__vbaCyI2",
+          "ord_529",
+          "__vbaStrCmp",
+          "__vbaExitEachColl",
+          "__vbaAryConstruct2",
+          "__vbaVarTstEq",
+          "ord_560",
+          "__vbaDateR8",
+          "__vbaObjVar",
+          "__vbaI2I4",
+          "DllFunctionCall",
+          "__vbaVarLateMemSt",
+          "__vbaVarOr",
+          "__vbaCastObjVar",
+          "_adj_fpatan",
+          "__vbaLateIdCallLd",
+          "Zombie_GetTypeInfoCount",
+          "__vbaR8Cy",
+          "__vbaStrR8",
+          "__vbaRecUniToAnsi",
+          "EVENT_SINK_Release",
+          "__vbaNew",
+          "_CIsqrt",
+          "ord_310",
+          "__vbaObjIs",
+          "__vbaVarAnd",
+          "EVENT_SINK_QueryInterface",
+          "__vbaFpCmpCy",
+          "__vbaExceptHandler",
+          "ord_312",
+          "ord_712",
+          "__vbaStrToUnicode",
+          "__vbaDateStr",
+          "ord_606",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "ord_607",
+          "ord_714",
+          "ord_608",
+          "ord_531",
+          "__vbaFPException",
+          "ord_319",
+          "__vbaStrVarVal",
+          "__vbaVarCat",
+          "__vbaDateVar",
+          "__vbaI2Var",
+          "ord_537",
+          "ord_645",
+          "_CIlog",
+          "__vbaErrorOverflow"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 8372,
+        "rva": "0x38290"
+      },
+      {
+        "path": "_IID_GENERAL/1/0",
+        "size": 20,
+        "rva": "0x3827c"
+      },
+      {
+        "path": "_IID_MRECORDSET/1/0",
+        "size": 20,
+        "rva": "0x38268"
+      },
+      {
+        "path": "_IID_MYRECORDSETMS/1/0",
+        "size": 100,
+        "rva": "0x38204"
+      },
+      {
+        "path": "_SRCIID_MYRECORDSETMS/1/0",
+        "size": 100,
+        "rva": "0x381a0"
+      },
+      {
+        "path": "2/1001/1033",
+        "size": 344,
+        "rva": "0x36f80"
+      },
+      {
+        "path": "2/1002/1033",
+        "size": 344,
+        "rva": "0x36e28"
+      },
+      {
+        "path": "2/1003/1033",
+        "size": 344,
+        "rva": "0x36cd0"
+      },
+      {
+        "path": "2/1004/1033",
+        "size": 344,
+        "rva": "0x36b78"
+      },
+      {
+        "path": "2/30000/0",
+        "size": 760,
+        "rva": "0x36880"
+      },
+      {
+        "path": "3/1/1033",
+        "size": 744,
+        "rva": "0x37eb8"
+      },
+      {
+        "path": "3/2/1033",
+        "size": 296,
+        "rva": "0x37d90"
+      },
+      {
+        "path": "3/3/1033",
+        "size": 744,
+        "rva": "0x37aa8"
+      },
+      {
+        "path": "3/4/1033",
+        "size": 296,
+        "rva": "0x37980"
+      },
+      {
+        "path": "3/5/1033",
+        "size": 744,
+        "rva": "0x37698"
+      },
+      {
+        "path": "3/6/1033",
+        "size": 296,
+        "rva": "0x37570"
+      },
+      {
+        "path": "3/7/1033",
+        "size": 744,
+        "rva": "0x37288"
+      },
+      {
+        "path": "3/8/1033",
+        "size": 296,
+        "rva": "0x37160"
+      },
+      {
+        "path": "14/1001/1033",
+        "size": 34,
+        "rva": "0x3713e"
+      },
+      {
+        "path": "14/1002/1033",
+        "size": 34,
+        "rva": "0x3711c"
+      },
+      {
+        "path": "14/1003/1033",
+        "size": 34,
+        "rva": "0x370fa"
+      },
+      {
+        "path": "14/1004/1033",
+        "size": 34,
+        "rva": "0x370d8"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 672,
+        "rva": "0x365e0"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "0000-CMyRecordSetMySQL",
+      "#2.0#0#Data Control by JackSoft MySQL Version",
+      "129-B803mRecordset",
+      "X Data OMyRecordSetMS",
+      "MyRecordsetMySQL",
+      "MyRecordSetMySQL",
+      "MyRecordSetMS",
+      "SearchForm",
+      "mRecordset",
+      "OKButton",
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "CancelButton",
+      "YesButton",
+      "NoButton",
+      "Form",
+      "SHGetPathFromIDList",
+      "GetTempPathA",
+      "GetShortPathNameA",
+      "Recordset",
+      "AllowDelete",
+      "ClickButton",
+      "BeforeDelete",
+      "AfterDelete",
+      "__vbaDateVar",
+      "__vbaDateR8",
+      "chkAllowDelete",
+      "txtRecordset",
+      "lblRecordset",
+      "-\\C:\\Program Files (x86)\\Common Files\\System\\ado\\msado28.tlb",
+      "ADODB",
+      "C:\\Windows\\SysWow64\\MSVBVM60.DLL\\3",
+      "Database",
+      "__vbaDateStr",
+      "__vbaStrDate",
+      "Allow delete record",
+      "Transaction file recordset",
+      "Form1",
+      "Search specific record from the file",
+      "Delete current displayed record.",
+      "Data Control by JackSoft MySQL Version",
+      "MyRecordsetMySQL.ocx",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "e_MyRecordSetMSWWd",
+      "MyRecordSetMSWWW",
+      "MyRecordSetMS___v0WW,",
+      "MyRecordSetMS___v1WW",
+      "MyRecordSetMS___v2WW",
+      "MyRecordSetMS___v3WWX",
+      "MyRecordSetMS___v4WW",
+      "J_mRecordsetW",
+      "mRecordsetWW",
+      "__MyRecordSetMSW",
+      "RecordsetWWW",
+      "AllowDeleteW",
+      "m(ClickButtonW",
+      "BeforeDeleteL",
+      "@AfterDeleteWL",
+      "Data Control by JackSoft MySQL VersionQ",
+      "Paradox 3.X;",
+      "Paradox 4.X;",
+      "Paradox 5.X;",
+      "Server is busy, System is unable to reestablish connection!",
+      "update",
+      "Unlock this record?. Note: Please be carefull editing outdated transactions.",
+      "My Recordset error",
+      "select * from",
+      "SELECT",
+      "OptionButton",
+      "Are you sure to delete '",
+      "DELETE FROM",
+      "insert into",
+      "select last_insert_id() lid;",
+      "SELECT * FROM",
+      "select 1 as test;",
+      "Database Error",
+      "Cannot connect to database server.",
+      "Click RETRY after a while to reconnect again to the server.",
+      "- CreatePath Function",
+      "SELECT DecValue RetValue FROM configdata WHERE ConfigItem='",
+      "SELECT StrValue RetValue FROM configdata WHERE ConfigItem='",
+      "DELETE FROM configdata WHERE ConfigItem='",
+      "INSERT INTO configdata (ConfigItem,DecValue,Reference) VALUES ('",
+      "INSERT INTO configdata (ConfigItem,StrValue,Reference) VALUES ('",
+      "_IID_MRECORDSET",
+      "_IID_MYRECORDSETMS",
+      "_SRCIID_MYRECORDSETMS"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/CompInfo.dll",
+    "name": "CompInfo.dll",
+    "size": 28672,
+    "sha256": "0631832d4fa1f4373fd3f8328a7c4186022235eac8ace0d0270b3cc793cc7efb",
+    "machine": "0x14c",
+    "timestamp": 1032029212,
+    "subsystem": 2,
+    "entrypoint": "0x1390",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 11445,
+        "raw_size": 12288,
+        "entropy": 5.385
+      },
+      {
+        "name": ".data",
+        "virtual_size": 900,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 3360,
+        "raw_size": 4096,
+        "entropy": 3.149
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 1066,
+        "raw_size": 4096,
+        "entropy": 2.319
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "__vbaVarSub",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaStrI4",
+          "__vbaFreeVar",
+          "__vbaStrVarMove",
+          "__vbaLenBstr",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "_adj_fprem1",
+          "__vbaRecAnsiToUni",
+          "__vbaStrCat",
+          "__vbaSetSystemError",
+          "_adj_fdiv_m32",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "_adj_fdivr_m16i",
+          "ord_520",
+          "_CIsin",
+          "ord_632",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "__vbaGenerateBoundsError",
+          "__vbaI2I4",
+          "DllFunctionCall",
+          "_adj_fpatan",
+          "__vbaRedim",
+          "__vbaRecUniToAnsi",
+          "EVENT_SINK_Release",
+          "_CIsqrt",
+          "EVENT_SINK_QueryInterface",
+          "__vbaExceptHandler",
+          "__vbaStrToUnicode",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "ord_607",
+          "ord_608",
+          "__vbaFPException",
+          "__vbaInStrVar",
+          "__vbaStrVarVal",
+          "__vbaVarCat",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaInStr",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "ord_573",
+          "__vbaStrCopy",
+          "ord_681",
+          "__vbaFreeStrList",
+          "_adj_fdivr_m32",
+          "_adj_fdiv_r",
+          "ord_101",
+          "ord_102",
+          "__vbaI4Var",
+          "ord_103",
+          "ord_104",
+          "ord_105",
+          "__vbaStrToAnsi",
+          "__vbaVarDup",
+          "ord_617",
+          "_CIatan",
+          "__vbaStrMove",
+          "ord_619",
+          "_allmul",
+          "_CItan",
+          "_CIexp",
+          "__vbaFreeStr"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 2112,
+        "rva": "0x54e0"
+      },
+      {
+        "path": "_IID_COMPINFO/1/0",
+        "size": 20,
+        "rva": "0x54cc"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 940,
+        "rva": "0x5120"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "C:\\WINNT\\System32\\msvbvm60.dll\\3",
+      "GetTempPathA",
+      "GetVolumeInformationA",
+      "WinPath",
+      "TempPath",
+      "SystemPath",
+      "cFlatForm",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "]WinPathW",
+      "tSystemPathWW",
+      "cFlatFormWWW"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/JSSecurityMod.dll",
+    "name": "JSSecurityMod.dll",
+    "size": 159744,
+    "sha256": "8ca36d4ba0427c7ec296fad45546332ba378f9babdb3b494f7e5eaf8bf653f6f",
+    "machine": "0x14c",
+    "timestamp": 1353028831,
+    "subsystem": 2,
+    "entrypoint": "0x1dd0",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 123962,
+        "raw_size": 126976,
+        "entropy": 5.613
+      },
+      {
+        "name": ".data",
+        "virtual_size": 13608,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 5036,
+        "raw_size": 8192,
+        "entropy": 2.834
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 12932,
+        "raw_size": 16384,
+        "entropy": 4.962
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "EVENT_SINK_GetIDsOfNames",
+          "__vbaStrI2",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaVarMove",
+          "__vbaStrI4",
+          "__vbaFreeVar",
+          "__vbaLenBstr",
+          "__vbaStrVarMove",
+          "__vbaLateIdCall",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "EVENT_SINK_Invoke",
+          "__vbaFreeObjList",
+          "__vbaStrErrVarCopy",
+          "_adj_fprem1",
+          "__vbaRecAnsiToUni",
+          "__vbaResume",
+          "__vbaStrCat",
+          "ord_660",
+          "__vbaBoolErrVar",
+          "__vbaStrDate",
+          "__vbaSetSystemError",
+          "__vbaRecDestruct",
+          "__vbaHresultCheckObj",
+          "ord_557",
+          "__vbaLenVar",
+          "_adj_fdiv_m32",
+          "Zombie_GetTypeInfo",
+          "__vbaAryDestruct",
+          "__vbaCyErrVar",
+          "__vbaStrBool",
+          "__vbaExitProc",
+          "ord_300",
+          "ord_301",
+          "__vbaObjSet",
+          "ord_595",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "ord_303",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_598",
+          "ord_305",
+          "ord_306",
+          "ord_520",
+          "ord_307",
+          "ord_309",
+          "__vbaBoolVarNull",
+          "_CIsin",
+          "ord_709",
+          "ord_632",
+          "ord_525",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "__vbaGenerateBoundsError",
+          "ord_528",
+          "__vbaCyI2",
+          "ord_529",
+          "__vbaStrCmp",
+          "__vbaAryConstruct2",
+          "__vbaVarTstEq",
+          "ord_560",
+          "__vbaDateR8",
+          "__vbaI2I4",
+          "DllFunctionCall",
+          "__vbaVarOr",
+          "_adj_fpatan",
+          "__vbaR4Var",
+          "__vbaLateIdCallLd",
+          "Zombie_GetTypeInfoCount",
+          "__vbaR8Cy",
+          "__vbaStrR8",
+          "__vbaRecUniToAnsi",
+          "EVENT_SINK_Release",
+          "__vbaNew",
+          "_CIsqrt",
+          "__vbaObjIs",
+          "__vbaLateIdCallSt",
+          "ord_311",
+          "EVENT_SINK_QueryInterface",
+          "__vbaFpCmpCy",
+          "__vbaExceptHandler",
+          "ord_313",
+          "ord_712",
+          "__vbaStrToUnicode",
+          "__vbaDateStr",
+          "ord_606",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "ord_607",
+          "ord_714",
+          "__vbaLateIdStAd",
+          "ord_531",
+          "__vbaFPException",
+          "ord_319",
+          "__vbaStrVarVal",
+          "__vbaVarCat",
+          "__vbaDateVar",
+          "__vbaI2Var",
+          "ord_537",
+          "ord_645",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaInStr",
+          "__vbaNew2",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "ord_681",
+          "__vbaFreeStrList",
+          "_adj_fdivr_m32",
+          "__vbaR8Var",
+          "_adj_fdiv_r",
+          "ord_685",
+          "__vbaVarTstNe",
+          "ord_101",
+          "ord_102",
+          "__vbaI4Var"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 3980,
+        "rva": "0x24420"
+      },
+      {
+        "path": "_IID_SECURITYGLOBALS/1/0",
+        "size": 20,
+        "rva": "0x2440c"
+      },
+      {
+        "path": "_IID_SECURITYMOD/1/0",
+        "size": 20,
+        "rva": "0x243f8"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 616,
+        "rva": "0x24190"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "^branches",
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "btnDelete",
+      "Form",
+      "C:\\Windows\\SysWow64\\MSVBVM60.DLL\\3",
+      "SHGetPathFromIDList",
+      "GetTempPathA",
+      "GetShortPathNameA",
+      "DataServer",
+      "InitDataServer",
+      "-\\C:\\Program Files (x86)\\Common Files\\System\\ado\\msado28.tlb",
+      "ADODB",
+      "Database",
+      "__vbaDateStr",
+      "__vbaStrDate",
+      "__vbaDateVar",
+      "__vbaDateR8",
+      "Form1",
+      "Delete",
+      "branches",
+      "ParentForm",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "DataServerWW",
+      "InitDataServerWW",
+      "ParentFormWW",
+      "reDelete",
+      "reReport",
+      "reDeleteWW",
+      "reReportWW",
+      "Server is busy, System is unable to reestablish connection!",
+      "Delete user...",
+      "insert into access (`usr_id`,`mod_id`,`rit_id`,`acc_enabled`) values(",
+      ") on duplicate key update `acc_enabled`=values(`acc_enabled`);",
+      "Are you sure to delete '",
+      "insert into userbranch (`usr_id`,`br_id`,`allowed`) values(",
+      ") on duplicate key update `allowed`=values(`allowed`);",
+      "insert into users (`usr_loginname`,`usr_name`,`usr_description`) values ('",
+      "') on duplicate key update `usr_name`=values(`usr_name`),`usr_description`=values(`usr_description`)",
+      "insert into users (`usr_loginname`,`usr_name`,`usr_description`,`usr_password`) values ('",
+      "')) on duplicate key update `usr_name`=values(`usr_name`),`usr_description`=values(`usr_description`)",
+      "select usr_id,usr_loginname,usr_name,usr_description,usr_password from users where usr_deleted=0 order by usr_loginname;",
+      "select * from modules order by mod_id;",
+      "update users set usr_deleted=1,usr_deleteddt=now() where usr_id=",
+      "select ifnull(max(usr_id),0)+1 mui from users;",
+      "call spjs_getbrancheswithuser(",
+      "DRIVER={MySQL ODBC 5.1 Driver}; SERVER=",
+      "Database Error",
+      "Security database server not initiated.",
+      "select * from users where usr_id=",
+      "- CreatePath Function",
+      "DELETE FROM configdata WHERE ConfigItem='",
+      "SELECT DecValue RetValue FROM configdata WHERE ConfigItem='",
+      "SELECT StrValue RetValue FROM configdata WHERE ConfigItem='",
+      "INSERT INTO configdata (ConfigItem,DecValue,Reference) VALUES ('",
+      "INSERT INTO configdata (ConfigItem,StrValue,Reference) VALUES ('",
+      "select 1 as test;",
+      "Cannot connect to database server.",
+      "Click RETRY after a while to reconnect again to the server.",
+      "select a.* from access a left join users b on (a.usr_id=b.usr_id) where ifnull(b.usr_deleted,0)=0 and a.usr_id=",
+      "insert into logs (`usr_id`,`mod_id`,`rit_id`,`ref_table`,`ref_id`,`log_pc`) values (",
+      "select * from users where usr_loginname='",
+      "update users set usr_loginname='",
+      "' where usr_id=",
+      "Login name successfully updated!",
+      "select usr_id,usr_loginname,(usr_password=md5('",
+      "')) pwok from users where usr_loginname='",
+      "select * from access where usr_id=",
+      "select * from settings where setname='overridekey';",
+      "insert into logins (`usr_id`,`mod_id`,`login_pc`) values (",
+      "insert into settings set setname='overridekey', setvalue='",
+      "' on duplicate key update setvalue=values(setvalue);",
+      "select (usr_password=md5('",
+      "')) oldpwok from users where usr_id=",
+      "update users set usr_password=md5('",
+      "') where usr_id=",
+      "Password successfully updated!",
+      "\"Basic Information",
+      "\"Branch Assignment",
+      "(Format)",
+      "Branch Name"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/MyControls.ocx",
+    "name": "MyControls.ocx",
+    "size": 167936,
+    "sha256": "84d50004b0eaf781c94d778866cca7ff8445efcf43d4c1629d9762735399aa32",
+    "machine": "0x14c",
+    "timestamp": 1079456889,
+    "subsystem": 2,
+    "entrypoint": "0x1ea8",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 108583,
+        "raw_size": 110592,
+        "entropy": 5.8
+      },
+      {
+        "name": ".data",
+        "virtual_size": 15884,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 35404,
+        "raw_size": 36864,
+        "entropy": 4.595
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 10990,
+        "raw_size": 12288,
+        "entropy": 5.737
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaVarVargNofree",
+          "__vbaFreeVar",
+          "__vbaLateIdCall",
+          "__vbaStrVarMove",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "__vbaRaiseEvent",
+          "__vbaFreeObjList",
+          "_adj_fprem1",
+          "__vbaHresultCheckObj",
+          "_adj_fdiv_m32",
+          "__vbaOnError",
+          "__vbaObjSet",
+          "_adj_fdiv_m16i",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "__vbaBoolVar",
+          "_CIsin",
+          "__vbaChkstk",
+          "EVENT_SINK_AddRef",
+          "__vbaCastObjVar",
+          "_adj_fpatan",
+          "__vbaR4Var",
+          "__vbaLateIdCallLd",
+          "EVENT_SINK_Release",
+          "_CIsqrt",
+          "EVENT_SINK_QueryInterface",
+          "__vbaVarMul",
+          "__vbaExceptHandler",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "__vbaLateIdStAd",
+          "__vbaFPException",
+          "__vbaStrVarVal",
+          "__vbaI2Var",
+          "_CIlog",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "_adj_fdivr_m32",
+          "_adj_fdiv_r",
+          "ord_101",
+          "ord_102",
+          "__vbaI4Var",
+          "ord_103",
+          "ord_104",
+          "ord_610",
+          "ord_105",
+          "__vbaVarDup",
+          "__vbaVerifyVarObj",
+          "_CIatan",
+          "__vbaStrMove",
+          "_allmul",
+          "__vbaLateIdSt",
+          "_CItan",
+          "_CIexp",
+          "__vbaFreeObj",
+          "__vbaFreeStr"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 29580,
+        "rva": "0x216c0"
+      },
+      {
+        "path": "_IID_ABOUTHL/1/0",
+        "size": 20,
+        "rva": "0x21698"
+      },
+      {
+        "path": "_IID_ABOUTVL/1/0",
+        "size": 20,
+        "rva": "0x216ac"
+      },
+      {
+        "path": "_IID_HLINE3D/1/0",
+        "size": 20,
+        "rva": "0x2165c"
+      },
+      {
+        "path": "_IID_MYCOMBOBOX/1/0",
+        "size": 20,
+        "rva": "0x21634"
+      },
+      {
+        "path": "_IID_MYLABEL/1/0",
+        "size": 20,
+        "rva": "0x215e4"
+      },
+      {
+        "path": "_IID_MYTIMEPICKER/1/0",
+        "size": 20,
+        "rva": "0x2160c"
+      },
+      {
+        "path": "_IID_VLINE3D/1/0",
+        "size": 20,
+        "rva": "0x21684"
+      },
+      {
+        "path": "_SRCIID_HLINE3D/1/0",
+        "size": 20,
+        "rva": "0x21648"
+      },
+      {
+        "path": "_SRCIID_MYCOMBOBOX/1/0",
+        "size": 20,
+        "rva": "0x21620"
+      },
+      {
+        "path": "_SRCIID_MYLABEL/1/0",
+        "size": 20,
+        "rva": "0x215d0"
+      },
+      {
+        "path": "_SRCIID_MYTIMEPICKER/1/0",
+        "size": 20,
+        "rva": "0x215f8"
+      },
+      {
+        "path": "_SRCIID_VLINE3D/1/0",
+        "size": 20,
+        "rva": "0x21670"
+      },
+      {
+        "path": "2/30000/0",
+        "size": 224,
+        "rva": "0x20908"
+      },
+      {
+        "path": "2/30001/0",
+        "size": 224,
+        "rva": "0x209e8"
+      },
+      {
+        "path": "2/30002/0",
+        "size": 1304,
+        "rva": "0x20ac8"
+      },
+      {
+        "path": "2/30003/0",
+        "size": 760,
+        "rva": "0x20fe0"
+      },
+      {
+        "path": "2/30004/0",
+        "size": 760,
+        "rva": "0x212d8"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 632,
+        "rva": "0x20690"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "C:\\Program Files\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "CustomFormat",
+      "DTFormat",
+      "ValidateControls",
+      "C:\\WINNT\\system32\\msvbvm60.dll\\3",
+      "Validate",
+      "Returns/sets the alignment of a CheckBox or OptionButton, or a control's text.",
+      "Sets the appearance of output from graphics methods or of a Shape or Line control.",
+      "Determines the line style for output from graphics methods.",
+      "Returns/sets the line width for output from graphics methods.",
+      "Returns/sets a value that determines whether background text/graphics on a Form, Printer or PictureBox are displayed.",
+      "Occurs when the user presses and then releases a mouse button over an object.",
+      "Occurs when the user presses and releases a mouse button and then presses and releases it again over an object.",
+      "Button",
+      "Occurs when the user presses the mouse button while an object has the focus.",
+      "Occurs when the user releases the mouse button while an object has the focus.",
+      "Occurs when a form is first displayed or the size of an object changes.",
+      "Forces a complete repaint of a form or control.",
+      "Occurs when you press and release a mouse button and then press and release it again over an object.",
+      "Occurs when the user presses the mouse button while the mousepointer is over an object.",
+      "Occurs when the user releases the mouse button while the mousepointer is over an object.",
+      "Validate contents of the last control on the form before exiting the form",
+      "Returns/sets the string containing the currently selected text.",
+      "Returns/sets the starting point of text selected.",
+      "Returns/sets the number of characters selected.",
+      "Removes an item from a ListBox or ComboBox control or a row from a Grid control.",
+      "Draws the contents of a graphics file on a Form, PictureBox, or Printer object.",
+      "Returns/sets the index of the currently selected item in the control.",
+      "Sets a value that specifies the Data control through which the current control is bound to a database.",
+      "A collection whose elements represent each control on a form, including elements of control arrays.",
+      "Returns/sets the output from a graphics method to a persistent bitmap.",
+      "Occurs when any part of a form or PictureBox control is moved, enlarged, or exposed.",
+      "DataFormat",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "msvbvm60.dll\\3",
+      "ButtonWW",
+      "/CustomFormat",
+      "3PValidate",
+      "DataFormatWW",
+      "Returns/sets the alignment of a CheckBox or OptionButton, or a control's text.S",
+      "Sets the appearance of output from graphics methods or of a Shape or Line control.;",
+      "Determines the line style for output from graphics methods.WWW=",
+      "Returns/sets the line width for output from graphics methods.WB",
+      "Returns/sets a value that determines whether background text/graphics on a Form, Printer or PictureBox are displayed.W#",
+      "Occurs when the user presses and then releases a mouse button over an object.Wo",
+      "Occurs when the user presses and releases a mouse button and then presses and releases it again over an object.WWWA",
+      "Occurs when the user presses the mouse button while an object has the focus.WW%",
+      "Occurs when the user releases the mouse button while an object has the focus.WG",
+      "Occurs when a form is first displayed or the size of an object changes.WWW/",
+      "Forces a complete repaint of a form or control.WWWd",
+      "Occurs when you press and release a mouse button and then press and release it again over an object.WWW",
+      "Occurs when the user presses the mouse button while the mousepointer is over an object.WWW;",
+      "Occurs when the user releases the mouse button while the mousepointer is over an object.WW8",
+      "Validate contents of the last control on the form before exiting the formWJ",
+      "Returns/sets the string containing the currently selected text.WWW1",
+      "Returns/sets the starting point of text selected.W/",
+      "Returns/sets the number of characters selected.WWWX",
+      "Removes an item from a ListBox or ComboBox control or a row from a Grid control.WWW",
+      "Draws the contents of a graphics file on a Form, PictureBox, or Printer object.WWW?",
+      "Returns/sets the index of the currently selected item in the control.W=",
+      "Sets a value that specifies the Data control through which the current control is bound to a database. WWWQ",
+      "A collection whose elements represent each control on a form, including elements of control arrays. WWd",
+      "Returns/sets the output from a graphics method to a persistent bitmap.N",
+      "Occurs when any part of a form or PictureBox control is moved, enlarged, or exposed.WWU"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/MyButton.ocx",
+    "name": "MyButton.ocx",
+    "size": 98304,
+    "sha256": "3388594876c7dd66a1986174b4fb830357aedaa9db5a5f076a50ca9b236219b4",
+    "machine": "0x14c",
+    "timestamp": 1079457010,
+    "subsystem": 2,
+    "entrypoint": "0x172c",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 63829,
+        "raw_size": 65536,
+        "entropy": 5.941
+      },
+      {
+        "name": ".data",
+        "virtual_size": 5476,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 12948,
+        "raw_size": 16384,
+        "entropy": 4.082
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 5400,
+        "raw_size": 8192,
+        "entropy": 4.801
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaFreeVar",
+          "__vbaLateIdCall",
+          "ord_588",
+          "__vbaLenBstr",
+          "__vbaStrVarMove",
+          "__vbaAptOffset",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "__vbaRaiseEvent",
+          "__vbaFreeObjList",
+          "_adj_fprem1",
+          "__vbaCopyBytes",
+          "__vbaSetSystemError",
+          "__vbaHresultCheckObj",
+          "_adj_fdiv_m32",
+          "__vbaAryDestruct",
+          "__vbaLateMemSt",
+          "__vbaExitProc",
+          "__vbaOnError",
+          "__vbaObjSet",
+          "_adj_fdiv_m16i",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "__vbaFpR4",
+          "__vbaBoolVar",
+          "_CIsin",
+          "ord_632",
+          "__vbaChkstk",
+          "EVENT_SINK_AddRef",
+          "__vbaGenerateBoundsError",
+          "__vbaStrCmp",
+          "__vbaAryConstruct2",
+          "__vbaVarTstEq",
+          "__vbaI2I4",
+          "DllFunctionCall",
+          "__vbaCastObjVar",
+          "_adj_fpatan",
+          "__vbaLateIdCallLd",
+          "EVENT_SINK_Release",
+          "__vbaUI1I2",
+          "_CIsqrt",
+          "__vbaVarAnd",
+          "__vbaObjIs",
+          "EVENT_SINK_QueryInterface",
+          "__vbaExceptHandler",
+          "__vbaStrToUnicode",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "__vbaFPException",
+          "__vbaStrVarVal",
+          "__vbaI2Var",
+          "ord_645",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaNew2",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "_adj_fdivr_m32",
+          "_adj_fdiv_r",
+          "ord_101",
+          "ord_102",
+          "__vbaI4Var",
+          "ord_103",
+          "ord_104",
+          "ord_105",
+          "__vbaStrToAnsi",
+          "__vbaVerifyVarObj",
+          "__vbaFpI4",
+          "__vbaLateMemCallLd",
+          "_CIatan",
+          "__vbaStrMove",
+          "__vbaCastObj",
+          "_allmul",
+          "__vbaLateIdSt",
+          "_CItan",
+          "__vbaFPInt",
+          "_CIexp",
+          "__vbaFreeStr",
+          "__vbaFreeObj"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 10956,
+        "rva": "0x137c8"
+      },
+      {
+        "path": "_IID_GENERAL/1/0",
+        "size": 20,
+        "rva": "0x137b4"
+      },
+      {
+        "path": "_IID_MYBUTTON/1/0",
+        "size": 20,
+        "rva": "0x137a0"
+      },
+      {
+        "path": "_SRCIID_MYBUTTON/1/0",
+        "size": 20,
+        "rva": "0x1378c"
+      },
+      {
+        "path": "2/30000/0",
+        "size": 760,
+        "rva": "0x13494"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 612,
+        "rva": "0x13230"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "vb6projectMyButton",
+      "Good Button Edin Omeragic Revised By JackSoft",
+      "MyButton",
+      "C:\\Program Files\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "BeginPath",
+      "EndPath",
+      "SelectClipPath",
+      "SelectClipRgn",
+      "DeleteObject",
+      "SelectObject",
+      "DeleteDC",
+      "Button text.",
+      "Middle area of button is filled with color if true or tiled with skin.",
+      "Color of text when button is disabled",
+      "Displaces text when button is down.",
+      "Color of text when button is disabled that make it looks grayed.",
+      "Occurs when the user presses and then releases a mouse button over an object.",
+      "Button",
+      "MyButton.ocx",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "msvbvm60.dll\\3",
+      "vb6projectMyButtonWW",
+      "m_MyButtonWWWd",
+      "__MyButtonWW",
+      "EnumDrawTextFormatWW",
+      "ButtonWW",
+      "DT_PATH_ELLIPSISX",
+      "Good Button Edin Omeragic Revised By JackSoftW",
+      "Button text.WW+",
+      "Middle area of button is filled with color if true or tiled with skin.@",
+      "Color of text when button is disabledW",
+      "Displaces text when button is down.WWW",
+      "Color of text when button is disabled that make it looks grayed.WWQ",
+      "Occurs when the user presses and then releases a mouse button over an object.W",
+      "DT_PATH_ELLIPSISWW",
+      "Path=C:\\WINNT\\syst",
+      "Browse for button skin",
+      "_SRCIID_MYBUTTON",
+      "_IID_MYBUTTON"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/PCSGrid.ocx",
+    "name": "PCSGrid.ocx",
+    "size": 319546,
+    "sha256": "7ed4cb31b301b45168887e30ec19b90724ddeb01608d7b7b6c66486c1b0a3046",
+    "machine": "0x14c",
+    "timestamp": 1350701686,
+    "subsystem": 2,
+    "entrypoint": "0x30a0",
+    "image_base": "0x11000000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 260788,
+        "raw_size": 262144,
+        "entropy": 5.851
+      },
+      {
+        "name": ".data",
+        "virtual_size": 13976,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 20636,
+        "raw_size": 24576,
+        "entropy": 3.968
+      },
+      {
+        "name": ".reloc",
+        "virtual_size": 22134,
+        "raw_size": 24576,
+        "entropy": 6.179
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "__vbaStrI2",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaStrI4",
+          "__vbaVarMove",
+          "__vbaVarVargNofree",
+          "__vbaFreeVar",
+          "ord_588",
+          "__vbaStrVarMove",
+          "__vbaAptOffset",
+          "__vbaLateIdCall",
+          "__vbaLenBstr",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "__vbaRaiseEvent",
+          "__vbaFreeObjList",
+          "__vbaStrErrVarCopy",
+          "_adj_fprem1",
+          "__vbaVarCmpNe",
+          "__vbaStrCat",
+          "__vbaVarTextTstEq",
+          "__vbaBoolErrVar",
+          "ord_660",
+          "__vbaHresultCheckObj",
+          "ord_557",
+          "_adj_fdiv_m32",
+          "__vbaAryVar",
+          "__vbaAryDestruct",
+          "__vbaLateMemSt",
+          "__vbaExitProc",
+          "__vbaForEachCollObj",
+          "__vbaFileCloseAll",
+          "ord_301",
+          "ord_595",
+          "__vbaObjSet",
+          "__vbaOnError",
+          "ord_596",
+          "_adj_fdiv_m16i",
+          "ord_303",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_304",
+          "ord_305",
+          "__vbaFpR4",
+          "ord_520",
+          "__vbaBoolVar",
+          "ord_307",
+          "ord_309",
+          "__vbaFpR8",
+          "__vbaBoolVarNull",
+          "_CIsin",
+          "__vbaNextEachCollObj",
+          "ord_632",
+          "__vbaChkstk",
+          "EVENT_SINK_AddRef",
+          "__vbaGenerateBoundsError",
+          "ord_528",
+          "ord_529",
+          "__vbaExitEachColl",
+          "__vbaStrCmp",
+          "__vbaAryConstruct2",
+          "__vbaVarTstEq",
+          "ord_560",
+          "__vbaI2I4",
+          "__vbaVarOr",
+          "__vbaCastObjVar",
+          "_adj_fpatan",
+          "__vbaR4Var",
+          "__vbaLateIdCallLd",
+          "__vbaRedim",
+          "__vbaStrR8",
+          "EVENT_SINK_Release",
+          "__vbaNew",
+          "_CIsqrt",
+          "ord_310",
+          "__vbaObjIs",
+          "__vbaLateIdCallSt",
+          "__vbaVarAnd",
+          "ord_311",
+          "EVENT_SINK_QueryInterface",
+          "__vbaExceptHandler",
+          "ord_312",
+          "ord_711",
+          "ord_313",
+          "ord_712",
+          "__vbaPrintFile",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "__vbaI2Str",
+          "__vbaLateIdStAd",
+          "ord_608",
+          "__vbaFPException",
+          "__vbaStrVarVal",
+          "__vbaUbound",
+          "__vbaVarCat",
+          "__vbaI2Var",
+          "ord_645",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaFileOpen",
+          "__vbaR8Str",
+          "__vbaInStr",
+          "__vbaNew2",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "__vbaI4Str",
+          "ord_681",
+          "__vbaVarNot",
+          "__vbaFreeStrList",
+          "_adj_fdivr_m32",
+          "__vbaPowerR8",
+          "__vbaR8Var",
+          "_adj_fdiv_r",
+          "ord_685",
+          "__vbaVarTstNe",
+          "ord_101",
+          "ord_102",
+          "__vbaI4Var",
+          "ord_103"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "TYPELIB/1/0",
+        "size": 18068,
+        "rva": "0x45a08"
+      },
+      {
+        "path": "_IID_ABOUT/1/0",
+        "size": 20,
+        "rva": "0x459e0"
+      },
+      {
+        "path": "_IID_CLSCOLUMN/1/0",
+        "size": 20,
+        "rva": "0x45990"
+      },
+      {
+        "path": "_IID_COLCOLUMNS/1/0",
+        "size": 20,
+        "rva": "0x4597c"
+      },
+      {
+        "path": "_IID_COLFORMULA/1/0",
+        "size": 20,
+        "rva": "0x459b8"
+      },
+      {
+        "path": "_IID_GENERAL/1/0",
+        "size": 20,
+        "rva": "0x459cc"
+      },
+      {
+        "path": "_IID_PCSGRID/1/0",
+        "size": 20,
+        "rva": "0x45968"
+      },
+      {
+        "path": "_IID_PCSGRIDCF/1/0",
+        "size": 20,
+        "rva": "0x459f4"
+      },
+      {
+        "path": "_IID_PRPCOLUMNS/1/0",
+        "size": 20,
+        "rva": "0x459a4"
+      },
+      {
+        "path": "_SRCIID_PCSGRID/1/0",
+        "size": 20,
+        "rva": "0x45954"
+      },
+      {
+        "path": "2/30000/0",
+        "size": 224,
+        "rva": "0x45874"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 996,
+        "rva": "0x45490"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "ColFormula",
+      "mnuRowMenu",
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "mnuDeleteRow",
+      "InsertRowItem",
+      "ConfirmDelete",
+      "ValidateRow",
+      "ValidateColumn",
+      "RowDeleted",
+      "C:\\Windows\\SysWow64\\MSVBVM60.DLL\\3",
+      "ShowBrowseButton",
+      "DataFormat",
+      "cmdInsert",
+      "chkShowBrowseButton",
+      "cboDateFormat",
+      "Form",
+      "=CFormula",
+      "RowMenu",
+      "Delete Row",
+      "Insert Column",
+      "2 - Date/Time!",
+      "Show browse button.",
+      "Data &Format",
+      "Form1",
+      "0 - Long Date Format",
+      "1 - Short Date Format",
+      "2 - Time Format",
+      "3 - Custom Format!",
+      "Editbox Date Format",
+      "2 - Editbox DatePicker!",
+      "Select Editbox Type",
+      "Column Formula",
+      "CFormula",
+      "Select Column:",
+      "Formula:",
+      "Button",
+      "DllRegisterServer",
+      "DllUnregisterServer",
+      "_ColFormulaW",
+      "(N0ColFormulaWW@",
+      "8OInsertRowItemWWW",
+      "ButtonWW",
+      "ConfirmDeleteWWW",
+      "65ValidateRowW",
+      "ValidateColumnWW",
+      "RowDeletedWW@",
+      "cieShowBrowseButtonW",
+      "cieDataFormatWWW",
+      "cieColFormulaWWW",
+      "WShowBrowseButtonX",
+      "DataFormatWWX",
+      "EditBoxDatePickerWWW",
+      "cieShowBrowseButtonWWW",
+      "cieDataFormatW",
+      "cieColFormulaW",
+      "EditBoxDatePickerW",
+      "2 - Date/Time",
+      "INSERT INTO pcsgd (gridt) SELECT gridv=",
+      "0 - Editbox DatePicker",
+      "Enter new default value. Note that for editbox like Text and Date Picker there will only be one(1) default value.",
+      "2 - Editbox DatePicker",
+      "3 - Custom Format",
+      "Formula is not yet verified.",
+      "Formula is correct",
+      "Formula is incorrect. Please check mathematical operation or check column placement in the formula.",
+      "_IID_COLFORMULA"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/AppCS.exe",
+    "name": "AppCS.exe",
+    "size": 49152,
+    "sha256": "46c04776c2f3d4f32bd11d7fac416f33b977435877369be75eae58a823de95a4",
+    "machine": "0x14c",
+    "timestamp": 1050089325,
+    "subsystem": 2,
+    "entrypoint": "0x1388",
+    "image_base": "0x400000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 34580,
+        "raw_size": 36864,
+        "entropy": 4.81
+      },
+      {
+        "name": ".data",
+        "virtual_size": 2684,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 1720,
+        "raw_size": 4096,
+        "entropy": 1.848
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "__vbaStrI2",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaStrI4",
+          "__vbaFreeVar",
+          "__vbaLateIdCall",
+          "ord_588",
+          "__vbaStrVarMove",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "__vbaFreeObjList",
+          "_adj_fprem1",
+          "__vbaStrCat",
+          "__vbaSetSystemError",
+          "__vbaHresultCheckObj",
+          "_adj_fdiv_m32",
+          "__vbaExitProc",
+          "ord_301",
+          "__vbaObjSet",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_520",
+          "ord_307",
+          "_CIsin",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "__vbaStrCmp",
+          "__vbaVarTstEq",
+          "DllFunctionCall",
+          "_adj_fpatan",
+          "__vbaLateIdCallLd",
+          "EVENT_SINK_Release",
+          "_CIsqrt",
+          "EVENT_SINK_QueryInterface",
+          "__vbaExceptHandler",
+          "__vbaStrToUnicode",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "__vbaI2Str",
+          "__vbaFPException",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaNew2",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "__vbaI4Str",
+          "__vbaFreeStrList",
+          "_adj_fdivr_m32",
+          "_adj_fdiv_r",
+          "ord_100",
+          "__vbaI4Var",
+          "__vbaStrToAnsi",
+          "ord_617",
+          "_CIatan",
+          "__vbaStrMove",
+          "_allmul",
+          "__vbaLateIdSt",
+          "_CItan",
+          "_CIexp",
+          "__vbaFreeStr",
+          "__vbaFreeObj"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "3/30001/0",
+        "size": 744,
+        "rva": "0xb3d0"
+      },
+      {
+        "path": "14/1/0",
+        "size": 20,
+        "rva": "0xb3bc"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 716,
+        "rva": "0xb0f0"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "Form1",
+      "Group Button",
+      "Selected Label",
+      "Selected Back Color",
+      "Command Buttons",
+      "Forms",
+      "Form",
+      "C:\\Program Files\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "MSelectedLabel",
+      "FForm",
+      "Main Menu Color",
+      "MGroupButton",
+      "MSelectedBackColor",
+      "FCommandButton",
+      "CommandButton"
+    ]
+  },
+  {
+    "file": "/Users/gabril/Downloads/cims_downloaded_crystal_pdf/SamCSS/APSMon/SysStarter.exe",
+    "name": "SysStarter.exe",
+    "size": 53248,
+    "sha256": "143e03009eb437223014a6d33afa53d419b412f25328aca3135f35fbe2636dec",
+    "machine": "0x14c",
+    "timestamp": 1305701598,
+    "subsystem": 2,
+    "entrypoint": "0x15a0",
+    "image_base": "0x400000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_size": 30988,
+        "raw_size": 32768,
+        "entropy": 5.511
+      },
+      {
+        "name": ".data",
+        "virtual_size": 2956,
+        "raw_size": 4096,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "virtual_size": 8332,
+        "raw_size": 12288,
+        "entropy": 3.689
+      }
+    ],
+    "imports": [
+      {
+        "dll": "MSVBVM60.DLL",
+        "symbols": [
+          "__vbaStrI2",
+          "_CIcos",
+          "_adj_fptan",
+          "__vbaVarMove",
+          "__vbaFreeVar",
+          "__vbaStrVarMove",
+          "__vbaLenBstr",
+          "__vbaLateIdCall",
+          "__vbaEnd",
+          "__vbaFreeVarList",
+          "_adj_fdiv_m64",
+          "__vbaFreeObjList",
+          "_adj_fprem1",
+          "__vbaStrCat",
+          "__vbaSetSystemError",
+          "__vbaRecDestruct",
+          "__vbaHresultCheckObj",
+          "_adj_fdiv_m32",
+          "__vbaAryVar",
+          "__vbaAryDestruct",
+          "__vbaBoolStr",
+          "__vbaExitProc",
+          "__vbaObjSet",
+          "__vbaOnError",
+          "_adj_fdiv_m16i",
+          "__vbaObjSetAddref",
+          "_adj_fdivr_m16i",
+          "ord_598",
+          "__vbaBoolVar",
+          "ord_520",
+          "_CIsin",
+          "__vbaChkstk",
+          "ord_526",
+          "EVENT_SINK_AddRef",
+          "ord_527",
+          "__vbaGenerateBoundsError",
+          "__vbaStrCmp",
+          "ord_529",
+          "__vbaVarTstEq",
+          "__vbaI2I4",
+          "DllFunctionCall",
+          "_adj_fpatan",
+          "__vbaLateIdCallLd",
+          "EVENT_SINK_Release",
+          "_CIsqrt",
+          "EVENT_SINK_QueryInterface",
+          "__vbaExceptHandler",
+          "ord_711",
+          "ord_712",
+          "__vbaStrToUnicode",
+          "_adj_fprem",
+          "_adj_fdivr_m64",
+          "__vbaI2Str",
+          "ord_608",
+          "__vbaFPException",
+          "__vbaUbound",
+          "__vbaStrVarVal",
+          "__vbaVarCat",
+          "ord_645",
+          "_CIlog",
+          "__vbaErrorOverflow",
+          "__vbaInStr",
+          "__vbaNew2",
+          "_adj_fdiv_m32i",
+          "_adj_fdivr_m32i",
+          "__vbaStrCopy",
+          "__vbaI4Str",
+          "__vbaFreeStrList",
+          "_adj_fdivr_m32",
+          "_adj_fdiv_r",
+          "ord_685",
+          "ord_100",
+          "__vbaVarTstNe",
+          "__vbaAryLock",
+          "__vbaStrToAnsi",
+          "__vbaVarDup",
+          "ord_617",
+          "_CIatan",
+          "__vbaAryCopy",
+          "__vbaStrMove",
+          "_allmul",
+          "__vbaLateIdSt",
+          "_CItan",
+          "__vbaAryUnlock",
+          "_CIexp",
+          "__vbaFreeStr",
+          "__vbaFreeObj",
+          "__vbaRecAssign"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "path": "3/30001/0",
+        "size": 1384,
+        "rva": "0xbb24"
+      },
+      {
+        "path": "3/30002/0",
+        "size": 2216,
+        "rva": "0xb27c"
+      },
+      {
+        "path": "3/30003/0",
+        "size": 3752,
+        "rva": "0xa3d4"
+      },
+      {
+        "path": "14/1/0",
+        "size": 48,
+        "rva": "0xa3a4"
+      },
+      {
+        "path": "16/1/1033",
+        "size": 596,
+        "rva": "0xa150"
+      }
+    ],
+    "interesting_strings": [
+      "MSVBVM60.DLL",
+      "DeleteFileA",
+      "UpdateLog",
+      "C:\\Program Files\\Microsoft Visual Studio\\VB98\\VB6.OLB",
+      "Form",
+      "OpenServer",
+      "CheckForUpdate",
+      "System Updater",
+      "Form1",
+      "@Updater)T",
+      "Update Server Error",
+      "FTP Server",
+      "ftp://dbserver",
+      "Starting update...",
+      "Connecting to update server..",
+      "Update server connection failed",
+      "Update",
+      "No updates available.",
+      "No files available to update..",
+      "updated...",
+      "update failed. Close the system if it is running.",
+      "Update complete.",
+      "Path",
+      "\\Reports\\",
+      "\\Databases\\",
+      "Path not found",
+      "Path/file access error",
+      "An error occurred occurred whilst trying to open or print the selected file."
+    ]
+  }
+]

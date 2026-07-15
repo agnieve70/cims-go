@@ -840,39 +840,43 @@ type expenseReportSummaryRow struct {
 }
 
 type incomeStatementReportData struct {
-	Generated          bool
-	Coverage           string
-	Year               int
-	Month              int
-	FromDate           string
-	ToDate             string
-	PaperSize          string
-	PaperClass         string
-	Title              string
-	RangeLabel         string
-	CurrentPage        int
-	TotalPages         int
-	CashSales          string
-	ChargeSales        string
-	TotalSales         string
-	SalesReturn        string
-	NetSales           string
-	BeginningInventory string
-	Purchases          []incomeStatementLine
-	TotalPurchases     string
-	Withdrawals        []incomeStatementLine
-	TotalWithdrawals   string
-	NetPurchases       string
-	GoodsAvailable     string
-	EndingInventory    string
-	TotalCostOfSales   string
-	GrossProfit        string
-	OperatingExpenses  []incomeStatementLine
-	TotalExpenses      string
-	IncomeBeforeOther  string
-	OtherIncome        []incomeStatementLine
-	TotalOtherIncome   string
-	NetIncome          string
+	Generated           bool
+	Coverage            string
+	Year                int
+	Month               int
+	FromDate            string
+	ToDate              string
+	PaperSize           string
+	PaperClass          string
+	Title               string
+	RangeLabel          string
+	CurrentPage         int
+	TotalPages          int
+	CashSales           string
+	ChargeSales         string
+	TotalSales          string
+	SalesReturn         string
+	NetSales            string
+	BeginningInventory  string
+	Purchases           []incomeStatementLine
+	TotalPurchases      string
+	Withdrawals         []incomeStatementLine
+	TotalWithdrawals    string
+	NetPurchases        string
+	GoodsAvailable      string
+	EndingInventory     string
+	TotalCostOfSales    string
+	GrossProfit         string
+	OperatingExpenses   []incomeStatementLine
+	TotalExpenses       string
+	IncomeBeforeOther   string
+	OtherIncome         []incomeStatementLine
+	TotalOtherIncome    string
+	NetIncome           string
+	AccountingPages     []incomeStatementAccountingPage
+	MarkupSummary       []incomeStatementMarkupSummaryLine
+	TransferMarkupPages []incomeStatementTransferMarkupPage
+	TotalMarkupSummary  incomeStatementMarkupSummaryLine
 
 	CashSalesRaw          int64
 	ChargeSalesRaw        int64
@@ -891,12 +895,76 @@ type incomeStatementReportData struct {
 	IncomeBeforeOtherRaw  int64
 	TotalOtherIncomeRaw   int64
 	NetIncomeRaw          int64
+	MarkupNetSalesRaw     int64
+	MarkupSalesRaw        int64
+	MarkupNetTransferRaw  int64
+	MarkupTransferRaw     int64
+	MarkupGrandRaw        int64
 }
 
 type incomeStatementLine struct {
 	Label  string
 	Amount string
 	Raw    int64
+}
+
+type incomeStatementAccountingPage struct {
+	Number   int
+	Sections []incomeStatementAccountingSection
+}
+
+type incomeStatementAccountingSection struct {
+	Title string
+	Rows  []incomeStatementAccountingRow
+}
+
+type incomeStatementAccountingRow struct {
+	Label  string
+	Amount string
+	Total  string
+	Class  string
+}
+
+type incomeStatementMarkupSummaryLine struct {
+	Category        string
+	NetSales        string
+	SalesMarkup     string
+	SalesPercent    string
+	NetTransfer     string
+	TransferMarkup  string
+	TransferPercent string
+	TotalMarkup     string
+
+	NetSalesRaw       int64
+	SalesMarkupRaw    int64
+	NetTransferRaw    int64
+	TransferMarkupRaw int64
+	TotalMarkupRaw    int64
+}
+
+type incomeStatementTransferMarkupPage struct {
+	Number int
+	Groups []incomeStatementTransferMarkupGroup
+	Last   bool
+}
+
+type incomeStatementTransferMarkupGroup struct {
+	Category         string
+	Lines            []incomeStatementTransferMarkupLine
+	TotalTransfer    string
+	TotalMarkup      string
+	AveragePercent   string
+	TotalTransferRaw int64
+	TotalMarkupRaw   int64
+}
+
+type incomeStatementTransferMarkupLine struct {
+	Branch           string
+	TotalTransfer    string
+	TotalMarkup      string
+	AveragePercent   string
+	TotalTransferRaw int64
+	TotalMarkupRaw   int64
 }
 
 type incentiveReportData struct {
@@ -951,6 +1019,7 @@ type dailySalesCollectionReportData struct {
 	CurrentPage       int
 	TotalPages        int
 	Sections          []dailySalesCollectionSection
+	Pages             []dailySalesCollectionPage
 	CashSales         string
 	ChargeSales       string
 	CashReceipts      string
@@ -975,6 +1044,13 @@ type dailySalesCollectionSection struct {
 	CheckTotal    string
 	TotalRaw      int64
 	CheckTotalRaw int64
+	ShowTotal     bool
+}
+
+type dailySalesCollectionPage struct {
+	Number      int
+	Sections    []dailySalesCollectionSection
+	ShowSummary bool
 }
 
 type dailySalesCollectionLine struct {
@@ -2189,7 +2265,9 @@ func (a *App) incomeStatementReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	report.Coverage = normalizedCoverage(r.URL.Query().Get("coverage"))
-	report.PaperSize = normalizedPaperSize(r.URL.Query().Get("paper_size"))
+	if paperSize := strings.TrimSpace(r.URL.Query().Get("paper_size")); paperSize != "" {
+		report.PaperSize = normalizedPaperSize(paperSize)
+	}
 	report.PaperClass = "report-paper-size-" + report.PaperSize
 	report.Year = listYear(r, a.now)
 	report.Month = boundedInt(r.URL.Query().Get("month"), 1, 12, report.Month)
@@ -3015,8 +3093,8 @@ func (a *App) defaultIncomeStatementReportData(r *http.Request) incomeStatementR
 		Month:       defaultReportMonth,
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
-		PaperSize:   "letter",
-		PaperClass:  "report-paper-size-letter",
+		PaperSize:   "legal",
+		PaperClass:  "report-paper-size-legal",
 		Title:       "SORONGON AGRIVET",
 		CurrentPage: 1,
 		TotalPages:  1,
@@ -5483,6 +5561,8 @@ func (report *incomeStatementReportData) build(rows []models.IncomeStatementRow)
 		}
 		*lines = append(*lines, incomeStatementLine{Label: label, Amount: moneyString(amount), Raw: amount})
 	}
+	transferGroups := make(map[string]*incomeStatementTransferMarkupGroup)
+	transferGroupOrder := make([]string, 0)
 
 	for _, row := range rows {
 		switch strings.ToLower(strings.TrimSpace(row.Section)) {
@@ -5508,6 +5588,50 @@ func (report *incomeStatementReportData) build(rows []models.IncomeStatementRow)
 		case "other_income":
 			report.TotalOtherIncomeRaw += row.AmountCents
 			addLine(&report.OtherIncome, row.Label, row.AmountCents)
+		case "markup_category":
+			category := defaultText(row.Label, "Uncategorized")
+			totalMarkup := row.SalesMarkupCents + row.TransferMarkupCents
+			line := incomeStatementMarkupSummaryLine{
+				Category:          category,
+				NetSales:          moneyString(row.NetSalesCents),
+				SalesMarkup:       moneyString(row.SalesMarkupCents),
+				SalesPercent:      percentString(row.SalesMarkupCents, row.NetSalesCents),
+				NetTransfer:       moneyString(row.NetTransferCents),
+				TransferMarkup:    moneyString(row.TransferMarkupCents),
+				TransferPercent:   percentString(row.TransferMarkupCents, row.NetTransferCents),
+				TotalMarkup:       moneyString(totalMarkup),
+				NetSalesRaw:       row.NetSalesCents,
+				SalesMarkupRaw:    row.SalesMarkupCents,
+				NetTransferRaw:    row.NetTransferCents,
+				TransferMarkupRaw: row.TransferMarkupCents,
+				TotalMarkupRaw:    totalMarkup,
+			}
+			report.MarkupSummary = append(report.MarkupSummary, line)
+			report.MarkupNetSalesRaw += row.NetSalesCents
+			report.MarkupSalesRaw += row.SalesMarkupCents
+			report.MarkupNetTransferRaw += row.NetTransferCents
+			report.MarkupTransferRaw += row.TransferMarkupCents
+			report.MarkupGrandRaw += totalMarkup
+		case "markup_transfer_branch":
+			category := defaultText(row.Label, "Uncategorized")
+			branch := defaultText(row.Branch, "No Branch")
+			group := transferGroups[category]
+			if group == nil {
+				group = &incomeStatementTransferMarkupGroup{Category: category}
+				transferGroups[category] = group
+				transferGroupOrder = append(transferGroupOrder, category)
+			}
+			line := incomeStatementTransferMarkupLine{
+				Branch:           branch,
+				TotalTransfer:    moneyString(row.NetTransferCents),
+				TotalMarkup:      moneyString(row.TransferMarkupCents),
+				AveragePercent:   percentString(row.TransferMarkupCents, row.NetTransferCents),
+				TotalTransferRaw: row.NetTransferCents,
+				TotalMarkupRaw:   row.TransferMarkupCents,
+			}
+			group.Lines = append(group.Lines, line)
+			group.TotalTransferRaw += row.NetTransferCents
+			group.TotalMarkupRaw += row.TransferMarkupCents
 		}
 	}
 
@@ -5537,6 +5661,229 @@ func (report *incomeStatementReportData) build(rows []models.IncomeStatementRow)
 	report.IncomeBeforeOther = moneyString(report.IncomeBeforeOtherRaw)
 	report.TotalOtherIncome = moneyString(report.TotalOtherIncomeRaw)
 	report.NetIncome = moneyString(report.NetIncomeRaw)
+	report.AccountingPages = report.buildAccountingPages()
+
+	report.TotalMarkupSummary = incomeStatementMarkupSummaryLine{
+		Category:          "TOTAL",
+		NetSales:          moneyString(report.MarkupNetSalesRaw),
+		SalesMarkup:       moneyString(report.MarkupSalesRaw),
+		SalesPercent:      percentString(report.MarkupSalesRaw, report.MarkupNetSalesRaw),
+		NetTransfer:       moneyString(report.MarkupNetTransferRaw),
+		TransferMarkup:    moneyString(report.MarkupTransferRaw),
+		TransferPercent:   percentString(report.MarkupTransferRaw, report.MarkupNetTransferRaw),
+		TotalMarkup:       moneyString(report.MarkupGrandRaw),
+		NetSalesRaw:       report.MarkupNetSalesRaw,
+		SalesMarkupRaw:    report.MarkupSalesRaw,
+		NetTransferRaw:    report.MarkupNetTransferRaw,
+		TransferMarkupRaw: report.MarkupTransferRaw,
+		TotalMarkupRaw:    report.MarkupGrandRaw,
+	}
+	report.buildTransferMarkupPages(transferGroupOrder, transferGroups)
+	report.TotalPages = len(report.AccountingPages)
+	if report.TotalPages == 0 {
+		report.TotalPages = 1
+	}
+	if len(report.MarkupSummary) > 0 {
+		report.TotalPages++
+	}
+	transferPageOffset := report.TotalPages
+	for i := range report.TransferMarkupPages {
+		report.TransferMarkupPages[i].Number = transferPageOffset + i + 1
+	}
+	report.TotalPages += len(report.TransferMarkupPages)
+}
+
+func (report *incomeStatementReportData) buildAccountingPages() []incomeStatementAccountingPage {
+	sections := []incomeStatementAccountingSection{
+		{
+			Title: "SALES",
+			Rows: []incomeStatementAccountingRow{
+				{Label: "Cash Sales", Amount: report.CashSales},
+				{Label: "Charge Sales", Amount: report.ChargeSales},
+				{Label: "Total Sales", Total: report.TotalSales, Class: "income-statement-total"},
+				{Label: "LESS: Sales Return", Total: report.SalesReturn, Class: "income-statement-total"},
+				{Label: "NET SALES", Total: report.NetSales, Class: "income-statement-grand"},
+			},
+		},
+		{
+			Title: "COST OF SALES",
+			Rows:  report.costOfSalesRows(),
+		},
+		{
+			Rows: []incomeStatementAccountingRow{
+				{Label: "G R O S S   P R O F I T", Total: report.GrossProfit, Class: "income-statement-grand income-statement-spaced"},
+			},
+		},
+		{
+			Title: "OPERATING EXPENSES",
+			Rows:  report.operatingExpenseRows(),
+		},
+		{
+			Title: "OTHER INCOME",
+			Rows:  report.otherIncomeRows(),
+		},
+		{
+			Rows: []incomeStatementAccountingRow{
+				{Label: "NET INCOME before tax", Total: report.NetIncome, Class: "income-statement-grand income-statement-net"},
+			},
+		},
+	}
+
+	rowsPerPage := incomeStatementRowsPerPage(report.PaperSize)
+	pages := []incomeStatementAccountingPage{{Number: 1}}
+	used := 0
+	current := func() *incomeStatementAccountingPage {
+		return &pages[len(pages)-1]
+	}
+	startNewPage := func() {
+		pages = append(pages, incomeStatementAccountingPage{Number: len(pages) + 1})
+		used = 0
+	}
+	for _, section := range sections {
+		if len(section.Rows) == 0 {
+			continue
+		}
+		titleUnits := 0
+		if strings.TrimSpace(section.Title) != "" {
+			titleUnits = 2
+		}
+		rowIndex := 0
+		for rowIndex < len(section.Rows) {
+			if used > 0 && used+titleUnits+1 > rowsPerPage {
+				startNewPage()
+			}
+			available := rowsPerPage - used - titleUnits
+			if available < 1 {
+				startNewPage()
+				available = rowsPerPage - titleUnits
+			}
+			if available < 1 {
+				available = 1
+			}
+			take := len(section.Rows) - rowIndex
+			if take > available {
+				take = available
+			}
+			pageSection := incomeStatementAccountingSection{
+				Title: section.Title,
+				Rows:  append([]incomeStatementAccountingRow(nil), section.Rows[rowIndex:rowIndex+take]...),
+			}
+			if rowIndex > 0 && pageSection.Title != "" {
+				pageSection.Title += " (CONTINUED)"
+			}
+			current().Sections = append(current().Sections, pageSection)
+			used += titleUnits + take
+			rowIndex += take
+			if rowIndex < len(section.Rows) {
+				startNewPage()
+			}
+		}
+	}
+	return pages
+}
+
+func (report *incomeStatementReportData) costOfSalesRows() []incomeStatementAccountingRow {
+	rows := []incomeStatementAccountingRow{
+		{Label: "Stock Inventory, Beginning", Total: report.BeginningInventory},
+		{Label: "Purchases", Class: "income-statement-subhead"},
+	}
+	for _, line := range report.Purchases {
+		rows = append(rows, incomeStatementAccountingRow{Label: line.Label, Amount: line.Amount, Class: "income-statement-indent-row"})
+	}
+	rows = append(rows,
+		incomeStatementAccountingRow{Label: "Total Purchases", Total: report.TotalPurchases, Class: "income-statement-total"},
+		incomeStatementAccountingRow{Label: "LESS: Stock Withdrawals and Stock Returns", Class: "income-statement-subhead"},
+	)
+	for _, line := range report.Withdrawals {
+		rows = append(rows, incomeStatementAccountingRow{Label: line.Label, Amount: line.Amount, Class: "income-statement-indent-row"})
+	}
+	rows = append(rows,
+		incomeStatementAccountingRow{Label: "Total Stock Withdrawals and Stock Returns", Total: report.TotalWithdrawals, Class: "income-statement-total"},
+		incomeStatementAccountingRow{Label: "Net Purchases", Total: report.NetPurchases},
+		incomeStatementAccountingRow{Label: "Total Goods Available for Sale", Total: report.GoodsAvailable},
+		incomeStatementAccountingRow{Label: "Stock Inventory, End", Total: report.EndingInventory},
+		incomeStatementAccountingRow{Label: "Total Cost of Sales", Total: report.TotalCostOfSales, Class: "income-statement-grand"},
+	)
+	return rows
+}
+
+func (report *incomeStatementReportData) operatingExpenseRows() []incomeStatementAccountingRow {
+	rows := make([]incomeStatementAccountingRow, 0, len(report.OperatingExpenses)+2)
+	if len(report.OperatingExpenses) == 0 {
+		rows = append(rows, incomeStatementAccountingRow{Label: "No operating expenses", Total: "0.00"})
+	} else {
+		for _, line := range report.OperatingExpenses {
+			rows = append(rows, incomeStatementAccountingRow{Label: line.Label, Amount: line.Amount})
+		}
+	}
+	rows = append(rows,
+		incomeStatementAccountingRow{Label: "Total Operating Expenses", Total: report.TotalExpenses, Class: "income-statement-total"},
+		incomeStatementAccountingRow{Label: "INCOME before other income", Total: report.IncomeBeforeOther, Class: "income-statement-grand"},
+	)
+	return rows
+}
+
+func (report *incomeStatementReportData) otherIncomeRows() []incomeStatementAccountingRow {
+	rows := make([]incomeStatementAccountingRow, 0, len(report.OtherIncome)+1)
+	if len(report.OtherIncome) == 0 {
+		rows = append(rows, incomeStatementAccountingRow{Label: "No other income", Total: "0.00"})
+	} else {
+		for _, line := range report.OtherIncome {
+			rows = append(rows, incomeStatementAccountingRow{Label: line.Label, Amount: line.Amount})
+		}
+	}
+	rows = append(rows, incomeStatementAccountingRow{Label: "Total Other Income", Total: report.TotalOtherIncome, Class: "income-statement-total"})
+	return rows
+}
+
+func incomeStatementRowsPerPage(paperSize string) int {
+	switch paperSize {
+	case "legal":
+		return 58
+	case "a4":
+		return 48
+	case "letter-landscape":
+		return 28
+	default:
+		return 42
+	}
+}
+
+func (report *incomeStatementReportData) buildTransferMarkupPages(order []string, groups map[string]*incomeStatementTransferMarkupGroup) {
+	const maxPageRows = 38
+	var current incomeStatementTransferMarkupPage
+	currentRows := 0
+	flush := func() {
+		if len(current.Groups) == 0 {
+			return
+		}
+		current.Number = len(report.TransferMarkupPages) + 1
+		report.TransferMarkupPages = append(report.TransferMarkupPages, current)
+		current = incomeStatementTransferMarkupPage{}
+		currentRows = 0
+	}
+	for _, category := range order {
+		group := groups[category]
+		if group == nil {
+			continue
+		}
+		group.TotalTransfer = moneyString(group.TotalTransferRaw)
+		group.TotalMarkup = moneyString(group.TotalMarkupRaw)
+		group.AveragePercent = percentString(group.TotalMarkupRaw, group.TotalTransferRaw)
+		groupRows := len(group.Lines) + 5
+		if currentRows > 0 && currentRows+groupRows > maxPageRows {
+			flush()
+		}
+		current.Groups = append(current.Groups, *group)
+		currentRows += groupRows
+		if currentRows >= maxPageRows {
+			flush()
+		}
+	}
+	flush()
+	for i := range report.TransferMarkupPages {
+		report.TransferMarkupPages[i].Last = i == len(report.TransferMarkupPages)-1
+	}
 }
 
 func (report *incentiveReportData) build(rows []models.IncentiveReportRow) {
@@ -5621,6 +5968,7 @@ func (report *dailySalesCollectionReportData) build(rows []models.DailySalesColl
 		})
 		sections[idx].Total = moneyString(sections[idx].TotalRaw)
 		sections[idx].CheckTotal = moneyString(sections[idx].CheckTotalRaw)
+		sections[idx].ShowTotal = true
 	}
 	report.Sections = sections
 	report.CashSalesRaw = sections[sectionIndex["cash_sales"]].TotalRaw
@@ -5637,6 +5985,110 @@ func (report *dailySalesCollectionReportData) build(rows []models.DailySalesColl
 	report.CheckDeposits = moneyString(report.CheckDepositsRaw)
 	report.TotalCashRemit = moneyString(report.TotalCashRemitRaw)
 	report.TotalRemit = moneyString(report.TotalRemitRaw)
+	report.Pages = paginateDailySalesCollectionSections(sections, dailySalesCollectionRowsPerPage(report.PaperSize))
+	report.TotalPages = len(report.Pages)
+	if report.TotalPages == 0 {
+		report.TotalPages = 1
+	}
+	report.CurrentPage = 1
+}
+
+func dailySalesCollectionRowsPerPage(paperSize string) int {
+	switch paperSize {
+	case "legal":
+		return 46
+	case "letter-landscape":
+		return 25
+	case "a4":
+		return 36
+	default:
+		return 38
+	}
+}
+
+func paginateDailySalesCollectionSections(sections []dailySalesCollectionSection, rowsPerPage int) []dailySalesCollectionPage {
+	if rowsPerPage < 8 {
+		rowsPerPage = 8
+	}
+	pages := []dailySalesCollectionPage{{Number: 1}}
+	used := 0
+	current := func() *dailySalesCollectionPage {
+		return &pages[len(pages)-1]
+	}
+	startNewPage := func() {
+		pages = append(pages, dailySalesCollectionPage{Number: len(pages) + 1})
+		used = 0
+	}
+	ensureSpace := func(units int) {
+		if used > 0 && used+units > rowsPerPage {
+			startNewPage()
+		}
+	}
+
+	for _, section := range sections {
+		if len(section.Rows) == 0 {
+			ensureSpace(2)
+			current().Sections = append(current().Sections, dailySalesCollectionSection{
+				Key:           section.Key,
+				Title:         section.Title,
+				Total:         section.Total,
+				CheckTotal:    section.CheckTotal,
+				TotalRaw:      section.TotalRaw,
+				CheckTotalRaw: section.CheckTotalRaw,
+				ShowTotal:     true,
+			})
+			used += 2
+			continue
+		}
+
+		rowIndex := 0
+		for rowIndex < len(section.Rows) {
+			ensureSpace(3)
+			availableRows := rowsPerPage - used - 2
+			if availableRows <= 0 {
+				startNewPage()
+				availableRows = rowsPerPage - 2
+			}
+			remainingRows := len(section.Rows) - rowIndex
+			take := remainingRows
+			if take > availableRows {
+				take = availableRows
+			}
+			continued := rowIndex > 0
+			pageSection := dailySalesCollectionSection{
+				Key:           section.Key,
+				Title:         section.Title,
+				Rows:          append([]dailySalesCollectionLine(nil), section.Rows[rowIndex:rowIndex+take]...),
+				Total:         section.Total,
+				CheckTotal:    section.CheckTotal,
+				TotalRaw:      section.TotalRaw,
+				CheckTotalRaw: section.CheckTotalRaw,
+				ShowTotal:     rowIndex+take == len(section.Rows),
+			}
+			if continued {
+				pageSection.Title += " (CONTINUED)"
+			}
+			rowIndex += take
+			if rowIndex < len(section.Rows) {
+				pageSection.Total = ""
+				pageSection.CheckTotal = ""
+				pageSection.TotalRaw = 0
+				pageSection.CheckTotalRaw = 0
+				pageSection.ShowTotal = false
+			}
+			current().Sections = append(current().Sections, pageSection)
+			used += 1 + take
+			if rowIndex == len(section.Rows) {
+				used++
+			} else {
+				startNewPage()
+			}
+		}
+	}
+
+	ensureSpace(2)
+	current().ShowSummary = true
+	return pages
 }
 
 func (report *stockSalesTransferReportData) build(rows []models.StockSalesTransferReportRow) {

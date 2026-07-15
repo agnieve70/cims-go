@@ -99,83 +99,149 @@
         <button type="button" class="report-tool" data-report-action="find" title="Find text in report" aria-label="Find text in report"><img class="report-toolbar-icon" src="/static/icons/report-toolbar-find.svg" alt=""></button>
       </div>
       <div class="report-paper-scroll">
-        <article class="report-paper {{.IncomeStatementReport.PaperClass}} income-statement-paper">
+        {{range .IncomeStatementReport.AccountingPages}}
+        <article class="report-paper {{$.IncomeStatementReport.PaperClass}} income-statement-paper" data-income-statement-page="{{.Number}}" {{if ne .Number 1}}hidden{{end}}>
+          <header class="report-paper-header">
+            <h1>{{$.IncomeStatementReport.Title}}</h1>
+            <h2>Income Statement</h2>
+            <p>{{$.IncomeStatementReport.RangeLabel}}</p>
+          </header>
+
+          {{range .Sections}}
+          <section class="income-statement-section">
+            {{if .Title}}<h3>{{.Title}}</h3>{{end}}
+            <table class="income-statement-table">
+              <colgroup>
+                <col class="income-statement-label-col">
+                <col class="income-statement-amount-col">
+                <col class="income-statement-total-col">
+              </colgroup>
+              <tbody>
+                {{range .Rows}}
+                <tr class="{{.Class}}"><td>{{.Label}}</td><td class="num">{{.Amount}}</td><td class="num">{{.Total}}</td></tr>
+                {{end}}
+              </tbody>
+            </table>
+          </section>
+          {{end}}
+          <div class="report-page-label">Page {{.Number}} of {{$.IncomeStatementReport.TotalPages}}</div>
+        </article>
+        {{end}}
+        {{if .IncomeStatementReport.MarkupSummary}}
+        <article class="report-paper {{.IncomeStatementReport.PaperClass}} income-statement-paper income-statement-markup-paper" data-income-statement-page="{{add (len .IncomeStatementReport.AccountingPages) 1}}" hidden>
           <header class="report-paper-header">
             <h1>{{.IncomeStatementReport.Title}}</h1>
             <h2>Income Statement</h2>
             <p>{{.IncomeStatementReport.RangeLabel}}</p>
           </header>
-
-          <section class="income-statement-section" data-report-summary-row="1">
-            <h3>SALES</h3>
-            <table class="income-statement-table">
-              <tbody>
-                <tr><td>Cash Sales</td><td class="num">{{.IncomeStatementReport.CashSales}}</td><td></td></tr>
-                <tr><td>Charge Sales</td><td class="num">{{.IncomeStatementReport.ChargeSales}}</td><td></td></tr>
-                <tr class="income-statement-total"><td>Total Sales</td><td></td><td class="num">{{.IncomeStatementReport.TotalSales}}</td></tr>
-                <tr class="income-statement-total"><td>LESS: Sales Return</td><td></td><td class="num">{{.IncomeStatementReport.SalesReturn}}</td></tr>
-                <tr class="income-statement-grand"><td>NET SALES</td><td></td><td class="num">{{.IncomeStatementReport.NetSales}}</td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section class="income-statement-section" data-report-summary-row="2">
-            <h3>COST OF SALES</h3>
-            <table class="income-statement-table">
-              <tbody>
-                <tr><td>Stock Inventory, Beginning</td><td></td><td class="num">{{.IncomeStatementReport.BeginningInventory}}</td></tr>
-                <tr class="income-statement-subhead"><td>Purchases</td><td></td><td></td></tr>
-                {{range .IncomeStatementReport.Purchases}}<tr><td class="income-statement-indent">{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{end}}
-                <tr class="income-statement-total"><td>Total Purchases</td><td></td><td class="num">{{.IncomeStatementReport.TotalPurchases}}</td></tr>
-                <tr class="income-statement-subhead"><td>LESS: Stock Withdrawals and Stock Returns</td><td></td><td></td></tr>
-                {{range .IncomeStatementReport.Withdrawals}}<tr><td class="income-statement-indent">{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{end}}
-                <tr class="income-statement-total"><td>Total Stock Withdrawals and Stock Returns</td><td></td><td class="num">{{.IncomeStatementReport.TotalWithdrawals}}</td></tr>
-                <tr><td>Net Purchases</td><td></td><td class="num">{{.IncomeStatementReport.NetPurchases}}</td></tr>
-                <tr><td>Total Goods Available for Sale</td><td></td><td class="num">{{.IncomeStatementReport.GoodsAvailable}}</td></tr>
-                <tr><td>Stock Inventory, End</td><td></td><td class="num">{{.IncomeStatementReport.EndingInventory}}</td></tr>
-                <tr class="income-statement-grand"><td>Total Cost of Sales</td><td></td><td class="num">{{.IncomeStatementReport.TotalCostOfSales}}</td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section class="income-statement-section">
-            <table class="income-statement-table">
-              <tbody>
-                <tr class="income-statement-grand income-statement-spaced"><td>G R O S S&nbsp;&nbsp;P R O F I T</td><td></td><td class="num">{{.IncomeStatementReport.GrossProfit}}</td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section class="income-statement-section" data-report-summary-row="3">
-            <h3>OPERATING EXPENSES</h3>
-            <table class="income-statement-table">
-              <tbody>
-                {{range .IncomeStatementReport.OperatingExpenses}}<tr><td>{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{else}}<tr><td>No operating expenses</td><td></td><td class="num">0.00</td></tr>{{end}}
-                <tr class="income-statement-total"><td>Total Operating Expenses</td><td></td><td class="num">{{.IncomeStatementReport.TotalExpenses}}</td></tr>
-                <tr class="income-statement-grand"><td>INCOME before other income</td><td></td><td class="num">{{.IncomeStatementReport.IncomeBeforeOther}}</td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section class="income-statement-section" data-report-summary-row="4">
-            <h3>OTHER INCOME</h3>
-            <table class="income-statement-table">
-              <tbody>
-                {{range .IncomeStatementReport.OtherIncome}}<tr><td>{{.Label}}</td><td class="num">{{.Amount}}</td><td></td></tr>{{else}}<tr><td>No other income</td><td></td><td class="num">0.00</td></tr>{{end}}
-                <tr class="income-statement-total"><td>Total Other Income</td><td></td><td class="num">{{.IncomeStatementReport.TotalOtherIncome}}</td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section class="income-statement-section" data-report-summary-row="5">
-            <table class="income-statement-table">
-              <tbody>
-                <tr class="income-statement-grand income-statement-net"><td>NET INCOME</td><td></td><td class="num">{{.IncomeStatementReport.NetIncome}}</td></tr>
-              </tbody>
-            </table>
-            <div class="report-page-label">Page 1 of {{.IncomeStatementReport.TotalPages}}</div>
-          </section>
+          <table class="income-statement-markup-table">
+            <colgroup>
+              <col class="income-markup-category-col">
+              <col class="income-markup-money-col">
+              <col class="income-markup-money-col">
+              <col class="income-markup-percent-col">
+              <col class="income-markup-money-col">
+              <col class="income-markup-money-col">
+              <col class="income-markup-percent-col">
+              <col class="income-markup-money-col">
+            </colgroup>
+            <thead>
+              <tr>
+                <th rowspan="2">Category</th>
+                <th rowspan="2">Net Sales</th>
+                <th colspan="2">Sales Markup</th>
+                <th rowspan="2">Net Transfer</th>
+                <th colspan="2">Transfer Markup</th>
+                <th rowspan="2">Total Markup</th>
+              </tr>
+              <tr>
+                <th>Total</th>
+                <th>%</th>
+                <th>Total</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .IncomeStatementReport.MarkupSummary}}
+              <tr>
+                <td>{{.Category}}</td>
+                <td class="num">{{.NetSales}}</td>
+                <td class="num">{{.SalesMarkup}}</td>
+                <td class="num">{{.SalesPercent}}</td>
+                <td class="num">{{.NetTransfer}}</td>
+                <td class="num">{{.TransferMarkup}}</td>
+                <td class="num">{{.TransferPercent}}</td>
+                <td class="num">{{.TotalMarkup}}</td>
+              </tr>
+              {{end}}
+              <tr class="income-statement-total">
+                <td>TOTAL</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.NetSales}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.SalesMarkup}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.SalesPercent}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.NetTransfer}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.TransferMarkup}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.TransferPercent}}</td>
+                <td class="num">{{.IncomeStatementReport.TotalMarkupSummary.TotalMarkup}}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="report-page-label">Page {{add (len .IncomeStatementReport.AccountingPages) 1}} of {{.IncomeStatementReport.TotalPages}}</div>
         </article>
+        {{end}}
+        {{range .IncomeStatementReport.TransferMarkupPages}}
+        <article class="report-paper {{$.IncomeStatementReport.PaperClass}} income-statement-paper income-statement-transfer-paper" data-income-statement-page="{{.Number}}" hidden>
+          <header class="report-paper-header">
+            <h1>{{$.IncomeStatementReport.Title}}</h1>
+            <h2>Income Statement</h2>
+            <p>{{$.IncomeStatementReport.RangeLabel}}</p>
+          </header>
+          {{range .Groups}}
+          <section class="income-statement-transfer-group">
+            <h3>{{.Category}}</h3>
+            <table class="income-statement-transfer-table">
+              <thead>
+                <tr>
+                  <th>Branch</th>
+                  <th>Total Transfer</th>
+                  <th>Total Markup</th>
+                  <th>Average Markup (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Lines}}
+                <tr>
+                  <td>{{.Branch}}</td>
+                  <td class="num">{{.TotalTransfer}}</td>
+                  <td class="num">{{.TotalMarkup}}</td>
+                  <td class="num">{{.AveragePercent}}</td>
+                </tr>
+                {{end}}
+                <tr class="income-statement-total">
+                  <td>CATEGORY TOTAL</td>
+                  <td class="num">{{.TotalTransfer}}</td>
+                  <td class="num">{{.TotalMarkup}}</td>
+                  <td class="num">{{.AveragePercent}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          {{end}}
+          {{if .Last}}
+          <table class="income-statement-transfer-table income-statement-grand-transfer">
+            <tbody>
+              <tr class="income-statement-total">
+                <td>GRAND TOTAL</td>
+                <td class="num">{{$.IncomeStatementReport.TotalMarkupSummary.NetTransfer}}</td>
+                <td class="num">{{$.IncomeStatementReport.TotalMarkupSummary.TransferMarkup}}</td>
+                <td class="num">{{$.IncomeStatementReport.TotalMarkupSummary.TransferPercent}}</td>
+              </tr>
+            </tbody>
+          </table>
+          {{end}}
+          <div class="report-page-label">Page {{.Number}} of {{$.IncomeStatementReport.TotalPages}}</div>
+        </article>
+        {{end}}
       </div>
     </section>
   </div>
@@ -183,11 +249,21 @@
 <script>
   (function () {
     var shell = document.querySelector(".report-viewer-shell");
-    var paper = document.querySelector(".report-paper");
-    if (!shell || !paper) return;
+    var papers = Array.prototype.slice.call(document.querySelectorAll("[data-income-statement-page]"));
+    if (!shell || papers.length === 0) return;
 
     var pageInput = document.querySelector("[data-report-page-input]");
-    if (pageInput) pageInput.value = "1";
+    var currentPage = 1;
+    var totalPages = papers.length;
+    var showPage = function (page) {
+      currentPage = Math.max(1, Math.min(totalPages, page));
+      papers.forEach(function (paper) {
+        paper.hidden = Number(paper.getAttribute("data-income-statement-page")) !== currentPage;
+      });
+      if (pageInput) pageInput.value = String(currentPage);
+      if (typeof window.applyReportZoom === "function") window.applyReportZoom();
+    };
+    showPage(1);
 
     var summaryTreeNodes = Array.prototype.slice.call(document.querySelectorAll(".report-tree-node[data-report-summary-row]"));
     var sections = Array.prototype.slice.call(document.querySelectorAll(".income-statement-section[data-report-summary-row]"));
@@ -210,22 +286,32 @@
 
     document.querySelectorAll("[data-report-page]").forEach(function (button) {
       button.addEventListener("click", function () {
-        if (pageInput) pageInput.value = "1";
+        switch (button.getAttribute("data-report-page")) {
+        case "first":
+          showPage(1);
+          break;
+        case "previous":
+          showPage(currentPage - 1);
+          break;
+        case "next":
+          showPage(currentPage + 1);
+          break;
+        case "last":
+          showPage(totalPages);
+          break;
+        }
       });
     });
-
-    var zoom = document.querySelector("[data-report-zoom]");
-    if (zoom) {
-      zoom.addEventListener("change", function () {
-        paper.style.transform = "scale(" + zoom.value + ")";
-        paper.style.transformOrigin = "top center";
-        paper.style.marginBottom = (60 + (paper.offsetHeight * (Number(zoom.value) - 1))) + "px";
+    if (pageInput) {
+      pageInput.addEventListener("change", function () {
+        showPage(Number(pageInput.value) || 1);
       });
     }
 
     var exportCSV = function () {
       var lines = [];
-      paper.querySelectorAll("h3, tr").forEach(function (row) {
+      papers.forEach(function (paper) {
+        paper.querySelectorAll("h3, tr").forEach(function (row) {
         if (row.tagName.toLowerCase() === "h3") {
           lines.push('"' + row.innerText.replaceAll('"', '""').trim() + '"');
           return;
@@ -234,6 +320,7 @@
           return '"' + cell.innerText.replaceAll('"', '""').trim() + '"';
         });
         lines.push(cells.join(","));
+        });
       });
       var blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8"});
       var link = document.createElement("a");

@@ -359,6 +359,37 @@ func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 	}
 }
 
+func TestPostgresStoreIncomeStatementRowsQuery(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed income statement query coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	migrationsDir := filepath.Join("..", "..", "db", "migrations")
+	if err := appdb.Migrate(databaseURL, migrationsDir); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+	if err := pool.Ping(ctx); err != nil {
+		t.Fatalf("ping postgres: %v", err)
+	}
+
+	store := NewPostgresStore(pool)
+	from := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2026, time.June, 30, 0, 0, 0, 0, time.UTC)
+	if _, err := store.IncomeStatementRows(ctx, from, to); err != nil {
+		t.Fatalf("income statement rows: %v", err)
+	}
+}
+
 func masterFormByKind(t *testing.T, kind string) models.FormDefinition {
 	t.Helper()
 	for _, form := range models.MasterForms() {

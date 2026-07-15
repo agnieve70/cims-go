@@ -1049,20 +1049,134 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 			  and d.entry_date <= $2::date
 			group by label
 		),
+		sales_markup_rows as (
+			select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
+			       coalesce(sum(case
+			         when coalesce(dl.amount, 0) <> 0 then dl.amount
+			         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+			         else coalesce(dl.qty, 0) * coalesce(dl.price, 0)
+			       end), 0) as amount,
+			       coalesce(sum(case
+			         when nullif(regexp_replace(coalesce(dl.payload->>'markup', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'markup', '[,\s]', '', 'g')::numeric
+			         else (
+			           case
+			             when coalesce(dl.amount, 0) <> 0 then dl.amount
+			             when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+			             else coalesce(dl.qty, 0) * coalesce(dl.price, 0)
+			           end
+			         ) - (
+			           case
+			             when nullif(regexp_replace(coalesce(dl.payload->>'capital_total', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then regexp_replace(dl.payload->>'capital_total', '[,\s]', '', 'g')::numeric
+			             when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then coalesce(dl.qty, 0) * regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+			             else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+			           end
+			         )
+			       end), 0) as markup
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			left join stocks st on st.id = dl.stock_id
+			where d.kind = 'sales'
+			  and d.document_date >= $1::date
+			  and d.document_date <= $2::date
+			  and coalesce(dl.qty, 0) <> 0
+			group by category
+		),
+		transfer_markup_rows as (
+			select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
+			       coalesce(case when nullif(d.payload->'values'->>'branch_location', '') !~ '^\d+$' then nullif(d.payload->'values'->>'branch_location', '') end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
+			       coalesce(sum(case
+			         when coalesce(dl.amount, 0) <> 0 then dl.amount
+			         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+			         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+			       end), 0) as amount,
+			       coalesce(sum(case
+			         when nullif(regexp_replace(coalesce(dl.payload->>'markup', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'markup', '[,\s]', '', 'g')::numeric
+			         else (
+			           case
+			             when coalesce(dl.amount, 0) <> 0 then dl.amount
+			             when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+			             else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+			           end
+			         ) - (
+			           case
+			             when nullif(regexp_replace(coalesce(dl.payload->>'capital_total', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then regexp_replace(dl.payload->>'capital_total', '[,\s]', '', 'g')::numeric
+			             when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then coalesce(dl.qty, 0) * regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+			             else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+			           end
+			         )
+			       end), 0) as markup
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			left join stocks st on st.id = dl.stock_id
+			left join branches b on b.id = coalesce(case when nullif(d.payload->'values'->>'branch_location', '') ~ '^\d+$' then nullif(d.payload->'values'->>'branch_location', '')::bigint end, d.branch_id)
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+			group by category, branch
+		),
+		transfer_category_rows as (
+			select category,
+			       coalesce(sum(amount), 0) as amount,
+			       coalesce(sum(markup), 0) as markup
+			from transfer_markup_rows
+			group by category
+		),
 		all_rows as (
-			select * from sales_rows
-			union all select * from inventory_rows
-			union all select * from purchase_rows
-			union all select * from withdrawal_rows
-			union all select * from expense_rows
-			union all select * from other_income_rows
+			select section, label, ''::text as branch, amount, 0::numeric as net_sales, 0::numeric as sales_markup, 0::numeric as net_transfer, 0::numeric as transfer_markup
+			from sales_rows
+			union all select section, label, ''::text, amount, 0::numeric, 0::numeric, 0::numeric, 0::numeric from inventory_rows
+			union all select section, label, ''::text, amount, 0::numeric, 0::numeric, 0::numeric, 0::numeric from purchase_rows
+			union all select section, label, ''::text, amount, 0::numeric, 0::numeric, 0::numeric, 0::numeric from withdrawal_rows
+			union all select section, label, ''::text, amount, 0::numeric, 0::numeric, 0::numeric, 0::numeric from expense_rows
+			union all select section, label, ''::text, amount, 0::numeric, 0::numeric, 0::numeric, 0::numeric from other_income_rows
+			union all
+			select 'markup_category' as section,
+			       coalesce(s.category, t.category) as label,
+			       ''::text as branch,
+			       0::numeric as amount,
+			       coalesce(s.amount, 0) as net_sales,
+			       coalesce(s.markup, 0) as sales_markup,
+			       coalesce(t.amount, 0) as net_transfer,
+			       coalesce(t.markup, 0) as transfer_markup
+			from sales_markup_rows s
+			full outer join transfer_category_rows t on lower(t.category) = lower(s.category)
+			union all
+			select 'markup_transfer_branch' as section,
+			       category as label,
+			       branch,
+			       0::numeric as amount,
+			       0::numeric as net_sales,
+			       0::numeric as sales_markup,
+			       amount as net_transfer,
+			       markup as transfer_markup
+			from transfer_markup_rows
 		)
 		select section,
 		       label,
-		       coalesce(round(sum(amount) * 100), 0)::bigint as amount_cents
+		       branch,
+		       coalesce(round(sum(amount) * 100), 0)::bigint as amount_cents,
+		       coalesce(round(sum(net_sales) * 100), 0)::bigint as net_sales_cents,
+		       coalesce(round(sum(sales_markup) * 100), 0)::bigint as sales_markup_cents,
+		       coalesce(round(sum(net_transfer) * 100), 0)::bigint as net_transfer_cents,
+		       coalesce(round(sum(transfer_markup) * 100), 0)::bigint as transfer_markup_cents
 		from all_rows
-		group by section, label
+		group by section, label, branch
 		having coalesce(sum(amount), 0) <> 0
+		   or coalesce(sum(net_sales), 0) <> 0
+		   or coalesce(sum(sales_markup), 0) <> 0
+		   or coalesce(sum(net_transfer), 0) <> 0
+		   or coalesce(sum(transfer_markup), 0) <> 0
 		   or section in ('beginning_inventory', 'ending_inventory', 'cash_sales', 'charge_sales')
 		order by case section
 			when 'cash_sales' then 1
@@ -1074,8 +1188,10 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 			when 'ending_inventory' then 7
 			when 'operating_expenses' then 8
 			when 'other_income' then 9
+			when 'markup_category' then 10
+			when 'markup_transfer_branch' then 11
 			else 10
-		end, label`, from, to)
+		end, label, branch`, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -1083,7 +1199,7 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 	var reportRows []models.IncomeStatementRow
 	for rows.Next() {
 		var row models.IncomeStatementRow
-		if err := rows.Scan(&row.Section, &row.Label, &row.AmountCents); err != nil {
+		if err := rows.Scan(&row.Section, &row.Label, &row.Branch, &row.AmountCents, &row.NetSalesCents, &row.SalesMarkupCents, &row.NetTransferCents, &row.TransferMarkupCents); err != nil {
 			return nil, err
 		}
 		reportRows = append(reportRows, row)
@@ -1386,22 +1502,38 @@ func (s *PostgresStore) StockSalesTransferAmountReportRows(ctx context.Context, 
 
 func (s *PostgresStore) StockTransferSummaryReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferSummaryReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
+		with transfer_lines as (
+			select d.*,
+			       dl.stock_id,
+			       dl.qty,
+			       dl.unit_cost,
+			       dl.amount as line_amount,
+			       dl.payload as line_payload,
+			       coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) as report_date,
+			       nullif(d.payload->'values'->>'branch_location', '') as transfer_branch
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		)
 		select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
-		       coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
+		       coalesce(case when transfer_branch !~ '^\d+$' then transfer_branch end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
 		       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), '') as reference,
-		       to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
+		       to_char(d.report_date, 'MM/DD/YYYY') as transfer_date,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(round(dl.qty), 0)::bigint as quantity,
-		       coalesce(round(dl.amount * 100), 0)::bigint as amount_cents
-		from documents d
-		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
-		left join stocks st on st.id = dl.stock_id
-		left join branches b on b.id = coalesce(nullif(d.payload->'values'->>'branch_location', '')::bigint, d.branch_id)
-		where d.kind = 'stock-transactions'
-		  and d.document_date >= $1::date
-		  and d.document_date <= $2::date
-		  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		       coalesce(round(d.qty), 0)::bigint as quantity,
+		       coalesce(round((case
+		         when coalesce(d.line_amount, 0) <> 0 then d.line_amount
+		         when nullif(regexp_replace(coalesce(d.line_payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+		           then regexp_replace(d.line_payload->>'amount', '[,\s]', '', 'g')::numeric
+		         else coalesce(d.qty, 0) * coalesce(d.unit_cost, 0)
+		       end) * 100), 0)::bigint as amount_cents
+		from transfer_lines d
+		left join stocks st on st.id = d.stock_id
+		left join branches b on b.id = coalesce(case when d.transfer_branch ~ '^\d+$' then d.transfer_branch::bigint end, d.branch_id)
 		order by category, branch, transfer_date, reference, stock_code, stock_name`, from, to)
 	if err != nil {
 		return nil, err
@@ -1420,26 +1552,39 @@ func (s *PostgresStore) StockTransferSummaryReportRows(ctx context.Context, from
 
 func (s *PostgresStore) StockTransferByStockNameReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferByStockNameReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
+		with transfer_lines as (
+			select d.*,
+			       dl.stock_id,
+			       dl.qty,
+			       dl.unit_cost,
+			       dl.amount as line_amount,
+			       dl.payload as line_payload,
+			       coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) as report_date,
+			       nullif(d.payload->'values'->>'branch_location', '') as transfer_branch
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		)
 		select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
-		       coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
+		       coalesce(case when transfer_branch !~ '^\d+$' then transfer_branch end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
 		       coalesce(nullif(d.reference, ''), nullif(d.entry_id, ''), d.id::text) as reference,
 		       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.entry_id, ''), '') as transfer_id,
-		       to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
+		       to_char(d.report_date, 'MM/DD/YYYY') as transfer_date,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(round(dl.qty), 0)::bigint as quantity,
+		       coalesce(round(d.qty), 0)::bigint as quantity,
 		       coalesce(round((case
-		         when coalesce(dl.amount, 0) <> 0 then dl.amount
-		         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+		         when coalesce(d.line_amount, 0) <> 0 then d.line_amount
+		         when nullif(regexp_replace(coalesce(d.line_payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+		           then regexp_replace(d.line_payload->>'amount', '[,\s]', '', 'g')::numeric
+		         else coalesce(d.qty, 0) * coalesce(d.unit_cost, 0)
 		       end) * 100), 0)::bigint as amount_cents
-		from documents d
-		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
-		left join stocks st on st.id = dl.stock_id
-		left join branches b on b.id = coalesce(nullif(d.payload->'values'->>'branch_location', '')::bigint, d.branch_id)
-		where d.kind = 'stock-transactions'
-		  and d.document_date >= $1::date
-		  and d.document_date <= $2::date
-		  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		from transfer_lines d
+		left join stocks st on st.id = d.stock_id
+		left join branches b on b.id = coalesce(case when d.transfer_branch ~ '^\d+$' then d.transfer_branch::bigint end, d.branch_id)
 		order by category, stock_name, stock_code, branch, transfer_date, reference, transfer_id`, from, to)
 	if err != nil {
 		return nil, err
@@ -1458,25 +1603,38 @@ func (s *PostgresStore) StockTransferByStockNameReportRows(ctx context.Context, 
 
 func (s *PostgresStore) StockTransferByBranchReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferByBranchReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
-		select coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
+		with transfer_lines as (
+			select d.*,
+			       dl.stock_id,
+			       dl.qty,
+			       dl.unit_cost,
+			       dl.amount as line_amount,
+			       dl.payload as line_payload,
+			       coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) as report_date,
+			       nullif(d.payload->'values'->>'branch_location', '') as transfer_branch
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		)
+		select coalesce(case when transfer_branch !~ '^\d+$' then transfer_branch end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
 		       coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
 		       coalesce(nullif(d.reference, ''), nullif(d.entry_id, ''), d.id::text) as reference,
-		       to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
+		       to_char(d.report_date, 'MM/DD/YYYY') as transfer_date,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(round(dl.qty), 0)::bigint as quantity,
+		       coalesce(round(d.qty), 0)::bigint as quantity,
 		       coalesce(round((case
-		         when coalesce(dl.amount, 0) <> 0 then dl.amount
-		         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+		         when coalesce(d.line_amount, 0) <> 0 then d.line_amount
+		         when nullif(regexp_replace(coalesce(d.line_payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+		           then regexp_replace(d.line_payload->>'amount', '[,\s]', '', 'g')::numeric
+		         else coalesce(d.qty, 0) * coalesce(d.unit_cost, 0)
 		       end) * 100), 0)::bigint as amount_cents
-		from documents d
-		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
-		left join stocks st on st.id = dl.stock_id
-		left join branches b on b.id = coalesce(nullif(d.payload->'values'->>'branch_location', '')::bigint, d.branch_id)
-		where d.kind = 'stock-transactions'
-		  and d.document_date >= $1::date
-		  and d.document_date <= $2::date
-		  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		from transfer_lines d
+		left join stocks st on st.id = d.stock_id
+		left join branches b on b.id = coalesce(case when d.transfer_branch ~ '^\d+$' then d.transfer_branch::bigint end, d.branch_id)
 		order by branch, category, transfer_date, reference, stock_code, stock_name`, from, to)
 	if err != nil {
 		return nil, err
@@ -1495,6 +1653,22 @@ func (s *PostgresStore) StockTransferByBranchReportRows(ctx context.Context, fro
 
 func (s *PostgresStore) StockTransferByEntryIDReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferByEntryIDReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
+		with transfer_lines as (
+			select d.*,
+			       dl.stock_id,
+			       dl.qty,
+			       dl.unit_cost,
+			       dl.amount as line_amount,
+			       dl.payload as line_payload,
+			       coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) as report_date,
+			       nullif(d.payload->'values'->>'branch_location', '') as transfer_branch
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		)
 		select coalesce(nullif(d.entry_id, ''), d.id::text) as entry_id,
 		       coalesce(nullif(d.reference, ''), nullif(d.entry_id, ''), d.id::text) as reference,
 		       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.entry_id, ''), '') as transfer_id,
@@ -1508,24 +1682,21 @@ func (s *PostgresStore) StockTransferByEntryIDReportRows(ctx context.Context, fr
 		         nullif(d.entry_id, ''),
 		         d.id::text
 		       ) as remarks,
-		       to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
-		       coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
+		       to_char(d.report_date, 'MM/DD/YYYY') as transfer_date,
+		       coalesce(case when transfer_branch !~ '^\d+$' then transfer_branch end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as branch,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(round(dl.qty), 0)::bigint as quantity,
+		       coalesce(round(d.qty), 0)::bigint as quantity,
 		       coalesce(round((case
-		         when coalesce(dl.amount, 0) <> 0 then dl.amount
-		         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+		         when coalesce(d.line_amount, 0) <> 0 then d.line_amount
+		         when nullif(regexp_replace(coalesce(d.line_payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+		           then regexp_replace(d.line_payload->>'amount', '[,\s]', '', 'g')::numeric
+		         else coalesce(d.qty, 0) * coalesce(d.unit_cost, 0)
 		       end) * 100), 0)::bigint as amount_cents,
 		       coalesce(round(d.net * 100), 0)::bigint as net_cents
-		from documents d
-		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
-		left join stocks st on st.id = dl.stock_id
-		left join branches b on b.id = coalesce(nullif(d.payload->'values'->>'branch_location', '')::bigint, d.branch_id)
-		where d.kind = 'stock-transactions'
-		  and d.document_date >= $1::date
-		  and d.document_date <= $2::date
-		  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		from transfer_lines d
+		left join stocks st on st.id = d.stock_id
+		left join branches b on b.id = coalesce(case when d.transfer_branch ~ '^\d+$' then d.transfer_branch::bigint end, d.branch_id)
 		order by entry_id, transfer_date, branch, stock_name, stock_code`, from, to)
 	if err != nil {
 		return nil, err
@@ -1544,21 +1715,32 @@ func (s *PostgresStore) StockTransferByEntryIDReportRows(ctx context.Context, fr
 
 func (s *PostgresStore) StockTransferSummaryByItemReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferSummaryByItemReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
+		with transfer_lines as (
+			select d.id,
+			       dl.stock_id,
+			       dl.qty,
+			       dl.unit_cost,
+			       dl.amount as line_amount,
+			       dl.payload as line_payload
+			from documents d
+			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
+			where d.kind = 'stock-transactions'
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
+			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		)
 		select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
-		       coalesce(round(sum(coalesce(dl.qty, 0))), 0)::bigint as quantity,
+		       coalesce(round(sum(coalesce(d.qty, 0))), 0)::bigint as quantity,
 		       coalesce(round(sum(case
-		         when coalesce(dl.amount, 0) <> 0 then dl.amount
-		         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+		         when coalesce(d.line_amount, 0) <> 0 then d.line_amount
+		         when nullif(regexp_replace(coalesce(d.line_payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+		           then regexp_replace(d.line_payload->>'amount', '[,\s]', '', 'g')::numeric
+		         else coalesce(d.qty, 0) * coalesce(d.unit_cost, 0)
 		       end) * 100), 0)::bigint as amount_cents
-		from documents d
-		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
-		left join stocks st on st.id = dl.stock_id
-		where d.kind = 'stock-transactions'
-		  and d.document_date >= $1::date
-		  and d.document_date <= $2::date
-		  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
+		from transfer_lines d
+		left join stocks st on st.id = d.stock_id
 		group by 1, 2, 3
 		order by 1, 3, 2`, from, to)
 	if err != nil {
@@ -1579,20 +1761,22 @@ func (s *PostgresStore) StockTransferSummaryByItemReportRows(ctx context.Context
 func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.Context, from, to time.Time) ([]models.StockTransferMarkupByTransactionReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
 		with transfer_lines as (
-			select to_char(d.document_date, 'MM/DD/YYYY') as transfer_date,
+			select to_char(coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date), 'MM/DD/YYYY') as transfer_date,
 			       coalesce(nullif(d.entry_id, ''), d.id::text) as entry_id,
-			       coalesce(nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as transfer_to,
-				       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Receipt') as receipt_no,
-				       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
-				       case
-				         when coalesce(dl.amount, 0) <> 0 then dl.amount
-				         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
-				           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
-				         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
-				       end as amount,
-				       case
-				         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
-				           then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+			       coalesce(case when nullif(d.payload->'values'->>'branch_location', '') !~ '^\d+$' then nullif(d.payload->'values'->>'branch_location', '') end, nullif(b.name, ''), nullif(b.code, ''), 'No Branch') as transfer_to,
+			       coalesce(nullif(d.payload->'values'->>'transfer_id', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Receipt') as receipt_no,
+			       coalesce(nullif(st.category_group, ''), 'Uncategorized') as item_group,
+			       case
+			         when coalesce(dl.amount, 0) <> 0 then dl.amount
+			         when nullif(regexp_replace(coalesce(dl.payload->>'amount', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'amount', '[,\s]', '', 'g')::numeric
+			         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
+			       end as amount,
+			       case
+			         when nullif(regexp_replace(coalesce(dl.payload->>'capital_total', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then regexp_replace(dl.payload->>'capital_total', '[,\s]', '', 'g')::numeric
+			         when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			           then coalesce(dl.qty, 0) * regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
 			         else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
 			       end as capital,
 			       case
@@ -1607,8 +1791,10 @@ func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.C
 			           end
 			         ) - (
 			           case
+			             when nullif(regexp_replace(coalesce(dl.payload->>'capital_total', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
+			               then regexp_replace(dl.payload->>'capital_total', '[,\s]', '', 'g')::numeric
 			             when nullif(regexp_replace(coalesce(dl.payload->>'capital', ''), '[,\s]', '', 'g'), '') ~ '^-?\d+(\.\d+)?$'
-			               then regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
+			               then coalesce(dl.qty, 0) * regexp_replace(dl.payload->>'capital', '[,\s]', '', 'g')::numeric
 			             else coalesce(dl.qty, 0) * coalesce(dl.unit_cost, 0)
 			           end
 			         )
@@ -1616,20 +1802,20 @@ func (s *PostgresStore) StockTransferMarkupByTransactionReportRows(ctx context.C
 			from documents d
 			join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
 			left join stocks st on st.id = dl.stock_id
-			left join branches b on b.id = coalesce(nullif(d.payload->'values'->>'branch_location', '')::bigint, d.branch_id)
+			left join branches b on b.id = coalesce(case when nullif(d.payload->'values'->>'branch_location', '') ~ '^\d+$' then nullif(d.payload->'values'->>'branch_location', '')::bigint end, d.branch_id)
 			where d.kind = 'stock-transactions'
-			  and d.document_date >= $1::date
-			  and d.document_date <= $2::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) >= $1::date
+			  and coalesce(nullif(d.payload->'values'->>'transfer_date', '')::date, d.document_date) <= $2::date
 			  and (coalesce(dl.qty, 0) <> 0 or coalesce(dl.amount, 0) <> 0)
 		)
 		select transfer_date,
 		       entry_id,
 		       transfer_to,
 		       receipt_no,
-			       item_group,
-			       coalesce(round(markup * 100), 0)::bigint as markup_cents,
-			       coalesce(round(capital * 100), 0)::bigint as capital_cents,
-			       coalesce(round(amount * 100), 0)::bigint as amount_cents
+		       item_group,
+		       coalesce(round(markup * 100), 0)::bigint as markup_cents,
+		       coalesce(round(capital * 100), 0)::bigint as capital_cents,
+		       coalesce(round(amount * 100), 0)::bigint as amount_cents
 		from transfer_lines
 		where coalesce(markup, 0) <> 0 or coalesce(capital, 0) <> 0
 		order by transfer_date, entry_id, transfer_to, receipt_no, item_group`, from, to)
