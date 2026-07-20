@@ -651,6 +651,8 @@ func (a *App) loadTransactionFormRows(ctx context.Context, form models.FormDefin
 	values["dr_document_id"] = selection.Values["dr_document_id"]
 	if form.Kind == "sales" {
 		values["party_id"] = selection.Values["party_id"]
+	} else if form.Kind == "stock-transactions" {
+		values["customer_id"] = selection.Values["party_id"]
 	}
 	return map[string][]models.Record{"details": selection.Rows}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,8 +21,34 @@ func TestValueForMasterFieldDefaultsBlankCustomerCreditLimit(t *testing.T) {
 	field := models.Field{Key: "credit_limit", Type: models.FieldMoney}
 
 	got := valueForMasterField(form, field, map[string]string{"credit_limit": ""})
-	if got != "0.00" {
-		t.Fatalf("blank customer credit_limit = %#v, want 0.00", got)
+	if got != "0.000" {
+		t.Fatalf("blank customer credit_limit = %#v, want 0.000", got)
+	}
+}
+
+func TestParseFixedPreservesThreeDecimals(t *testing.T) {
+	for input, want := range map[string]int64{
+		"1": 1000, "1.2": 1200, "1.234": 1234, "1,250.875": 1250875, "-0.125": -125,
+	} {
+		if got := parseFixed(input); got != want {
+			t.Errorf("parseFixed(%q) = %d, want %d", input, got, want)
+		}
+	}
+	if got := centsToNumeric(1250875); got != "1250.875" {
+		t.Fatalf("numeric formatting = %q, want 1250.875", got)
+	}
+}
+
+func TestStockTransactionRequiresStockOutLineReferences(t *testing.T) {
+	input := totalsInput{net: 1000}
+	groups := []LineInput{{Group: "details", Rows: []map[string]string{{
+		"stock_id": "1", "qty": "1", "unit_cost": "1",
+	}}}}
+	err := validateDocumentInput("stock-transactions", map[string]string{
+		"dr_document_id": "7", "transaction": "0 - Stock Transfer", "branch_location": "2",
+	}, groups, input)
+	if err == nil || !strings.Contains(err.Error(), "come from the selected Stock Out File") {
+		t.Fatalf("validation error = %v, want Stock Out File line requirement", err)
 	}
 }
 

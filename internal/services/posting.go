@@ -2,6 +2,8 @@ package services
 
 type DocumentKind string
 
+const DecimalScale int64 = 1000
+
 const (
 	DocumentDR            DocumentKind = "dr"
 	DocumentPurchase      DocumentKind = "purchases"
@@ -17,6 +19,14 @@ const (
 	DocumentExpense       DocumentKind = "expenses"
 	DocumentOtherIncome   DocumentKind = "other_income"
 	DocumentChecksIn      DocumentKind = "checks_in"
+)
+
+type TransferMode string
+
+const (
+	TransferStock       TransferMode = "stock_transfer"
+	TransferSalesReturn TransferMode = "sales_return"
+	TransferStockReturn TransferMode = "stock_return"
 )
 
 type PartyType string
@@ -101,7 +111,7 @@ func ComputePurchase(doc PurchaseDocument) PurchaseTotals {
 	var total PurchaseTotals
 	for _, line := range doc.Lines {
 		total.TotalQty += line.Qty
-		total.Total += line.Qty * line.UnitCost
+		total.Total += scaledProduct(line.Qty, line.UnitCost)
 	}
 	total.Less = adjustmentTotal(doc.Discounts)
 	total.Add = adjustmentTotal(doc.Additionals)
@@ -117,9 +127,9 @@ func ComputeSales(doc SalesDocument) SalesTotals {
 	var total SalesTotals
 	var totalAmount int64
 	for _, line := range doc.Lines {
-		gross := line.Qty * line.UnitCost
+		gross := scaledProduct(line.Qty, line.UnitCost)
 		net := gross - line.Discount - line.OtherDiscount
-		capital := line.Qty * line.Capital
+		capital := scaledProduct(line.Qty, line.Capital)
 		total.TotalQty += line.Qty
 		totalAmount += gross
 		total.TotalNetAmount += net
@@ -142,9 +152,17 @@ func ComputeSales(doc SalesDocument) SalesTotals {
 func adjustmentTotal(lines []AdjustmentLine) int64 {
 	var total int64
 	for _, line := range lines {
-		total += line.Qty * line.Price
+		total += scaledProduct(line.Qty, line.Price)
 	}
 	return total
+}
+
+func scaledProduct(left, right int64) int64 {
+	product := left * right
+	if product < 0 {
+		return (product - DecimalScale/2) / DecimalScale
+	}
+	return (product + DecimalScale/2) / DecimalScale
 }
 
 func paymentTotal(lines []Payment) int64 {
@@ -177,6 +195,7 @@ type PostingRequest struct {
 	Balance  int64
 	Paid     int64
 	Amount   int64
+	Transfer TransferMode
 }
 
 type PostingEffects struct {
@@ -193,7 +212,11 @@ func BuildPostingEffects(req PostingRequest) PostingEffects {
 	case DocumentSale, DocumentStockOut:
 		effects.Inventory = inventoryEffects(req.BranchID, req.Lines, -1)
 	case DocumentStockTransfer:
-		effects.Inventory = inventoryEffects(req.BranchID, req.Lines, -1)
+		direction := int64(-1)
+		if req.Transfer == TransferSalesReturn {
+			direction = 1
+		}
+		effects.Inventory = inventoryEffects(req.BranchID, req.Lines, direction)
 	}
 
 	switch req.Kind {
@@ -209,6 +232,13 @@ func BuildPostingEffects(req PostingRequest) PostingEffects {
 		effects.Balance = BalanceEffect{PartyType: PartyCustomer, PartyID: req.PartyID, AmountDelta: -req.Paid}
 	case DocumentARDebit:
 		effects.Balance = BalanceEffect{PartyType: PartyCustomer, PartyID: req.PartyID, AmountDelta: req.Amount}
+	case DocumentStockTransfer:
+		switch req.Transfer {
+		case TransferSalesReturn:
+			effects.Balance = BalanceEffect{PartyType: PartyCustomer, PartyID: req.PartyID, AmountDelta: -req.Net}
+		case TransferStockReturn:
+			effects.Balance = BalanceEffect{PartyType: PartySupplier, PartyID: req.PartyID, AmountDelta: -req.Net}
+		}
 	}
 
 	return effects

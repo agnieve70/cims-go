@@ -149,7 +149,7 @@ func TransactionForms() []FormDefinition {
 		{
 			Kind: "other-income", Title: "Other Income File", RouteBase: "/transactions/other-income",
 			Fields:     append(baseTransactionFields(true, ""), Field{Key: "branch_id", Label: "Branch", Column: "branch_id", Type: FieldSelect, Source: "branches"}),
-			LineGroups: []LineGroup{moneyLines("details", "Details", "other_income_charts")},
+			LineGroups: []LineGroup{moneyLines("details", "Details", "other_income_charts"), checkLines("checks", "Check Details")},
 		},
 		{
 			Kind: "purchases", Title: "Purchases File", RouteBase: "/transactions/purchases", PartyType: "supplier",
@@ -183,7 +183,7 @@ func TransactionForms() []FormDefinition {
 		{
 			Kind: "stock-transactions", Title: "Stock Transactions File", RouteBase: "/transactions/stock-transactions",
 			Fields: append([]Field{{Key: "dr_document_id", Label: "Stock Out File", Column: "dr_document_id", Type: FieldSelect, Source: "dr_documents", Required: true}},
-				append(baseTransactionFields(false, ""), Field{Key: "transfer_date", Label: "Transfer Date", Column: "transfer_date", Type: FieldDate}, Field{Key: "transfer_id", Label: "Transfer ID", Column: "transfer_id", Type: FieldText}, Field{Key: "transaction", Label: "Transaction", Column: "transaction", Type: FieldText}, Field{Key: "branch_location", Label: "Branch/Location", Column: "branch_location", Type: FieldSelect, Source: "branches"})...),
+				append(baseTransactionFields(false, ""), Field{Key: "transfer_date", Label: "Transfer Date", Column: "transfer_date", Type: FieldDate}, Field{Key: "transfer_id", Label: "Transfer ID", Column: "transfer_id", Type: FieldText}, Field{Key: "transaction", Label: "Transaction", Column: "transaction", Type: FieldText}, Field{Key: "branch_location", Label: "Branch/Location", Column: "branch_location", Type: FieldSelect, Source: "branches"}, Field{Key: "customer_id", Label: "Customer", Column: "customer_id", Type: FieldSelect, Source: "customers"}, Field{Key: "supplier_id", Label: "Supplier", Column: "supplier_id", Type: FieldSelect, Source: "suppliers"})...),
 			LineGroups: []LineGroup{drBackedSalesLines("details", "Details"), adjustmentLines("discounts", "Discounts"), adjustmentLines("additionals", "Additionals")},
 		},
 		{Kind: "ap-credit", Title: "AP Credit File", RouteBase: "/transactions/ap-credit", PartyType: "supplier", Fields: creditFields("suppliers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
@@ -191,7 +191,7 @@ func TransactionForms() []FormDefinition {
 		{Kind: "ar-credit", Title: "AR Credit File", RouteBase: "/transactions/ar-credit", PartyType: "customer", Fields: creditFields("customers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
 		{Kind: "ar-debit", Title: "AR Debit File", RouteBase: "/transactions/ar-debit", PartyType: "customer", Fields: debitFields("customers")},
 		{Kind: "rebates", Title: "Rebates File", RouteBase: "/transactions/rebates", PartyType: "customer", Fields: creditFields("customers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
-		{Kind: "expenses", Title: "Expenses File", RouteBase: "/transactions/expenses", Fields: baseTransactionFields(false, ""), LineGroups: []LineGroup{moneyLines("details", "Details", "expense_charts")}},
+		{Kind: "expenses", Title: "Expenses File", RouteBase: "/transactions/expenses", Fields: baseTransactionFields(false, ""), LineGroups: []LineGroup{moneyLines("details", "Details", "expense_charts"), checkLines("checks", "Check Details")}},
 	}
 }
 

@@ -284,6 +284,7 @@ type legacyExpenseDoc struct {
 	Reference string
 	Total     string
 	Lines     []legacyMoneyLine
+	Checks    []legacyCheck
 }
 
 type importState struct {
@@ -364,7 +365,7 @@ func main() {
 	var schema string
 
 	flag.StringVar(&dumpPath, "dump", "", "path to the legacy SQL dump")
-	flag.StringVar(&schema, "schema", "cims_aurora", "legacy MySQL schema name to import")
+	flag.StringVar(&schema, "schema", "cims", "legacy MySQL schema name to import")
 	flag.Parse()
 
 	if strings.TrimSpace(dumpPath) == "" {
@@ -448,6 +449,7 @@ func parseLegacyDump(path, schema string) (*legacyData, error) {
 
 	useStmt := "USE " + schema + ";"
 	inSchema := false
+	schemaFound := false
 	var builder strings.Builder
 	currentTable := ""
 
@@ -458,6 +460,7 @@ func parseLegacyDump(path, schema string) (*legacyData, error) {
 		if !inSchema {
 			if trimmed == useStmt {
 				inSchema = true
+				schemaFound = true
 			}
 			continue
 		}
@@ -471,6 +474,9 @@ func parseLegacyDump(path, schema string) (*legacyData, error) {
 				currentTable = ""
 			}
 			inSchema = trimmed == useStmt
+			if inSchema {
+				schemaFound = true
+			}
 			continue
 		}
 
@@ -508,6 +514,9 @@ func parseLegacyDump(path, schema string) (*legacyData, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("scan dump: %w", err)
 	}
+	if !schemaFound {
+		return nil, fmt.Errorf("legacy schema %q was not found in the dump; no data was imported", schema)
+	}
 	return data, nil
 }
 
@@ -525,7 +534,7 @@ func wantedTable(table string) bool {
 		"stocktransferdata", "stocktransferdatadetails", "stocktransferdatadiscounts", "stocktransferdataadditionals",
 		"apcreditdata", "apcreditdatachecks", "apdebitdata",
 		"arcreditdata", "arcreditdatachecks", "ardebitdata",
-		"expensesdata", "expensesdatadetails":
+		"expensesdata", "expensesdatadetails", "outgoingchecks":
 		return true
 	default:
 		return false
@@ -962,6 +971,18 @@ func applyInsert(data *legacyData, table, stmt string) error {
 				Check:     row["Check"],
 				Total:     choose(row["TotalAmount"], row["Amount"]),
 			})
+		case "outgoingchecks":
+			if parseInt(row["SourceIndex"]) != 1 {
+				break
+			}
+			doc := ensureExpense(data, parseInt(row["EntryID"]))
+			doc.Checks = append(doc.Checks, legacyCheck{
+				Number:   row["CheckNumber"],
+				Date:     row["CheckDate"],
+				BankName: row["BankName"],
+				Amount:   row["Amount"],
+				Nature:   "1 - Outgoing Check",
+			})
 		}
 	}
 	return nil
@@ -1280,19 +1301,19 @@ func (s *importState) importTransactions(data *legacyData) error {
 	if err := s.importStockTransfers(data.stockTransfers); err != nil {
 		return err
 	}
-	if err := s.importCredits("ap-credit", "supplier", data.apCredits); err != nil {
+	if err := s.importCredits("ap-credit", "supplier", data.apCredits, true); err != nil {
 		return err
 	}
 	if err := s.importDebits("ap-debit", "supplier", data.apDebits); err != nil {
 		return err
 	}
-	if err := s.importCredits("ar-credit", "customer", data.arCredits); err != nil {
+	if err := s.importCredits("ar-credit", "customer", data.arCredits, true); err != nil {
 		return err
 	}
 	if err := s.importDebits("ar-debit", "customer", data.arDebits); err != nil {
 		return err
 	}
-	if err := s.importCredits("rebates", "customer", data.rebates); err != nil {
+	if err := s.importCredits("rebates", "customer", data.rebates, false); err != nil {
 		return err
 	}
 	if err := s.importExpenses(data.expenses); err != nil {
@@ -1782,6 +1803,28 @@ func (s *importState) importStockTransfers(docs map[int]*legacyStockTransfer) er
 			"bodega_name":     doc.Bodega,
 		}
 		sourceBranch := s.branchID(doc.Bodega)
+		transaction := strings.ToLower(strings.TrimSpace(doc.Transaction))
+		direction := -1
+		var partyType *string
+		var partyID *int64
+		if strings.HasPrefix(transaction, "1") || strings.Contains(transaction, "sales return") {
+			direction = 1
+			id, err := s.ensureParty("customer", doc.Customer)
+			if err != nil {
+				return err
+			}
+			party := "customer"
+			partyType, partyID = &party, &id
+			values["customer_id"] = strconv.FormatInt(id, 10)
+		} else if strings.HasPrefix(transaction, "2") || strings.Contains(transaction, "stock return") {
+			id, err := s.ensureParty("supplier", doc.Supplier)
+			if err != nil {
+				return err
+			}
+			party := "supplier"
+			partyType, partyID = &party, &id
+			values["supplier_id"] = strconv.FormatInt(id, 10)
+		}
 		rows := make([]map[string]string, 0, len(doc.Details))
 		lines := make([]importedLine, 0, len(doc.Details))
 		inventory := make([]legacyInventoryEffect, 0, len(doc.Details))
@@ -1812,7 +1855,7 @@ func (s *importState) importStockTransfers(docs map[int]*legacyStockTransfer) er
 			inventory = append(inventory, legacyInventoryEffect{
 				BranchID: sourceBranch,
 				StockID:  *stockID,
-				QtyDelta: signedQuantity(line.Quantity, -1),
+				QtyDelta: signedQuantity(line.Quantity, direction),
 				UnitCost: line.UnitCost,
 			})
 		}
@@ -1827,22 +1870,30 @@ func (s *importState) importStockTransfers(docs map[int]*legacyStockTransfer) er
 			lineGroups = append(lineGroups, repositories.LineInput{Group: "additionals", Rows: rows})
 			lines = append(lines, addLines...)
 		}
+		net := numericString(choose(doc.NetTotal, moneyAdd(doc.GrossTotal, negateMoney(sumAdjustments(doc.Discounts)), sumAdjustments(doc.Additionals))))
+		var balanceDelta *legacyBalanceEffect
+		if partyType != nil && partyID != nil {
+			balanceDelta = &legacyBalanceEffect{PartyType: *partyType, PartyID: *partyID, Amount: numericString(negateMoney(net))}
+		}
 		importDoc := importedDocument{
 			kind:         "stock-transactions",
 			entryDate:    parseDate(doc.EntryDate),
 			documentDate: parseDate(choose(doc.TransferDate, doc.EntryDate)),
 			branchID:     sourceBranch,
+			partyType:    partyType,
+			partyID:      partyID,
 			reference:    doc.TransferID,
 			cash:         doc.Cash,
 			remarks:      doc.Remarks,
 			total:        numericString(doc.GrossTotal),
 			less:         numericString(sumAdjustments(doc.Discounts)),
 			add:          numericString(sumAdjustments(doc.Additionals)),
-			net:          numericString(choose(doc.NetTotal, moneyAdd(doc.GrossTotal, negateMoney(sumAdjustments(doc.Discounts)), sumAdjustments(doc.Additionals)))),
+			net:          net,
 			values:       values,
 			lineInput:    lineGroups,
 			lines:        lines,
 			inventory:    inventory,
+			balanceDelta: balanceDelta,
 		}
 		if err := s.insertDocument(importDoc); err != nil {
 			return err
@@ -1851,7 +1902,7 @@ func (s *importState) importStockTransfers(docs map[int]*legacyStockTransfer) er
 	return nil
 }
 
-func (s *importState) importCredits(kind, partyType string, docs map[int]*legacyCreditDoc) error {
+func (s *importState) importCredits(kind, partyType string, docs map[int]*legacyCreditDoc, postBalance bool) error {
 	ids := sortedKeys(docs)
 	for _, id := range ids {
 		doc := docs[id]
@@ -1875,6 +1926,10 @@ func (s *importState) importCredits(kind, partyType string, docs map[int]*legacy
 			lines = append(lines, checkLines...)
 		}
 		amount := choose(doc.Amount, moneyAdd(doc.CashAmount, doc.CheckAmount))
+		var balanceDelta *legacyBalanceEffect
+		if postBalance {
+			balanceDelta = &legacyBalanceEffect{PartyType: partyType, PartyID: partyID, Amount: numericString(negateMoney(amount))}
+		}
 		importDoc := importedDocument{
 			kind:         kind,
 			entryDate:    parseDate(doc.EntryDate),
@@ -1887,7 +1942,7 @@ func (s *importState) importCredits(kind, partyType string, docs map[int]*legacy
 			values:       values,
 			lineInput:    lineGroups,
 			lines:        lines,
-			balanceDelta: &legacyBalanceEffect{PartyType: partyType, PartyID: partyID, Amount: numericString(negateMoney(amount))},
+			balanceDelta: balanceDelta,
 		}
 		if err := s.insertDocument(importDoc); err != nil {
 			return err
@@ -1959,6 +2014,12 @@ func (s *importState) importExpenses(docs map[int]*legacyExpenseDoc) error {
 				amount: choose(line.Total, sumMoney(line.Cash, line.Check)),
 			})
 		}
+		lineGroups := []repositories.LineInput{{Group: "details", Rows: rows}}
+		checkRows, checkLines := paymentRows("0", "0", doc.Checks)
+		if len(checkRows) > 0 {
+			lineGroups = append(lineGroups, repositories.LineInput{Group: "checks", Rows: checkRows})
+			lines = append(lines, checkLines...)
+		}
 		importDoc := importedDocument{
 			kind:         "expenses",
 			entryDate:    parseDate(doc.EntryDate),
@@ -1967,7 +2028,7 @@ func (s *importState) importExpenses(docs map[int]*legacyExpenseDoc) error {
 			total:        numericString(doc.Total),
 			net:          numericString(doc.Total),
 			values:       values,
-			lineInput:    []repositories.LineInput{{Group: "details", Rows: rows}},
+			lineInput:    lineGroups,
 			lines:        lines,
 		}
 		if err := s.insertDocument(importDoc); err != nil {

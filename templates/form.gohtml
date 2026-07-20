@@ -577,6 +577,8 @@
           </select>
         </label>
         <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-customer" data-transfer-customer><span>Customer:</span><select name="customer_id"><option value="">Select customer</option>{{$currentCustomer := fieldValue $.Record "customer_id"}}{{range index $.Options "customers"}}<option value="{{.Value}}" {{if eq .Value $currentCustomer}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <label class="transfer-field transfer-supplier is-hidden" data-transfer-supplier><span>Supplier:</span><select name="supplier_id"><option value="">Select supplier</option>{{$currentSupplier := fieldValue $.Record "supplier_id"}}{{range index $.Options "suppliers"}}<option value="{{.Value}}" {{if eq .Value $currentSupplier}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
         <label class="transfer-field transfer-dr-file">
           <span>SO Number:</span>
           <span class="purchase-supplier-control">
@@ -700,7 +702,7 @@
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><button type="button" disabled>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
-        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <input type="hidden" name="remarks" value="{{fieldValue $.Record "remarks"}}">
         <div class="credit-payment-label">PAYMENT</div>
@@ -730,7 +732,7 @@
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ar_credit_company_name" list="ar-credit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ar-credit-party-id><datalist id="ar-credit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
-        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
       </section>
@@ -755,7 +757,7 @@
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="rebates_company_name" list="rebates-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-rebates-party-id><datalist id="rebates-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
-        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.01" value="{{fieldValue $.Record "cash_amount"}}"></label>
+        <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
       </section>
@@ -778,7 +780,7 @@
         <label class="debit-field debit-entry-id"><span>EntryID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="debit-field debit-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_debit_company_name" list="ap-debit-company-options" autocomplete="off" required><button type="button" disabled>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-debit-party-id><datalist id="ap-debit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
-        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.01" value="{{fieldValue $.Record "amount"}}" required></label>
+        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.001" value="{{fieldValue $.Record "amount"}}" required></label>
         <label class="debit-field debit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="debit-field debit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
       </section>
@@ -787,7 +789,7 @@
         <label class="debit-field debit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="debit-field debit-date"><span>Entry Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="debit-field debit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ar_debit_company_name" list="ar-debit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ar-debit-party-id><datalist id="ar-debit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
-        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.01" value="{{fieldValue $.Record "amount"}}" required></label>
+        <label class="debit-field debit-amount"><span>Amount:</span><input name="amount" type="number" step="0.001" value="{{fieldValue $.Record "amount"}}" required></label>
         <label class="debit-field debit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="debit-field debit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
       </section>
@@ -832,6 +834,11 @@
         </div>
       </section>
       <section class="expense-totals"><label>Cash:<input readonly data-expense-cash-total></label><label>Check:<input readonly data-expense-check-total></label><label>Total:<input readonly data-expense-grand-total></label></section>
+      {{$expenseChecksGroup := index .Form.LineGroups 1}}
+      <section class="line-section modal-line-section checks-in-line-details">
+        <div class="section-head"><h2>{{$expenseChecksGroup.Label}}</h2></div>
+        <div class="table-wrap modal-table"><table class="editable-grid checks-in-details-grid"><thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead><tbody id="rows-checks">{{$rows := index $.LineRows "checks"}}{{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $expenseChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $expenseChecksGroup $.Options}}{{end}}</tbody></table></div>
+      </section>
       {{else if eq .Form.Kind "other-income"}}
       <section class="other-income-legacy-form">
         <label class="other-income-field other-income-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
@@ -860,6 +867,11 @@
         </div>
       </section>
       <section class="other-income-totals"><label>Cash:<input readonly data-other-income-cash-total></label><label>Check:<input readonly data-other-income-check-total></label><label>Total:<input readonly data-other-income-grand-total></label></section>
+      {{$otherIncomeChecksGroup := index .Form.LineGroups 1}}
+      <section class="line-section modal-line-section checks-in-line-details">
+        <div class="section-head"><h2>{{$otherIncomeChecksGroup.Label}}</h2></div>
+        <div class="table-wrap modal-table"><table class="editable-grid checks-in-details-grid"><thead><tr><th>No.</th><th>Number</th><th>Date</th><th>Bank Name</th><th>Amount</th><th>Nature</th></tr></thead><tbody id="rows-checks">{{$rows := index $.LineRows "checks"}}{{if $rows}}{{range $rows}}{{template "direct_checks_row" dictRow $otherIncomeChecksGroup $.Options .}}{{end}}{{else}}{{template "direct_checks_row" dictLine $otherIncomeChecksGroup $.Options}}{{end}}</tbody></table></div>
+      </section>
       {{else if or (eq .Form.Kind "stock-in") (eq .Form.Kind "stock-out")}}
       <section class="stock-in-legacy-form">
         <label class="stock-in-field stock-in-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
@@ -1142,7 +1154,7 @@
           </label>
           <label class="legacy-record-field legacy-record-date legacy-record-field-split">
             <span>Latest Cost:</span>
-            <input name="latest_cost" type="number" step="0.01" value="{{fieldValue $.Record "latest_cost"}}" readonly tabindex="-1" aria-readonly="true">
+            <input name="latest_cost" type="number" step="0.001" value="{{fieldValue $.Record "latest_cost"}}" readonly tabindex="-1" aria-readonly="true">
           </label>
         </div>
         <label class="legacy-record-field">
@@ -1152,7 +1164,7 @@
         <div class="legacy-record-row legacy-record-row-split">
           <label class="legacy-record-field legacy-record-date legacy-record-field-split">
             <span>Min. Inventory:</span>
-            <input name="min_inventory" type="number" step="1" value="{{fieldValue $.Record "min_inventory"}}">
+            <input name="min_inventory" type="number" step="0.001" value="{{fieldValue $.Record "min_inventory"}}">
           </label>
           <label class="legacy-record-field legacy-record-date legacy-record-field-split">
             <span>SOH:</span>
@@ -1336,7 +1348,7 @@
         </label>
         <label class="legacy-record-field legacy-record-date">
           <span>Credit Limit:</span>
-          <input name="credit_limit" type="number" step="0.01" value="{{fieldValue $.Record "credit_limit"}}">
+          <input name="credit_limit" type="number" step="0.001" value="{{fieldValue $.Record "credit_limit"}}">
         </label>
         <label class="legacy-record-field">
           <span>APS:</span>
@@ -1434,7 +1446,7 @@
                 {{end}}
               </datalist>
             {{else}}
-              <input name="{{.Key}}" type="{{if eq .Type "date"}}date{{else if eq .Type "money"}}number{{else if eq .Type "number"}}number{{else}}text{{end}}" step="{{if eq .Type "money"}}0.01{{else}}1{{end}}" value="{{fieldValue $.Record .Key}}" {{if .Required}}required{{end}}>
+              <input name="{{.Key}}" type="{{if eq .Type "date"}}date{{else if eq .Type "money"}}number{{else if eq .Type "number"}}number{{else}}text{{end}}" step="{{if or (eq .Type "money") (eq .Type "number")}}0.001{{else}}1{{end}}" value="{{fieldValue $.Record .Key}}" {{if .Required}}required{{end}}>
             {{end}}
           </label>
         {{end}}
@@ -3235,6 +3247,34 @@
       return select ? select.value : "";
     }
 
+    function syncTransferPartyFields() {
+      var transaction = document.querySelector("select[name='transaction']");
+      if (!transaction) return;
+      var value = String(transaction.value || "");
+      var isSalesReturn = value.indexOf("1") === 0;
+      var isStockReturn = value.indexOf("2") === 0;
+      var customer = document.querySelector("[data-transfer-customer]");
+      var supplier = document.querySelector("[data-transfer-supplier]");
+      var branch = document.querySelector(".transfer-branch");
+      if (customer) {
+        customer.classList.toggle("is-hidden", !isSalesReturn);
+        var customerSelect = customer.querySelector("select");
+        if (customerSelect) customerSelect.required = isSalesReturn;
+      }
+      if (supplier) {
+        supplier.classList.toggle("is-hidden", !isStockReturn);
+        var supplierSelect = supplier.querySelector("select");
+        if (supplierSelect) supplierSelect.required = isStockReturn;
+      }
+      if (branch) {
+        branch.classList.toggle("is-hidden", isSalesReturn || isStockReturn);
+        var branchSelect = branch.querySelector("select");
+        if (branchSelect) branchSelect.required = !isSalesReturn && !isStockReturn;
+      }
+    }
+
+    syncTransferPartyFields();
+
     function linkedDetailEditStorageKey() {
       return "cims-linked-detail-edits:" + window.location.pathname;
     }
@@ -4031,6 +4071,11 @@
       var select = event.target.closest && event.target.closest("[data-transfer-dr-select]");
       if (!select) return;
       navigateToTransferDRSelection(select.value);
+    });
+
+    document.addEventListener("change", function (event) {
+      if (!event.target.matches || !event.target.matches("select[name='transaction']")) return;
+      syncTransferPartyFields();
     });
 
     document.addEventListener("keydown", function (event) {

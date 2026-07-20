@@ -1474,7 +1474,7 @@ func TestStockFormUsesCategorySelect(t *testing.T) {
 	if !strings.Contains(body, `<span>SOH:</span>`) {
 		t.Fatalf("body missing SOH field label")
 	}
-	if !strings.Contains(body, `name="latest_cost" type="number" step="0.01" value="" readonly tabindex="-1" aria-readonly="true"`) {
+	if !strings.Contains(body, `name="latest_cost" type="number" step="0.001" value="" readonly tabindex="-1" aria-readonly="true"`) {
 		t.Fatalf("body missing readonly latest cost field")
 	}
 	if !strings.Contains(body, `value="" readonly tabindex="-1" aria-readonly="true"`) {
