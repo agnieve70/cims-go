@@ -18,7 +18,7 @@ Local machine needs Docker Desktop or local Postgres.
 docker compose up --build
 ```
 
-Open `http://localhost:8080`.
+Open `http://localhost:8090`.
 
 Default admin:
 

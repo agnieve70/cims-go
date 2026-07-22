@@ -41,7 +41,7 @@
           {{if eq .Form.Kind "purchases"}}
           <tr><th>Entry ID</th><th>Purchase ...</th><th>Reference</th><th>Supplier</th><th>Total Qty</th><th>Gross Total</th><th>Total Deducti...</th><th>Total Additio...</th><th>Net Total</th><th>Encoder</th><th>Last Update</th><th>Updated By</th><th class="transaction-actions-column">Actions</th></tr>
           {{else if eq .Form.Kind "sales"}}
-          <tr><th>Entry ID</th><th>Sales Date</th><th>Reference</th><th>Client</th><th>Total Qty</th><th>Gross Total</th><th>Total Deducti...</th><th>Total Additio...</th><th>Net Total</th><th>Encoder</th><th>Last Update</th><th>Updated By</th><th class="transaction-actions-column">Actions</th></tr>
+          <tr><th>OR/CI Number</th><th>Sales Date</th><th>SO Number</th><th>Client</th><th>Total Qty</th><th>Gross Total</th><th>Total Deducti...</th><th>Total Additio...</th><th>Net Total</th><th>Encoder</th><th>Last Update</th><th>Updated By</th><th class="transaction-actions-column">Actions</th></tr>
           {{else if eq .Form.Kind "stock-transactions"}}
           <tr><th>Entry ID</th><th>Transacti...</th><th>Transaction</th><th>Transactee</th><th>Net Total</th><th>Reference</th><th>Remarks</th><th>Encoder</th><th>Last Update</th><th>Updated By</th><th class="transaction-actions-column">Actions</th></tr>
           {{else}}
@@ -71,9 +71,9 @@
             <td>{{.LastUpdate}}</td>
             <td>{{.UpdatedBy}}</td>
             {{else if eq $.Form.Kind "sales"}}
-            <td>{{.EntryID}}</td>
-            <td>{{.EntryDate.Format "01/02/2006"}}</td>
             <td>{{.Reference}}</td>
+            <td>{{.EntryDate.Format "01/02/2006"}}</td>
+            <td>{{.DRRef}}</td>
             <td>{{.Party}}</td>
             <td>{{.TotalQty}}</td>
             <td>{{.GrossTotal}}</td>

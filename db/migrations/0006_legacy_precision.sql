@@ -18,8 +18,14 @@ alter table document_lines alter column cash_amount type numeric(18,3);
 alter table document_lines alter column check_amount type numeric(18,3);
 alter table document_lines alter column amount type numeric(18,3);
 
+drop view if exists stock_on_hand;
 alter table stock_ledger alter column qty_delta type numeric(18,3);
 alter table stock_ledger alter column unit_cost type numeric(18,3);
+create view stock_on_hand as
+select branch_id, stock_id, sum(qty_delta) as qty_on_hand
+from stock_ledger
+group by branch_id, stock_id;
+
 alter table balance_ledger alter column amount_delta type numeric(18,3);
 alter table dr_consumptions alter column consumed_qty type numeric(18,3);
 
@@ -43,7 +49,13 @@ alter table document_lines alter column cash_amount type numeric(14,2) using rou
 alter table document_lines alter column check_amount type numeric(14,2) using round(check_amount, 2);
 alter table document_lines alter column amount type numeric(14,2) using round(amount, 2);
 
+drop view if exists stock_on_hand;
 alter table stock_ledger alter column qty_delta type numeric(14,2) using round(qty_delta, 2);
 alter table stock_ledger alter column unit_cost type numeric(14,2) using round(unit_cost, 2);
+create view stock_on_hand as
+select branch_id, stock_id, sum(qty_delta) as qty_on_hand
+from stock_ledger
+group by branch_id, stock_id;
+
 alter table balance_ledger alter column amount_delta type numeric(14,2) using round(amount_delta, 2);
 alter table dr_consumptions alter column consumed_qty type numeric(14,2) using round(consumed_qty, 2);

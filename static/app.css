@@ -4449,8 +4449,8 @@ textarea:focus {
 
 .purchase-supplier-browse {
   box-sizing: border-box;
-  height: 30px;
-  min-height: 30px;
+  height: 42px;
+  min-height: 42px;
   padding: 4px 8px;
   border: 1px solid #8fa7c1;
   border-radius: 3px;

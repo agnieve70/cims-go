@@ -56,6 +56,11 @@ type drValidationState struct {
 	Lines   map[int64]drLineState
 }
 
+type inventoryKey struct {
+	branchID int64
+	stockID  int64
+}
+
 var manilaTime = time.FixedZone("Asia/Manila", 8*60*60)
 
 func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
@@ -268,6 +273,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 				coalesce(nullif(s.company, ''), nullif(c.company, ''), s.code, c.code, ''),
 				coalesce(b.name, ''),
 				coalesce(d.reference, ''),
+				coalesce(dr.reference, ''),
 				coalesce(dr.entry_id, ''),
 				coalesce(u.display_name, ''),
 				coalesce(d.payload::text, '')
@@ -279,8 +285,11 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			select d.id, d.entry_id, d.entry_date, d.kind,
 			       coalesce(nullif(s.company, ''), nullif(c.company, ''), s.code, c.code, '') as party,
 			       coalesce(b.name, '') as branch,
-			       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'transfer_id', ''), '') as reference,
-			       coalesce(dr.entry_id, '') as dr_ref,
+			       case
+			         when d.kind in ('sales', 'purchases') then coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), '')
+			         else coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'transfer_id', ''), '')
+			       end as reference,
+			       coalesce(nullif(dr.reference, ''), dr.entry_id, '') as dr_ref,
 			       d.total,
 			       d.less_amount,
 			       d.add_amount,
@@ -1277,14 +1286,14 @@ func (s *PostgresStore) DailySalesCollectionReportRows(ctx context.Context, repo
 	rows, err := s.pool.Query(ctx, `
 		with sales_rows as (
 			select case
-			       	when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CHG([[:space:]_-]|[0-9])' then 'charge_sales'
-			       	when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), ''))) ~ '^CI([[:space:]_-]|[0-9])' then 'cash_sales'
+			        when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), ''))) ~ '^CHG([[:space:]_-]|[0-9])' then 'charge_sales'
+			        when upper(trim(coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), ''))) ~ '^CI([[:space:]_-]|[0-9])' then 'cash_sales'
 			       	when d.cash then 'cash_sales'
 			       	else 'charge_sales'
 			       end as section,
 			       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as name,
 			       trim(concat(case when d.cash then 'CSH ' else 'CHG ' end,
-			         coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), '')
+			         coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), '')
 			       )) as reference,
 			       coalesce(d.net, d.total, 0) as amount,
 			       0::numeric as check_amount,
@@ -2214,6 +2223,9 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	if values["reference"] == "" && reference != "" {
 		values["reference"] = reference
 	}
+	if (form.Kind == "sales" || form.Kind == "purchases") && values["or_ci_number"] == "" && reference != "" {
+		values["or_ci_number"] = reference
+	}
 
 	lineRows := lineRowsFromInput(payload.LineInput)
 	if len(lineRows) == 0 {
@@ -2463,6 +2475,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	}
 	input.Values["branch_id"] = strconv.FormatInt(branchID, 10)
 	partyType, partyID := documentParty(form.Kind, form.PartyType, input.Values)
+	reference := documentReference(form.Kind, input.Values)
 	payload, err := json.Marshal(storedDocumentPayload{
 		Kind:      input.Kind,
 		Values:    input.Values,
@@ -2478,7 +2491,12 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	drReferenceID := parseInt(input.Values["dr_document_id"])
 	var drState drValidationState
 	var latestCostStockIDs []int64
+	previousOutbound := map[inventoryKey]int64{}
 	if id != 0 {
+		previousOutbound, err = s.documentOutboundInventory(ctx, tx, id)
+		if err != nil {
+			return 0, err
+		}
 		if isAcquisitionKind(form.Kind) {
 			latestCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
 			if err != nil {
@@ -2501,7 +2519,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	if err := s.validatePostingBalances(ctx, tx, totalInput.posting, effects); err != nil {
 		return 0, err
 	}
-	if err := s.validateInventoryAvailability(ctx, tx, effects.Inventory); err != nil {
+	if err := s.validateInventoryAvailability(ctx, tx, effects.Inventory, previousOutbound); err != nil {
 		return 0, err
 	}
 	if id == 0 {
@@ -2510,7 +2528,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 					(kind, entry_date, document_date, branch_id, party_type, party_id, reference, cash, remarks, total, less_amount, add_amount, net, balance, payload, dr_reference_id, encoder_user_id, last_update_by_user_id)
 				values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17)
 				returning id`,
-			form.Kind, entryDate, documentDate, nullInt(branchID), emptyToNil(partyType), nullInt(partyID), emptyToNil(input.Values["reference"]),
+			form.Kind, entryDate, documentDate, nullInt(branchID), emptyToNil(partyType), nullInt(partyID), emptyToNil(reference),
 			parseBool(input.Values["cash"]), input.Values["remarks"], centsToNumeric(totalInput.total), centsToNumeric(totalInput.less),
 			centsToNumeric(totalInput.add), centsToNumeric(totalInput.net), centsToNumeric(totalInput.balance), payload, nullInt(drReferenceID), input.User.ID,
 		).Scan(&totalInput.documentID)
@@ -2539,7 +2557,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 				    last_update_by_user_id=$17,
 				    updated_at=now()
 				where id=$1`,
-			id, entryDate, documentDate, nullInt(branchID), emptyToNil(partyType), nullInt(partyID), emptyToNil(input.Values["reference"]),
+			id, entryDate, documentDate, nullInt(branchID), emptyToNil(partyType), nullInt(partyID), emptyToNil(reference),
 			parseBool(input.Values["cash"]), input.Values["remarks"], centsToNumeric(totalInput.total), centsToNumeric(totalInput.less),
 			centsToNumeric(totalInput.add), centsToNumeric(totalInput.net), centsToNumeric(totalInput.balance), payload, nullInt(drReferenceID), input.User.ID,
 		)
@@ -2689,6 +2707,31 @@ func (s *PostgresStore) refreshLatestPurchaseCosts(ctx context.Context, tx pgx.T
 		  updated_at = now()
 		where st.id = any($1::bigint[])`, stockIDs)
 	return err
+}
+
+func (s *PostgresStore) documentOutboundInventory(ctx context.Context, tx pgx.Tx, documentID int64) (map[inventoryKey]int64, error) {
+	rows, err := tx.Query(ctx, `
+		select coalesce(branch_id, 0),
+		       stock_id,
+		       coalesce(sum(case when qty_delta < 0 then -qty_delta else 0 end), 0)::text
+		from stock_ledger
+		where document_id=$1
+		group by branch_id, stock_id`, documentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	outbound := map[inventoryKey]int64{}
+	for rows.Next() {
+		var key inventoryKey
+		var quantity string
+		if err := rows.Scan(&key.branchID, &key.stockID, &quantity); err != nil {
+			return nil, err
+		}
+		outbound[key] = parseQuantity(quantity)
+	}
+	return outbound, rows.Err()
 }
 
 func (s *PostgresStore) prepareDocumentUpdate(ctx context.Context, tx pgx.Tx, kind string, id int64) error {
@@ -3130,15 +3173,14 @@ func (s *PostgresStore) validatePostingBalances(ctx context.Context, tx pgx.Tx, 
 	return nil
 }
 
-func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pgx.Tx, effects []services.InventoryEffect) error {
-	type stockKey struct{ branchID, stockID int64 }
-	required := map[stockKey]int64{}
+func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pgx.Tx, effects []services.InventoryEffect, previousOutbound map[inventoryKey]int64) error {
+	required := map[inventoryKey]int64{}
 	for _, effect := range effects {
 		if effect.QtyDelta < 0 {
-			required[stockKey{effect.BranchID, effect.StockID}] += -effect.QtyDelta
+			required[inventoryKey{effect.BranchID, effect.StockID}] += -effect.QtyDelta
 		}
 	}
-	keys := make([]stockKey, 0, len(required))
+	keys := make([]inventoryKey, 0, len(required))
 	for key := range required {
 		keys = append(keys, key)
 	}
@@ -3153,6 +3195,11 @@ func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pg
 		if _, err := tx.Exec(ctx, `select id from stocks where id=$1 for update`, key.stockID); err != nil {
 			return err
 		}
+		previous := previousOutbound[key]
+		additionalNeeded := needed - previous
+		if additionalNeeded <= 0 {
+			continue
+		}
 		var available string
 		if err := tx.QueryRow(ctx, `
 			select coalesce(sum(qty_delta), 0)::text
@@ -3160,11 +3207,20 @@ func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pg
 			where stock_id=$1 and branch_id is not distinct from $2`, key.stockID, nullInt(key.branchID)).Scan(&available); err != nil {
 			return err
 		}
-		if parseQuantity(available) < needed {
+		if !inventoryAvailableForUpdate(parseQuantity(available), needed, previous) {
 			return fmt.Errorf("insufficient stock on hand for stock ID %d", key.stockID)
 		}
 	}
 	return nil
+}
+
+func inventoryAvailableForUpdate(availableAfterRemovingPrevious, needed, previous int64) bool {
+	additionalNeeded := needed - previous
+	if additionalNeeded <= 0 {
+		return true
+	}
+	availableBeforeUpdate := availableAfterRemovingPrevious - previous
+	return availableBeforeUpdate >= additionalNeeded
 }
 
 func scanRecords(rows pgx.Rows) ([]models.Record, error) {
@@ -3250,6 +3306,15 @@ func effectiveDocumentDate(kind string, values map[string]string, entryDate time
 		}
 	}
 	return entryDate
+}
+
+func documentReference(kind string, values map[string]string) string {
+	if kind == "sales" || kind == "purchases" {
+		if orCINumber := strings.TrimSpace(values["or_ci_number"]); orCINumber != "" {
+			return orCINumber
+		}
+	}
+	return strings.TrimSpace(values["reference"])
 }
 
 func parseBool(value string) bool {

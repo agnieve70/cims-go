@@ -62,6 +62,38 @@ func TestValueForMasterFieldLeavesOtherBlankMoneyNullable(t *testing.T) {
 	}
 }
 
+func TestDocumentReferenceUsesORCINumberForSalesAndPurchases(t *testing.T) {
+	for _, kind := range []string{"sales", "purchases"} {
+		t.Run(kind, func(t *testing.T) {
+			values := map[string]string{"reference": "legacy-reference", "or_ci_number": " CI-0042 "}
+			if got := documentReference(kind, values); got != "CI-0042" {
+				t.Fatalf("documentReference(%q) = %q, want CI-0042", kind, got)
+			}
+		})
+	}
+
+	if got := documentReference("dr", map[string]string{"reference": " SO-0042 ", "or_ci_number": "CI-0042"}); got != "SO-0042" {
+		t.Fatalf("DR document reference = %q, want SO-0042", got)
+	}
+}
+
+func TestInventoryAvailabilityAllowsMetadataOnlyUpdate(t *testing.T) {
+	const previousQuantity = int64(10000)
+
+	if !inventoryAvailableForUpdate(7000, previousQuantity, previousQuantity) {
+		t.Fatal("unchanged outbound quantity should remain valid when later activity leaves stock below zero")
+	}
+	if inventoryAvailableForUpdate(7000, 11000, previousQuantity) {
+		t.Fatal("an update must not increase outbound quantity while stock is below zero")
+	}
+	if !inventoryAvailableForUpdate(15000, 12000, previousQuantity) {
+		t.Fatal("an update should allow an increase covered by current stock")
+	}
+	if inventoryAvailableForUpdate(5000, 6000, 0) {
+		t.Fatal("a new document must still reject an outbound quantity above stock on hand")
+	}
+}
+
 func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
 	if databaseURL == "" {
@@ -317,6 +349,50 @@ func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 	assertNumericText(t, pool, `select coalesce(sum(consumed_qty), 0)::text from dr_consumptions where consumer_document_id=$1 and dr_document_id=$2`, "5.00", salesID, stockOutID)
 	assertNumericText(t, pool, `select coalesce(sum(qty_delta), 0)::text from stock_ledger where document_id=$1 and stock_id=$2`, "-5.00", salesID, stockID)
 	assertNumericText(t, pool, `select coalesce(balance, 0)::text from customers where id=$1`, "62.50", customerID)
+	if _, err := pool.Exec(ctx, `
+		insert into stock_ledger (document_id, branch_id, stock_id, qty_delta, unit_cost)
+		values ($1, $2, $3, -1000, 0)`, stockOutID, branchID, stockID); err != nil {
+		t.Fatalf("create later stock deficit for metadata-only update coverage: %v", err)
+	}
+	wantORCI := "CI-UPDATED-" + suffix
+	salesInput.Values["or_ci_number"] = wantORCI
+	if _, err := store.SaveDocument(ctx, salesForm, salesID, salesInput); err != nil {
+		t.Fatalf("update only sales OR/CI number while stock is below zero: %v", err)
+	}
+	assertNumericText(t, pool, `select coalesce(sum(qty_delta), 0)::text from stock_ledger where document_id=$1 and stock_id=$2`, "-5.00", salesID, stockID)
+	var salesReference, salesPayloadORCI string
+	if err := pool.QueryRow(ctx, `
+		select coalesce(reference, ''), coalesce(payload->'values'->>'or_ci_number', '')
+		from documents
+		where id=$1`, salesID).Scan(&salesReference, &salesPayloadORCI); err != nil {
+		t.Fatalf("read saved sales OR/CI number: %v", err)
+	}
+	if salesReference != wantORCI || salesPayloadORCI != wantORCI {
+		t.Fatalf("saved sales OR/CI reference=%q payload=%q, want %q", salesReference, salesPayloadORCI, wantORCI)
+	}
+	salesValues, _, err := store.GetDocument(ctx, salesForm, salesID)
+	if err != nil {
+		t.Fatalf("get saved sales document: %v", err)
+	}
+	if salesValues["or_ci_number"] != wantORCI {
+		t.Fatalf("reloaded sales OR/CI number = %q, want %q", salesValues["or_ci_number"], wantORCI)
+	}
+	dailySalesRows, err := store.DailySalesCollectionReportRows(ctx, time.Date(2026, time.June, 25, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("read daily sales report rows: %v", err)
+	}
+	foundDailySalesORCI := false
+	for _, row := range dailySalesRows {
+		if strings.Contains(row.Reference, wantORCI) {
+			foundDailySalesORCI = true
+			if strings.Contains(row.Reference, "ENT-") {
+				t.Fatalf("daily sales reference %q includes generated Entry ID", row.Reference)
+			}
+		}
+	}
+	if !foundDailySalesORCI {
+		t.Fatalf("daily sales rows do not include saved OR/CI number %q: %#v", wantORCI, dailySalesRows)
+	}
 
 	if err := store.DeleteDocument(ctx, salesForm, salesID, user); err != nil {
 		t.Fatalf("delete sales document: %v", err)

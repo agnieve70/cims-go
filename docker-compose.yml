@@ -21,14 +21,14 @@ services:
       db:
         condition: service_healthy
     environment:
-      ADDR: ":8080"
+      ADDR: ":8090"
       DATABASE_URL: "postgres://cims:cims@db:5432/cims?sslmode=disable"
       ADMIN_USERNAME: "admin"
       ADMIN_PASSWORD: "admin123"
       SESSION_HASH_KEY: "change-this-session-hash-key-32-bytes"
       SESSION_BLOCK_KEY: "0123456789abcdef"
     ports:
-      - "8080:8080"
+      - "8090:8090"
 
 volumes:
   cims_pgdata:

@@ -779,6 +779,9 @@ func TestSalesFormLoadsSelectedDRRows(t *testing.T) {
 	if !strings.Contains(body, `data-sales-stock-out-editor-frame`) {
 		t.Fatalf("body missing embedded stock out editor frame")
 	}
+	if !strings.Contains(body, `data-select-values-on-click="true"`) {
+		t.Fatalf("sales form should select existing field values when clicked")
+	}
 	for _, want := range []string{
 		`<div class="sales-summary-body">`,
 		`class="line-section modal-line-section purchase-line-section sales-line-payments is-hidden" data-sales-panel="payments"`,
@@ -1223,6 +1226,9 @@ func TestStockTransactionEditRefreshesRowsFromSelectedSO(t *testing.T) {
 	}
 	if !strings.Contains(body, `class="sales-detail-row" data-sales-detail-row`) {
 		t.Fatalf("stock transaction detail row missing shared Esc-delete marker")
+	}
+	if !strings.Contains(body, `data-select-values-on-click="true"`) {
+		t.Fatalf("stock transaction form should select existing field values when clicked")
 	}
 	if strings.Contains(body, `OLD - Removed Stock`) {
 		t.Fatalf("body still contains stale stock transaction detail row")
@@ -1773,8 +1779,9 @@ func TestSalesListUsesLegacyColumns(t *testing.T) {
 	}
 	body := rec.Body.String()
 	for _, want := range []string{
+		"<th>OR/CI Number</th>",
 		"<th>Sales Date</th>",
-		"<th>Reference</th>",
+		"<th>SO Number</th>",
 		"<th>Client</th>",
 		"<th>Total Qty</th>",
 		"<th>Gross Total</th>",
@@ -1788,6 +1795,8 @@ func TestSalesListUsesLegacyColumns(t *testing.T) {
 		"10.00",
 		"11,750.00",
 		"2026-03-14 02:10 PM",
+		"<td>REF-1</td>",
+		"<td>DR-1</td>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("sales list missing %q", want)
@@ -1795,6 +1804,9 @@ func TestSalesListUsesLegacyColumns(t *testing.T) {
 	}
 	if strings.Contains(body, "<th>Company</th>") || strings.Contains(body, "<th>DR Ref</th>") || strings.Contains(body, "<th>Status</th>") {
 		t.Fatalf("sales list still uses generic transaction columns")
+	}
+	if strings.Contains(body, "<th>Entry ID</th>") || strings.Contains(body, "<td>ENT-1</td>") {
+		t.Fatalf("sales list still displays Entry ID instead of OR/CI Number")
 	}
 }
 

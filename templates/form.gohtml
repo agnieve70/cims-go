@@ -53,7 +53,7 @@
         <button type="submit" class="legacy-toolbar-delete" title="Delete" aria-label="Delete current record" form="master-delete-form" {{if or (not .CanDelete) .Embedded}}disabled{{end}} onclick="return confirm('Delete this record?')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 {{end}}
 <main class="page form-page{{if .Embedded}} form-page-embedded{{end}}">
-  <form method="post" action="{{.Action}}" class="form-shell modal-form{{if .Embedded}} modal-form-embedded{{end}}" data-existing-record="{{if .CanDelete}}true{{else}}false{{end}}" data-form-kind="{{.Form.Kind}}" data-embedded="{{if .Embedded}}true{{else}}false{{end}}" data-embedded-saved="{{if .EmbeddedSaved}}true{{else}}false{{end}}">
+  <form method="post" action="{{.Action}}" class="form-shell modal-form{{if .Embedded}} modal-form-embedded{{end}}" data-existing-record="{{if .CanDelete}}true{{else}}false{{end}}" data-form-kind="{{.Form.Kind}}" data-embedded="{{if .Embedded}}true{{else}}false{{end}}" data-embedded-saved="{{if .EmbeddedSaved}}true{{else}}false{{end}}" data-select-values-on-click="true">
     <div class="modal-titlebar">
       <div class="modal-title">
         <span class="modal-icon" aria-hidden="true"></span>
@@ -2739,6 +2739,16 @@
       selection.addRange(range);
     }
 
+    function selectEditableContents(target) {
+      if (!target || !target.isContentEditable) return;
+      var selection = window.getSelection && window.getSelection();
+      if (!selection) return;
+      var range = document.createRange();
+      range.selectNodeContents(target);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
     function filterPurchaseStocks(query) {
       query = String(query || "").trim().toLowerCase();
       if (!query) return purchaseStocks.slice();
@@ -3740,6 +3750,10 @@
       if (!target) return;
       target.focus();
       if (target.isContentEditable) {
+        if (target.closest(".sales-detail-row")) {
+          caretToEnd(target);
+          return;
+        }
         var selection = window.getSelection && window.getSelection();
         if (selection) {
           var range = document.createRange();
@@ -4059,6 +4073,18 @@
       var button = event.target.closest && event.target.closest("[data-transfer-dr-browse]");
       if (!button) return;
       openTransferDRPicker();
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!formShell || !formShell.contains(event.target)) return;
+      var target = event.target.closest && event.target.closest("input, textarea, [contenteditable='true']");
+      if (!target || !formShell.contains(target) || target.disabled || target.readOnly) return;
+      if (target.isContentEditable) {
+        if (cellText(target)) selectEditableContents(target);
+        return;
+      }
+      if (target.matches("input[type='hidden'], input[type='date'], input[type='datetime-local'], input[type='time'], input[type='month'], input[type='week'], input[type='checkbox'], input[type='radio'], input[type='file'], input[type='color'], input[type='range'], input[type='button'], input[type='submit'], input[type='reset']")) return;
+      if (target.value && typeof target.select === "function") target.select();
     });
 
     document.addEventListener("change", function (event) {
