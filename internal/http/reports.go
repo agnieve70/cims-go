@@ -4704,9 +4704,10 @@ func (report *salesSummaryByItemReportData) build(rows []models.SalesByStockName
 		}
 		line.QtyRaw += row.Quantity
 		line.AmtRaw += row.AmountCents
-		if strings.EqualFold(paymentTypeLabel(row.Type), "Cash") {
+		switch paymentTypeLabel(row.Type) {
+		case "Cash":
 			line.CashRaw += row.AmountCents
-		} else {
+		case "Charge":
 			line.ChargeRaw += row.AmountCents
 		}
 		categoryGroup.QtyRaw += row.Quantity
@@ -4885,9 +4886,10 @@ func (report *salesByCustomerSummaryByItemReportData) build(rows []models.SalesB
 		}
 		line.QtyRaw += row.Quantity
 		line.AmtRaw += row.AmountCents
-		if strings.EqualFold(paymentTypeLabel(row.Type), "Cash") {
+		switch paymentTypeLabel(row.Type) {
+		case "Cash":
 			line.CashRaw += row.AmountCents
-		} else {
+		case "Charge":
 			line.ChargeRaw += row.AmountCents
 		}
 		customerGroup.QtyRaw += row.Quantity
@@ -7420,6 +7422,8 @@ func paymentTypeLabel(value string) string {
 		return "Cash"
 	case "stock-in", "stock in":
 		return "Stock In"
+	case "stock-out", "stock out":
+		return "Stock Out"
 	default:
 		return "Charge"
 	}

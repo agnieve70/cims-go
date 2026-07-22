@@ -448,6 +448,7 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314090000000000-00000000000000000010-00000000000000000020", Reference: "ZZ-PURCHASE", Company: "Supplier A", Kind: "purchases", QtyDelta: 10},
 		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314100000000000-00000000000000000011-00000000000000000021", Reference: "AA-SALE", Company: "Customer A", Kind: "sales", QtyDelta: -5},
 		{StockID: "5", Category: "STOCK IN TEST", StockCode: "STOCK-IN", StockName: "STOCK IN ITEM", EntryDate: "03/18/2026", Kind: "stock-in", QtyDelta: 12},
+		{StockID: "6", Category: "STOCK OUT TEST", StockCode: "STOCK-OUT", StockName: "STOCK OUT ITEM", EntryDate: "03/19/2026", Kind: "stock-out", QtyDelta: -8},
 	}, nil
 }
 
@@ -3728,6 +3729,9 @@ func TestStockLedgerReportRenders(t *testing.T) {
 	if !strings.Contains(body, "<td>Stock In</td><td>03/18/2026</td><td>Stock In</td><td class=\"num\">12.00</td><td class=\"num\"></td><td class=\"num\">12.00</td>") {
 		t.Fatalf("stock ledger stock-in should render as a debit with a stock-in label")
 	}
+	if !strings.Contains(body, "<td>Stock Out</td><td>03/19/2026</td><td>Stock Out</td><td class=\"num\"></td><td class=\"num\">8.00</td><td class=\"num\">-8.00</td>") {
+		t.Fatalf("stock ledger stock-out should render as a credit with a stock-out label")
+	}
 	purchaseIndex := strings.Index(body, "ZZ-PURCHASE")
 	saleIndex := strings.Index(body, "AA-SALE")
 	if purchaseIndex == -1 || saleIndex == -1 || purchaseIndex > saleIndex {
@@ -3773,5 +3777,57 @@ func TestPurchaseReportBuildersPreserveStockInLabel(t *testing.T) {
 	}})
 	if len(bySupplier.Groups) != 1 || bySupplier.Groups[0].Supplier != "Stock In" || bySupplier.Groups[0].StockGroups[0].Rows[0].Type != "Stock In" {
 		t.Fatalf("purchase-by-supplier stock-in group = %#v", bySupplier.Groups)
+	}
+}
+
+func TestSalesReportBuildersPreserveStockOutLabel(t *testing.T) {
+	summary := salesReportData{ReportType: "detailed", TotalPages: 1}
+	summary.build([]models.SalesReportRow{{
+		Customer: "Stock Out", EntryID: "ENT-STOCK-OUT", EntryDate: "07/19/2026",
+		Type: "Stock Out", GrossCents: 12500, NetCents: 12500,
+	}})
+	if len(summary.Groups) != 1 || summary.Groups[0].Customer != "Stock Out" || summary.Groups[0].Rows[0].Type != "Stock Out" {
+		t.Fatalf("sales summary stock-out group = %#v", summary.Groups)
+	}
+
+	byReference := salesByORCIDRNumberReportData{TotalPages: 1}
+	byReference.build([]models.SalesByORCIDRNumberReportRow{{
+		Reference: "ENT-STOCK-OUT", SalesDate: "07/19/2026", Type: "Stock Out", Customer: "Stock Out",
+		StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, PriceCents: 2500, AmountCents: 12500,
+	}})
+	if len(byReference.Groups) != 1 || byReference.Groups[0].Rows[0].Customer != "Stock Out" || byReference.Groups[0].Rows[0].Type != "Stock Out" {
+		t.Fatalf("sales-by-reference stock-out group = %#v", byReference.Groups)
+	}
+
+	byCustomerRows := []models.SalesByCustomerReportRow{{
+		Category: "Feeds", Customer: "Stock Out", Reference: "ENT-STOCK-OUT", SalesDate: "07/19/2026",
+		Type: "Stock Out", StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, PriceCents: 2500, AmountCents: 12500,
+	}}
+	byCustomer := salesByCustomerReportData{TotalPages: 1}
+	byCustomer.build(byCustomerRows)
+	if len(byCustomer.Categories) != 1 || byCustomer.Categories[0].Customers[0].Customer != "Stock Out" || byCustomer.Categories[0].Customers[0].Rows[0].Type != "Stock Out" {
+		t.Fatalf("sales-by-customer stock-out group = %#v", byCustomer.Categories)
+	}
+	byCustomerSummary := salesByCustomerSummaryByItemReportData{TotalPages: 1}
+	byCustomerSummary.build(byCustomerRows)
+	customerSummaryLine := byCustomerSummary.Categories[0].Customers[0].Rows[0]
+	if customerSummaryLine.AmtRaw != 12500 || customerSummaryLine.CashRaw != 0 || customerSummaryLine.ChargeRaw != 0 {
+		t.Fatalf("sales-by-customer stock-out payment totals = %#v", customerSummaryLine)
+	}
+
+	byStockRows := []models.SalesByStockNameReportRow{{
+		Category: "Feeds", Customer: "Stock Out", Reference: "ENT-STOCK-OUT", SalesDate: "07/19/2026",
+		Type: "Stock Out", StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, PriceCents: 2500, AmountCents: 12500,
+	}}
+	byStock := salesByStockNameReportData{TotalPages: 1}
+	byStock.build(byStockRows)
+	if len(byStock.Categories) != 1 || byStock.Categories[0].Stocks[0].Rows[0].Customer != "Stock Out" || byStock.Categories[0].Stocks[0].Rows[0].Type != "Stock Out" {
+		t.Fatalf("sales-by-stock stock-out group = %#v", byStock.Categories)
+	}
+	itemSummary := salesSummaryByItemReportData{TotalPages: 1}
+	itemSummary.build(byStockRows)
+	itemSummaryLine := itemSummary.Categories[0].Rows[0]
+	if itemSummaryLine.AmtRaw != 12500 || itemSummaryLine.CashRaw != 0 || itemSummaryLine.ChargeRaw != 0 {
+		t.Fatalf("sales item stock-out payment totals = %#v", itemSummaryLine)
 	}
 }

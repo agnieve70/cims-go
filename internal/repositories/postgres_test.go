@@ -652,6 +652,179 @@ func TestPostgresStoreStockInAppearsInAcquisitionReports(t *testing.T) {
 	}
 }
 
+func TestPostgresStoreStockOutAppearsInSalesActivityReports(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed stock-out report coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	migrationsDir := filepath.Join("..", "..", "db", "migrations")
+	if err := appdb.Migrate(databaseURL, migrationsDir); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	store := NewPostgresStore(pool)
+	suffix := fmt.Sprintf("STOCKOUT%d", time.Now().UnixNano())
+	var userID int64
+	if err := pool.QueryRow(ctx, `
+		insert into users (username, password_hash, display_name, role)
+		values ($1, 'test-hash', 'Stock Out Report Test', 'admin')
+		returning id`, "stock-out-report-"+suffix).Scan(&userID); err != nil {
+		t.Fatalf("insert test user: %v", err)
+	}
+	user := models.User{ID: userID, Username: "stock-out-report-" + suffix, DisplayName: "Stock Out Report Test", Role: models.RoleAdmin}
+	defer func() { _, _ = pool.Exec(context.Background(), `delete from users where id=$1`, userID) }()
+
+	branchForm := masterFormByKind(t, "branches")
+	branchID, err := store.SaveMaster(ctx, branchForm, 0, map[string]string{
+		"code": "BR-" + suffix, "name": "Stock Out Report Branch " + suffix, "incharge": "Tester",
+	}, user)
+	if err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+	user.ActiveBranchID = branchID
+	defer func() { _ = store.DeleteMaster(context.Background(), branchForm, branchID, user) }()
+
+	stockForm := masterFormByKind(t, "stocks")
+	stockID, err := store.SaveMaster(ctx, stockForm, 0, map[string]string{
+		"code": "STK-" + suffix, "name": "Stock Out Report Item " + suffix, "unit": "BAG", "latest_cost": "0", "min_inventory": "0",
+	}, user)
+	if err != nil {
+		t.Fatalf("create stock: %v", err)
+	}
+	defer func() { _ = store.DeleteMaster(context.Background(), stockForm, stockID, user) }()
+
+	stockInForm := transactionFormByKind(t, "stock-in")
+	stockInID, err := store.SaveDocument(ctx, stockInForm, 0, DocumentInput{
+		Kind: "stock-in",
+		User: user,
+		Values: map[string]string{
+			"entry_date": "2099-12-29", "branch_id": fmt.Sprint(branchID), "remarks": "stock for stock-out report test",
+		},
+		LineInput: []LineInput{{Group: "details", Rows: []map[string]string{{
+			"stock_id": fmt.Sprint(stockID), "qty": "10", "unit_cost": "12.50", "amount": "125.00",
+		}}}},
+	})
+	if err != nil {
+		t.Fatalf("create supporting stock-in document: %v", err)
+	}
+	defer func() { _ = store.DeleteDocument(context.Background(), stockInForm, stockInID, user) }()
+
+	reportDate := time.Date(2099, time.December, 30, 0, 0, 0, 0, time.UTC)
+	baselineIncome, err := store.IncomeStatementRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("load baseline income statement: %v", err)
+	}
+	baselineStockOut := incomeStatementAmount(baselineIncome, "withdrawals", "Stock Out")
+
+	stockOutForm := transactionFormByKind(t, "stock-out")
+	stockOutID, err := store.SaveDocument(ctx, stockOutForm, 0, DocumentInput{
+		Kind: "stock-out",
+		User: user,
+		Values: map[string]string{
+			"entry_date": "2099-12-30", "branch_id": fmt.Sprint(branchID), "remarks": "stock-out report regression test",
+		},
+		LineInput: []LineInput{{Group: "details", Rows: []map[string]string{{
+			"stock_id": fmt.Sprint(stockID), "qty": "7", "unit_cost": "12.50", "amount": "87.50",
+		}}}},
+	})
+	if err != nil {
+		t.Fatalf("create stock-out document: %v", err)
+	}
+	defer func() { _ = store.DeleteDocument(context.Background(), stockOutForm, stockOutID, user) }()
+
+	var entryID string
+	if err := pool.QueryRow(ctx, `select entry_id from documents where id=$1`, stockOutID).Scan(&entryID); err != nil {
+		t.Fatalf("load stock-out entry ID: %v", err)
+	}
+
+	summaryRows, err := store.SalesReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("sales summary rows: %v", err)
+	}
+	foundSummary := false
+	for _, row := range summaryRows {
+		if row.EntryID == entryID {
+			foundSummary = row.Customer == "Stock Out" && row.Type == "Stock Out" && row.NetCents == 8750
+		}
+	}
+	if !foundSummary {
+		t.Fatalf("stock-out entry %q missing or mislabeled in sales summary: %#v", entryID, summaryRows)
+	}
+
+	byReference, err := store.SalesByORCIDRNumberReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("sales-by-reference rows: %v", err)
+	}
+	foundReference := false
+	for _, row := range byReference {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundReference = row.Customer == "Stock Out" && row.Type == "Stock Out" && row.Quantity == 7
+		}
+	}
+	if !foundReference {
+		t.Fatalf("stock-out entry %q missing or mislabeled in sales-by-reference report: %#v", entryID, byReference)
+	}
+
+	byCustomer, err := store.SalesByCustomerReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("sales-by-customer rows: %v", err)
+	}
+	foundCustomer := false
+	for _, row := range byCustomer {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundCustomer = row.Customer == "Stock Out" && row.Type == "Stock Out" && row.Quantity == 7
+		}
+	}
+	if !foundCustomer {
+		t.Fatalf("stock-out entry %q missing or mislabeled in sales-by-customer report: %#v", entryID, byCustomer)
+	}
+
+	byStock, err := store.SalesByStockNameReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("sales-by-stock rows: %v", err)
+	}
+	foundStock := false
+	for _, row := range byStock {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundStock = row.Customer == "Stock Out" && row.Type == "Stock Out" && row.Quantity == 7
+		}
+	}
+	if !foundStock {
+		t.Fatalf("stock-out entry %q missing or mislabeled in sales-by-stock report: %#v", entryID, byStock)
+	}
+
+	ledgerRows, err := store.StockLedgerReportRows(ctx, reportDate)
+	if err != nil {
+		t.Fatalf("stock ledger rows: %v", err)
+	}
+	foundLedger := false
+	for _, row := range ledgerRows {
+		if row.StockID == fmt.Sprint(stockID) && row.Kind == "stock-out" && row.Reference == entryID && row.QtyDelta == -7 {
+			foundLedger = true
+		}
+	}
+	if !foundLedger {
+		t.Fatalf("stock-out entry %q missing from stock ledger", entryID)
+	}
+
+	incomeRows, err := store.IncomeStatementRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("income statement rows: %v", err)
+	}
+	if got := incomeStatementAmount(incomeRows, "withdrawals", "Stock Out") - baselineStockOut; got != -8750 {
+		t.Fatalf("stock-out withdrawal amount delta = %d, want -8750", got)
+	}
+}
+
 func incomeStatementAmount(rows []models.IncomeStatementRow, section, label string) int64 {
 	var amount int64
 	for _, row := range rows {
