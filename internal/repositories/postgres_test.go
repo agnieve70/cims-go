@@ -125,6 +125,99 @@ func TestValueForMasterFieldLeavesOtherBlankMoneyNullable(t *testing.T) {
 	}
 }
 
+func TestRefreshAveragePurchaseCostsRecordsOnlyPriceChanges(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed average cost coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := appdb.Migrate(databaseURL, filepath.Join("..", "..", "db", "migrations")); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := fmt.Sprintf("AVGCOST%d", time.Now().UnixNano())
+	var stockID int64
+	if err := pool.QueryRow(ctx, `
+		insert into stocks (code, name)
+		values ($1, $2)
+		returning id`, "STK-"+suffix, "Average Cost Stock "+suffix).Scan(&stockID); err != nil {
+		t.Fatalf("insert stock: %v", err)
+	}
+	defer func() {
+		_, _ = pool.Exec(context.Background(), `delete from documents where remarks=$1`, suffix)
+		_, _ = pool.Exec(context.Background(), `delete from stocks where id=$1`, stockID)
+	}()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin transaction: %v", err)
+	}
+	defer tx.Rollback(ctx)
+	for index, unitCost := range []string{"10", "10", "14", "14", "10"} {
+		var documentID int64
+		documentDate := fmt.Sprintf("2199-01-%02d", index+1)
+		if err := tx.QueryRow(ctx, `
+			insert into documents (kind, entry_date, document_date, remarks)
+			values ('purchases', $1::date, $1::date, $2)
+			returning id`, documentDate, suffix).Scan(&documentID); err != nil {
+			t.Fatalf("insert purchase %d: %v", index+1, err)
+		}
+		if _, err := tx.Exec(ctx, `
+			insert into document_lines (document_id, group_key, line_no, stock_id, qty, unit_cost)
+			values ($1, 'details', 1, $2, 1, $3)`, documentID, stockID, unitCost); err != nil {
+			t.Fatalf("insert purchase line %d: %v", index+1, err)
+		}
+	}
+
+	store := NewPostgresStore(pool)
+	if err := store.refreshAveragePurchaseCosts(ctx, tx, []int64{stockID}); err != nil {
+		t.Fatalf("refresh average unit cost: %v", err)
+	}
+	var averageCost string
+	if err := tx.QueryRow(ctx, `select latest_cost::text from stocks where id=$1`, stockID).Scan(&averageCost); err != nil {
+		t.Fatalf("read average unit cost: %v", err)
+	}
+	if averageCost != "11.333" {
+		t.Fatalf("average unit cost = %s, want 11.333 from changed prices [10, 14, 10]", averageCost)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit average unit cost coverage: %v", err)
+	}
+
+	for _, test := range []struct {
+		name          string
+		cutoff        time.Time
+		wantCostCents int64
+	}{
+		{name: "before first purchase", cutoff: time.Date(2198, time.December, 31, 0, 0, 0, 0, time.UTC), wantCostCents: 0},
+		{name: "before return to prior price", cutoff: time.Date(2199, time.January, 3, 0, 0, 0, 0, time.UTC), wantCostCents: 1200},
+		{name: "after return to prior price", cutoff: time.Date(2199, time.January, 5, 0, 0, 0, 0, time.UTC), wantCostCents: 1133},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			rows, err := store.StockSummaryReportRows(ctx, test.cutoff)
+			if err != nil {
+				t.Fatalf("load stock summary: %v", err)
+			}
+			for _, row := range rows {
+				if row.StockCode == "STK-"+suffix {
+					if row.UnitCostCents != test.wantCostCents {
+						t.Fatalf("stock summary unit cost = %d cents, want %d", row.UnitCostCents, test.wantCostCents)
+					}
+					return
+				}
+			}
+			t.Fatalf("average cost stock missing from stock summary")
+		})
+	}
+}
+
 func TestDocumentReferenceUsesORCINumberForSalesAndPurchases(t *testing.T) {
 	for _, kind := range []string{"sales", "purchases"} {
 		t.Run(kind, func(t *testing.T) {
@@ -329,6 +422,20 @@ func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 
 	assertNumericText(t, pool, `select coalesce(sum(qty_delta), 0)::text from stock_ledger where document_id=$1 and stock_id=$2`, "3.00", documentID, stockID)
 	assertNumericText(t, pool, `select coalesce(balance, 0)::text from suppliers where id=$1`, "37.50", supplierID)
+	apDebitItems, err := store.ListDocuments(ctx, "ap-debit", "", 2026)
+	if err != nil {
+		t.Fatalf("list AP Debit documents: %v", err)
+	}
+	foundDerivedPurchase := false
+	for _, item := range apDebitItems {
+		if item.ID == documentID && item.Kind == "purchases" {
+			foundDerivedPurchase = true
+			break
+		}
+	}
+	if !foundDerivedPurchase {
+		t.Fatalf("non-cash purchase %d was not derived into the AP Debit list", documentID)
+	}
 
 	input.Values["remarks"] = "updated by repository integration test"
 	input.LineInput[0].Rows[0]["qty"] = "4"
@@ -662,6 +769,163 @@ func TestPostgresStoreIncomeStatementRowsQuery(t *testing.T) {
 	to := time.Date(2026, time.June, 30, 0, 0, 0, 0, time.UTC)
 	if _, err := store.IncomeStatementRows(ctx, from, to); err != nil {
 		t.Fatalf("income statement rows: %v", err)
+	}
+}
+
+func TestIncomeStatementValuesInventoryAtEachReportCutoff(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed income statement inventory coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := appdb.Migrate(databaseURL, filepath.Join("..", "..", "db", "migrations")); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := fmt.Sprintf("ISCUTOFF%d", time.Now().UnixNano())
+	var stockID int64
+	if err := pool.QueryRow(ctx, `
+		insert into stocks (code, name, latest_cost)
+		values ($1, $2, 50)
+		returning id`, "STK-"+suffix, "Income Statement Cutoff Stock "+suffix).Scan(&stockID); err != nil {
+		t.Fatalf("insert cutoff stock: %v", err)
+	}
+	defer func() {
+		_, _ = pool.Exec(context.Background(), `delete from documents where remarks=$1`, suffix)
+		_, _ = pool.Exec(context.Background(), `delete from stocks where id=$1`, stockID)
+	}()
+
+	reportFrom := time.Date(2198, time.June, 1, 0, 0, 0, 0, time.UTC)
+	reportTo := time.Date(2198, time.June, 30, 0, 0, 0, 0, time.UTC)
+	baselineRows, err := NewPostgresStore(pool).IncomeStatementRows(ctx, reportFrom, reportTo)
+	if err != nil {
+		t.Fatalf("load baseline income statement: %v", err)
+	}
+	baselineBeginning := incomeStatementAmount(baselineRows, "beginning_inventory", "Stock Inventory, Beginning")
+	baselineEnding := incomeStatementAmount(baselineRows, "ending_inventory", "Stock Inventory, End")
+
+	insertInventoryPosting := func(kind, documentDate string, lineQuantity, quantityDelta, unitCost int, remarks string) {
+		t.Helper()
+		var documentID int64
+		if err := pool.QueryRow(ctx, `
+			insert into documents (kind, entry_date, document_date, remarks)
+			values ($1, $2::date, $2::date, $3)
+			returning id`, kind, documentDate, suffix).Scan(&documentID); err != nil {
+			t.Fatalf("insert %s inventory document: %v", remarks, err)
+		}
+		if _, err := pool.Exec(ctx, `
+			insert into document_lines (document_id, group_key, line_no, stock_id, qty, unit_cost)
+			values ($1, 'details', 1, $2, $3, $4)`, documentID, stockID, lineQuantity, unitCost); err != nil {
+			t.Fatalf("insert %s inventory line: %v", remarks, err)
+		}
+		if _, err := pool.Exec(ctx, `
+			insert into stock_ledger (document_id, stock_id, qty_delta, unit_cost)
+			values ($1, $2, $3, $4)`, documentID, stockID, quantityDelta, unitCost); err != nil {
+			t.Fatalf("insert %s inventory ledger entry: %v", remarks, err)
+		}
+	}
+
+	insertInventoryPosting("purchases", "2198-05-20", 10, 10, 10, "beginning purchase")
+	insertInventoryPosting("purchases", "2198-06-20", 5, 5, 12, "period purchase")
+	insertInventoryPosting("sales", "2198-06-25", 3, -3, 12, "period sale")
+	insertInventoryPosting("purchases", "2198-07-05", 2, 2, 50, "future purchase")
+
+	rows, err := NewPostgresStore(pool).IncomeStatementRows(ctx, reportFrom, reportTo)
+	if err != nil {
+		t.Fatalf("load income statement: %v", err)
+	}
+
+	if got := incomeStatementAmount(rows, "beginning_inventory", "Stock Inventory, Beginning") - baselineBeginning; got != 10_000 {
+		t.Fatalf("beginning inventory delta = %d cents, want 10000 (10 units at the May 31 cost of 10)", got)
+	}
+	if got := incomeStatementAmount(rows, "ending_inventory", "Stock Inventory, End") - baselineEnding; got != 13_200 {
+		t.Fatalf("ending inventory delta = %d cents, want 13200 (12 units at the average changed cost of 11)", got)
+	}
+}
+
+func TestIncomeStatementClassifiesPurchasesAndAPActivity(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed income statement AP coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := appdb.Migrate(databaseURL, filepath.Join("..", "..", "db", "migrations")); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := fmt.Sprintf("ISAP%d", time.Now().UnixNano())
+	var supplierID, purchaseID int64
+	if err := pool.QueryRow(ctx, `
+		insert into suppliers (code, company)
+		values ($1, $2)
+		returning id`, "SUP-"+suffix, "Income Statement Supplier "+suffix).Scan(&supplierID); err != nil {
+		t.Fatalf("insert supplier: %v", err)
+	}
+	defer func() {
+		_, _ = pool.Exec(context.Background(), `delete from documents where party_type='supplier' and party_id=$1`, supplierID)
+		_, _ = pool.Exec(context.Background(), `delete from suppliers where id=$1`, supplierID)
+	}()
+
+	if err := pool.QueryRow(ctx, `
+		insert into documents
+			(kind, entry_date, document_date, party_type, party_id, cash, total, less_amount, add_amount, net, balance)
+		values
+			('purchases', '2098-01-05 09:00:00+08', '2098-02-10', 'supplier', $1, false, 100, 10, 5, 95, 95)
+		returning id`, supplierID).Scan(&purchaseID); err != nil {
+		t.Fatalf("insert non-cash purchase: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into document_lines (document_id, group_key, line_no, qty, price, amount, payload)
+		values ($1, 'discounts', 1, 1, 10, 10, '{"particulars":"Cash Discount","amount":"10"}')`, purchaseID); err != nil {
+		t.Fatalf("insert purchase discount: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into documents (kind, entry_date, document_date, party_type, party_id, net)
+		values
+			('ap-debit', '2098-02-11 09:00:00+08', '2098-02-11', 'supplier', $1, 20),
+			('ap-credit', '2098-02-12 09:00:00+08', '2098-02-12', 'supplier', $1, 50)`, supplierID); err != nil {
+		t.Fatalf("insert AP adjustments: %v", err)
+	}
+
+	rows, err := NewPostgresStore(pool).IncomeStatementRows(ctx,
+		time.Date(2098, time.February, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2098, time.February, 28, 0, 0, 0, 0, time.UTC),
+	)
+	if err != nil {
+		t.Fatalf("load income statement: %v", err)
+	}
+
+	var purchaseAmount, discountIncome int64
+	for _, row := range rows {
+		if row.Section == "purchases" && row.Label == "Income Statement Supplier "+suffix {
+			purchaseAmount += row.AmountCents
+		}
+		if row.Section == "other_income" && row.Label == "Purchases - Cash Discount" {
+			discountIncome += row.AmountCents
+		}
+		if strings.Contains(strings.ToLower(row.Label), "ap credit") || strings.Contains(strings.ToLower(row.Label), "ap debit") {
+			t.Fatalf("AP balance activity leaked into income statement: %#v", row)
+		}
+	}
+	if purchaseAmount != 10_500 {
+		t.Fatalf("purchase amount = %d cents, want 10500 before separately reported discount", purchaseAmount)
+	}
+	if discountIncome < 1_000 {
+		t.Fatalf("purchase discount income = %d cents, want at least 1000", discountIncome)
 	}
 }
 

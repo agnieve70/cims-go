@@ -33,6 +33,7 @@ type Store interface {
 	DeleteMaster(ctx context.Context, form models.FormDefinition, id int64, user models.User) error
 	ListDocuments(ctx context.Context, kind string, search string, year int) ([]models.DocumentListItem, error)
 	GetDocument(ctx context.Context, form models.FormDefinition, id int64) (models.Record, map[string][]models.Record, error)
+	APCreditBalance(ctx context.Context, supplierID, documentID int64) (string, error)
 	ARCreditBalance(ctx context.Context, customerID, documentID int64) (string, error)
 	LoadDRSelection(ctx context.Context, id int64) (repositories.DRSelection, error)
 	SaveDocument(ctx context.Context, form models.FormDefinition, id int64, input repositories.DocumentInput) (int64, error)
@@ -204,6 +205,7 @@ func (a *App) Routes() http.Handler {
 			protected.Get("/reports/stock-summary", a.stockSummaryReport)
 			protected.Get("/transactions/sales/{id}/invoice", a.salesInvoicePrint)
 			protected.Get("/transactions/stock-transactions/{id}/withdrawal", a.stockTransferWithdrawalPrint)
+			protected.Get("/transactions/ap-credit/balance", a.apCreditBalance)
 			protected.Get("/transactions/ar-credit/balance", a.arCreditBalance)
 
 			protected.Route("/masters/{kind}", func(cr chi.Router) {
@@ -415,6 +417,14 @@ func (a *App) transactionList(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	for index := range items {
+		itemKind := items[index].Kind
+		if itemKind == "" {
+			itemKind = form.Kind
+		}
+		items[index].EditRoute = "/transactions/" + itemKind + "/" + strconv.FormatInt(items[index].ID, 10) + "/edit"
+		items[index].CanDelete = itemKind == form.Kind
+	}
 	a.render(w, r, "transaction_list.gohtml", viewData{Title: form.Title, Form: form, Documents: items, Search: search, Year: year})
 }
 
@@ -454,6 +464,29 @@ func (a *App) arCreditBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	balance, err := a.store.ARCreditBalance(r.Context(), customerID, documentID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	if err := json.NewEncoder(w).Encode(map[string]string{"balance": balance}); err != nil {
+		a.serverError(w, r, err)
+	}
+}
+
+func (a *App) apCreditBalance(w http.ResponseWriter, r *http.Request) {
+	supplierID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("party_id")), 10, 64)
+	if err != nil || supplierID <= 0 {
+		http.Error(w, "valid supplier is required", http.StatusBadRequest)
+		return
+	}
+	documentID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("document_id")), 10, 64)
+	if err != nil || documentID < 0 {
+		http.Error(w, "invalid AP Credit document", http.StatusBadRequest)
+		return
+	}
+	balance, err := a.store.APCreditBalance(r.Context(), supplierID, documentID)
 	if err != nil {
 		a.serverError(w, r, err)
 		return

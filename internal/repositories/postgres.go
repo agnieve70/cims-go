@@ -258,7 +258,11 @@ func (s *PostgresStore) DeleteMaster(ctx context.Context, form models.FormDefini
 
 func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search string, year int) ([]models.DocumentListItem, error) {
 	args := []any{kind}
-	clauses := []string{"d.kind=$1"}
+	kindClause := "d.kind=$1"
+	if kind == "ap-debit" {
+		kindClause = "(d.kind=$1 or (d.kind='purchases' and not coalesce(d.cash, false)))"
+	}
+	clauses := []string{kindClause}
 	if year != 0 {
 		start, end := yearDateRange(year)
 		args = append(args, start, end)
@@ -335,7 +339,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			where l.kind in ('purchases', 'sales')
 			group by l.id
 		)
-		select l.id, l.entry_id, l.entry_date,
+		select l.id, l.kind, l.entry_id, l.entry_date,
 		       l.party,
 		       l.branch,
 		       l.reference,
@@ -367,7 +371,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 	var items []models.DocumentListItem
 	for rows.Next() {
 		var item models.DocumentListItem
-		if err := rows.Scan(&item.ID, &item.EntryID, &item.EntryDate, &item.Party, &item.Branch, &item.Reference, &item.DRRef, &item.Status, &item.Net, &item.Encoder, &item.Transaction, &item.Transactee, &item.Remarks, &item.LastUpdate, &item.UpdatedBy, &item.TotalQty, &item.GrossTotal, &item.TotalLess, &item.TotalAdd, &item.NetTotal); err != nil {
+		if err := rows.Scan(&item.ID, &item.Kind, &item.EntryID, &item.EntryDate, &item.Party, &item.Branch, &item.Reference, &item.DRRef, &item.Status, &item.Net, &item.Encoder, &item.Transaction, &item.Transactee, &item.Remarks, &item.LastUpdate, &item.UpdatedBy, &item.TotalQty, &item.GrossTotal, &item.TotalLess, &item.TotalAdd, &item.NetTotal); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -1095,16 +1099,58 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 			  and d.document_date <= $2::date
 			group by label
 		),
-		inventory_rows as (
-			select 'beginning_inventory' as section,
-			       'Stock Inventory, Beginning' as label,
-			       coalesce(sum(st.latest_cost * coalesce((select sum(sl.qty_delta) from stock_ledger sl join documents d on d.id=sl.document_id where sl.stock_id=st.id and d.document_date < $1::date), 0)), 0) as amount
-			from stocks st
+		inventory_cutoffs as (
+			select 'beginning_inventory'::text as section,
+			       'Stock Inventory, Beginning'::text as label,
+			       $1::date - 1 as cutoff_date
 			union all
-			select 'ending_inventory' as section,
-			       'Stock Inventory, End' as label,
-			       coalesce(sum(st.latest_cost * coalesce((select sum(sl.qty_delta) from stock_ledger sl join documents d on d.id=sl.document_id where sl.stock_id=st.id and d.document_date <= $2::date), 0)), 0) as amount
-			from stocks st
+			select 'ending_inventory',
+			       'Stock Inventory, End',
+			       $2::date
+		),
+		inventory_rows as (
+			select cutoff.section,
+			       cutoff.label,
+			       coalesce(sum(
+			         coalesce(quantity.qty_on_hand, 0)
+			         * coalesce(acquisition_cost.average_unit_cost, ledger_cost.unit_cost, st.latest_cost, 0)
+			       ), 0) as amount
+			from inventory_cutoffs cutoff
+			left join stocks st on true
+			left join lateral (
+				select coalesce(sum(sl.qty_delta), 0) as qty_on_hand
+				from stock_ledger sl
+				join documents d on d.id = sl.document_id
+				where sl.stock_id = st.id
+				  and d.document_date <= cutoff.cutoff_date
+			) quantity on true
+			left join lateral (
+				select avg(price.unit_cost) as average_unit_cost
+				from (
+					select dl.unit_cost,
+					       lag(dl.unit_cost) over (
+					         order by d.document_date, d.entry_date, d.id, dl.line_no, dl.id
+					       ) as previous_unit_cost
+					from document_lines dl
+					join documents d on d.id = dl.document_id
+					where dl.stock_id = st.id
+					  and dl.group_key = 'details'
+					  and d.kind in ('purchases', 'stock-in')
+					  and d.document_date <= cutoff.cutoff_date
+					  and dl.unit_cost > 0
+				) price
+				where price.unit_cost is distinct from price.previous_unit_cost
+			) acquisition_cost on true
+			left join lateral (
+				select sl.unit_cost
+				from stock_ledger sl
+				join documents d on d.id = sl.document_id
+				where sl.stock_id = st.id
+				  and d.document_date <= cutoff.cutoff_date
+				order by d.document_date desc, d.entry_date desc, d.id desc, sl.id desc
+				limit 1
+			) ledger_cost on true
+			group by cutoff.section, cutoff.label, cutoff.cutoff_date
 		),
 		purchase_rows as (
 			select 'purchases' as section,
@@ -1112,12 +1158,14 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 			         when d.kind = 'stock-in' then 'Stock In'
 			         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
 			       end as label,
-			       coalesce(sum(d.net), 0) as amount
+			       -- Discounts are reported separately as other income, so add them
+			       -- back here to avoid reducing cost of sales twice.
+			       coalesce(sum(coalesce(d.net, 0) + coalesce(d.less_amount, 0)), 0) as amount
 			from documents d
 			left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
 			where d.kind in ('purchases', 'stock-in')
-			  and d.entry_date >= $1::date
-			  and d.entry_date <= $2::date
+			  and d.document_date >= $1::date
+			  and d.document_date <= $2::date
 			group by label
 		),
 		withdrawal_rows as (
@@ -1189,8 +1237,8 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 			from documents d
 			join document_lines dl on dl.document_id = d.id and dl.group_key = 'discounts'
 			where d.kind = 'purchases'
-			  and d.entry_date >= $1::date
-			  and d.entry_date <= $2::date
+			  and d.document_date >= $1::date
+			  and d.document_date <= $2::date
 			group by label
 		),
 		sales_markup_rows as (
@@ -2214,16 +2262,46 @@ func (s *PostgresStore) StockSummaryReportRows(ctx context.Context, cutoff time.
 			select distinct coalesce(nullif(st.category_group, ''), 'Uncategorized') as category
 			from stocks st
 		),
+		acquisition_stocks as (
+			select distinct dl.stock_id
+			from document_lines dl
+			join documents d on d.id = dl.document_id
+			where dl.group_key = 'details'
+			  and d.kind in ('purchases', 'stock-in')
+			  and dl.stock_id is not null
+			  and dl.unit_cost > 0
+		),
 		stock_rows as (
 			select coalesce(nullif(st.category_group, ''), 'Uncategorized') as category,
 			       coalesce(st.code, '') as stock_code,
 			       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 			       true as has_stock,
 			       coalesce(b.soh, 0)::bigint as soh,
-			       coalesce(round(st.latest_cost * 100), 0)::bigint as unit_cost_cents,
-			       coalesce(round(coalesce(b.soh, 0) * st.latest_cost * 100), 0)::bigint as amount_cents
+			       coalesce(round(coalesce(ac.average_unit_cost, case when ast.stock_id is null then st.latest_cost else 0 end, 0) * 100), 0)::bigint as unit_cost_cents,
+			       coalesce(round(coalesce(b.soh, 0) * coalesce(ac.average_unit_cost, case when ast.stock_id is null then st.latest_cost else 0 end, 0) * 100), 0)::bigint as amount_cents
 			from stocks st
 			left join balances b on b.stock_id = st.id
+			left join acquisition_stocks ast on ast.stock_id = st.id
+			left join (
+				select changed_prices.stock_id,
+				       avg(changed_prices.unit_cost) as average_unit_cost
+				from (
+					select dl.stock_id,
+					       dl.unit_cost,
+					       lag(dl.unit_cost) over (
+					         partition by dl.stock_id
+					         order by d.document_date, d.entry_date, d.id, dl.line_no, dl.id
+					       ) as previous_unit_cost
+					from document_lines dl
+					join documents d on d.id = dl.document_id
+					where dl.group_key = 'details'
+					  and d.kind in ('purchases', 'stock-in')
+					  and d.document_date <= $1::date
+					  and dl.unit_cost > 0
+				) changed_prices
+				where changed_prices.unit_cost is distinct from changed_prices.previous_unit_cost
+				group by changed_prices.stock_id
+			) ac on ac.stock_id = st.id
 		)
 		select c.category,
 		       coalesce(sr.stock_code, '') as stock_code,
@@ -2433,6 +2511,10 @@ func (s *PostgresStore) ARCreditBalance(ctx context.Context, customerID, documen
 	return s.availablePaymentBalance(ctx, models.FormDefinition{PartyType: "customer"}, documentID, customerID)
 }
 
+func (s *PostgresStore) APCreditBalance(ctx context.Context, supplierID, documentID int64) (string, error) {
+	return s.availablePaymentBalance(ctx, models.FormDefinition{PartyType: "supplier"}, documentID, supplierID)
+}
+
 func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelection, error) {
 	selection := DRSelection{Values: models.Record{}}
 	var partyID int64
@@ -2465,18 +2547,25 @@ func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelect
 		         from dr_consumptions dc
 		         where dc.dr_line_id = dl.id
 		       ), 0)))::bigint::text,
-		       coalesce(latest_purchase.unit_cost::text, st.latest_cost::text, '0')
+		       coalesce(average_purchase.unit_cost::text, st.latest_cost::text, '0')
 		from document_lines dl
 		left join stocks st on st.id = dl.stock_id
 		left join lateral (
-		  select pdl.unit_cost
-		  from document_lines pdl
-		  join documents pd on pd.id = pdl.document_id
-		  where pd.kind = 'purchases'
-		    and pdl.stock_id = dl.stock_id
-		  order by pd.document_date desc, pd.entry_date desc, pd.id desc, pdl.line_no desc
-		  limit 1
-		) latest_purchase on true
+		  select avg(price.unit_cost) as unit_cost
+		  from (
+		    select pdl.unit_cost,
+		           lag(pdl.unit_cost) over (
+		             order by pd.document_date, pd.entry_date, pd.id, pdl.line_no, pdl.id
+		           ) as previous_unit_cost
+		    from document_lines pdl
+		    join documents pd on pd.id = pdl.document_id
+		    where pd.kind in ('purchases', 'stock-in')
+		      and pdl.group_key = 'details'
+		      and pdl.stock_id = dl.stock_id
+		      and pdl.unit_cost > 0
+		  ) price
+		  where price.unit_cost is distinct from price.previous_unit_cost
+		) average_purchase on true
 		where dl.document_id=$1
 		  and dl.group_key='details'
 		  and (dl.qty - coalesce((
@@ -2681,7 +2770,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	previousPayment := int64(0)
 	drReferenceID := parseInt(input.Values["dr_document_id"])
 	var drState drValidationState
-	var latestCostStockIDs []int64
+	var averageCostStockIDs []int64
 	previousOutbound := map[inventoryKey]int64{}
 	if id != 0 {
 		previousPayment, err = s.documentPaymentAmount(ctx, tx, id, effects.Balance)
@@ -2693,7 +2782,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 			return 0, err
 		}
 		if isAcquisitionKind(form.Kind) {
-			latestCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
+			averageCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
 			if err != nil {
 				return 0, err
 			}
@@ -2799,8 +2888,8 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 		}
 	}
 	if isAcquisitionKind(form.Kind) {
-		latestCostStockIDs = appendStockLineIDs(latestCostStockIDs, totalInput.posting.Lines)
-		if err := s.refreshLatestPurchaseCosts(ctx, tx, latestCostStockIDs); err != nil {
+		averageCostStockIDs = appendStockLineIDs(averageCostStockIDs, totalInput.posting.Lines)
+		if err := s.refreshAveragePurchaseCosts(ctx, tx, averageCostStockIDs); err != nil {
 			return 0, err
 		}
 	}
@@ -2838,9 +2927,9 @@ func (s *PostgresStore) DeleteDocument(ctx context.Context, form models.FormDefi
 	}
 	defer tx.Rollback(ctx)
 
-	var latestCostStockIDs []int64
+	var averageCostStockIDs []int64
 	if isAcquisitionKind(form.Kind) {
-		latestCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
+		averageCostStockIDs, err = s.purchaseDocumentStockIDs(ctx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -2852,7 +2941,7 @@ func (s *PostgresStore) DeleteDocument(ctx context.Context, form models.FormDefi
 		return err
 	}
 	if isAcquisitionKind(form.Kind) {
-		if err := s.refreshLatestPurchaseCosts(ctx, tx, latestCostStockIDs); err != nil {
+		if err := s.refreshAveragePurchaseCosts(ctx, tx, averageCostStockIDs); err != nil {
 			return err
 		}
 	}
@@ -2883,21 +2972,34 @@ func (s *PostgresStore) purchaseDocumentStockIDs(ctx context.Context, tx pgx.Tx,
 	return stockIDs, rows.Err()
 }
 
-func (s *PostgresStore) refreshLatestPurchaseCosts(ctx context.Context, tx pgx.Tx, stockIDs []int64) error {
+// refreshAveragePurchaseCosts averages the first positive acquisition cost and
+// every later cost that differs from the immediately preceding cost.
+func (s *PostgresStore) refreshAveragePurchaseCosts(ctx context.Context, tx pgx.Tx, stockIDs []int64) error {
 	stockIDs = uniquePositiveInt64s(stockIDs)
 	if len(stockIDs) == 0 {
 		return nil
 	}
 	_, err := tx.Exec(ctx, `
+		with ordered_costs as (
+		  select dl.stock_id,
+		         dl.unit_cost,
+		         lag(dl.unit_cost) over (
+		           partition by dl.stock_id
+		           order by d.document_date, d.entry_date, d.id, dl.line_no, dl.id
+		         ) as previous_unit_cost
+		  from document_lines dl
+		  join documents d on d.id = dl.document_id
+		  where d.kind in ('purchases', 'stock-in')
+		    and dl.group_key = 'details'
+		    and dl.stock_id = any($1::bigint[])
+		    and dl.unit_cost > 0
+		)
 		update stocks st
 		set latest_cost = coalesce((
-		    select dl.unit_cost
-		    from document_lines dl
-		    join documents d on d.id = dl.document_id
-		    where d.kind in ('purchases', 'stock-in')
-		      and dl.stock_id = st.id
-		    order by d.document_date desc, d.entry_date desc, d.id desc, dl.line_no desc
-		    limit 1
+		    select avg(oc.unit_cost)
+		    from ordered_costs oc
+		    where oc.stock_id = st.id
+		      and oc.unit_cost is distinct from oc.previous_unit_cost
 		  ), 0),
 		  updated_at = now()
 		where st.id = any($1::bigint[])`, stockIDs)

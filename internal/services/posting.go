@@ -225,7 +225,7 @@ func BuildPostingEffects(req PostingRequest) PostingEffects {
 	case DocumentSale:
 		effects.Balance = BalanceEffect{PartyType: PartyCustomer, PartyID: req.PartyID, AmountDelta: req.Balance}
 	case DocumentAPCredit:
-		effects.Balance = BalanceEffect{PartyType: PartyCustomer, PartyID: req.PartyID, AmountDelta: -req.Paid}
+		effects.Balance = BalanceEffect{PartyType: PartySupplier, PartyID: req.PartyID, AmountDelta: -req.Paid}
 	case DocumentAPDebit:
 		effects.Balance = BalanceEffect{PartyType: PartySupplier, PartyID: req.PartyID, AmountDelta: req.Amount}
 	case DocumentARCredit:

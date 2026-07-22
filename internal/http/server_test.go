@@ -30,6 +30,7 @@ type fakeStore struct {
 	lastDocKind           string
 	lastDocSearch         string
 	lastDocYear           int
+	documents             []models.DocumentListItem
 	deletedDocKind        string
 	deletedDocID          int64
 	deletedMasterKind     string
@@ -44,7 +45,9 @@ type fakeStore struct {
 	lastSavedDocInput     repositories.DocumentInput
 	saveDocumentErr       error
 	arCreditBalance       string
+	apCreditBalance       string
 	lastBalanceCustomerID int64
+	lastBalanceSupplierID int64
 	lastBalanceDocumentID int64
 	drErr                 error
 	userByIDCalls         int
@@ -110,6 +113,9 @@ func (s *fakeStore) ListDocuments(_ context.Context, kind string, search string,
 	s.lastDocKind = kind
 	s.lastDocSearch = search
 	s.lastDocYear = year
+	if s.documents != nil {
+		return s.documents, nil
+	}
 	return []models.DocumentListItem{{
 		ID:          1,
 		EntryID:     "ENT-1",
@@ -148,6 +154,15 @@ func (s *fakeStore) ARCreditBalance(_ context.Context, customerID, documentID in
 		return "0.000", nil
 	}
 	return s.arCreditBalance, nil
+}
+
+func (s *fakeStore) APCreditBalance(_ context.Context, supplierID, documentID int64) (string, error) {
+	s.lastBalanceSupplierID = supplierID
+	s.lastBalanceDocumentID = documentID
+	if s.apCreditBalance == "" {
+		return "0.000", nil
+	}
+	return s.apCreditBalance, nil
 }
 
 func (s *fakeStore) LoadDRSelection(context.Context, int64) (repositories.DRSelection, error) {
@@ -1158,11 +1173,13 @@ func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 	for _, want := range []string{
 		`<strong>AP Credit File</strong>`,
 		`<section class="credit-legacy-form ap-credit-legacy-form">`,
-		`<button type="button" data-ap-credit-customer-browse>Browse...</button>`,
-		`data-ap-credit-customer-picker aria-hidden="true"`,
-		`id="ap-credit-customer-picker-title">Customer List</h3>`,
-		`data-ap-credit-customer-picker-results`,
-		`<option value="Customer A"></option>`,
+		`<button type="button" data-ap-credit-supplier-browse>Browse...</button>`,
+		`data-ap-credit-supplier-picker aria-hidden="true"`,
+		`id="ap-credit-supplier-picker-title">Supplier List</h3>`,
+		`data-ap-credit-supplier-picker-results`,
+		`<option value="Supplier A"></option>`,
+		`data-ap-credit-balance`,
+		`/transactions/ap-credit/balance?party_id=`,
 		`<input type="hidden" name="remarks"`,
 		`class="credit-payment-label">PAYMENT</div>`,
 		`<th class="credit-hidden-check-nature">Nature</th>`,
@@ -1175,8 +1192,35 @@ func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 			t.Fatalf("body missing %q", want)
 		}
 	}
-	if strings.Contains(body, `<option value="Supplier A"></option>`) {
-		t.Fatal("AP Credit company options should not include suppliers")
+	if strings.Contains(body, `<option value="Customer A"></option>`) {
+		t.Fatal("AP Credit company options should not include customers")
+	}
+}
+
+func TestAPCreditBalanceReturnsSelectedSupplierPayable(t *testing.T) {
+	store := &fakeStore{
+		user:            models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		apCreditBalance: "960595.020",
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/ap-credit/balance?party_id=7&document_id=11", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if store.lastBalanceSupplierID != 7 || store.lastBalanceDocumentID != 11 {
+		t.Fatalf("balance lookup = supplier %d document %d, want supplier 7 document 11", store.lastBalanceSupplierID, store.lastBalanceDocumentID)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"balance":"960595.020"}` {
+		t.Fatalf("response body = %q", got)
 	}
 }
 
@@ -1785,6 +1829,9 @@ func TestStockFormUsesCategorySelect(t *testing.T) {
 	if !strings.Contains(body, `legacy-record-field-split`) {
 		t.Fatalf("body missing split field class for unit and latest cost")
 	}
+	if !strings.Contains(body, `<span>Average Unit Cost:</span>`) {
+		t.Fatalf("body missing average unit cost label")
+	}
 	if !strings.Contains(body, `<span>SOH:</span>`) {
 		t.Fatalf("body missing SOH field label")
 	}
@@ -2021,6 +2068,37 @@ func TestTransactionListPassesSearchAndYear(t *testing.T) {
 	}
 	if strings.Contains(body, `class="data-row" tabindex="0" onclick="window.location='`) {
 		t.Fatalf("body still uses single-click row open behavior")
+	}
+}
+
+func TestAPDebitListIncludesDerivedPurchaseAsSourceLink(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documents: []models.DocumentListItem{{
+			ID: 42, Kind: "purchases", EntryID: "ENT-42", EntryDate: time.Date(2026, time.July, 22, 0, 0, 0, 0, time.UTC),
+			Party: "Supplier A", Reference: "CI-42", Net: "1250.000",
+		}},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/ap-debit/?year=2026", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if store.lastDocKind != "ap-debit" || !strings.Contains(body, `/transactions/purchases/42/edit`) || !strings.Contains(body, `Open source purchase`) {
+		t.Fatalf("AP Debit list did not render the source purchase link: kind=%q body=%q", store.lastDocKind, body)
+	}
+	if strings.Contains(body, `/transactions/ap-debit/42/delete`) {
+		t.Fatal("derived AP Debit purchase must not expose a duplicate delete action")
 	}
 }
 

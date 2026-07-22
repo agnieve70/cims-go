@@ -56,7 +56,7 @@
           </tr>
           {{end}}
           {{range .Documents}}
-          <tr class="data-row" tabindex="0" ondblclick="window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'" onkeydown="if(event.key==='Enter'){window.location='{{$.Form.RouteBase}}/{{.ID}}/edit'}">
+          <tr class="data-row" tabindex="0" ondblclick="window.location='{{.EditRoute}}'" onkeydown="if(event.key==='Enter'){window.location='{{.EditRoute}}'}">
             {{if eq $.Form.Kind "purchases"}}
             <td>{{.EntryID}}</td>
             <td>{{.EntryDate.Format "01/02/2006"}}</td>
@@ -107,10 +107,10 @@
             {{end}}
             <td class="transaction-row-actions" onclick="event.stopPropagation()" ondblclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
               <div class="transaction-row-actions-controls">
-                <a class="transaction-row-action" href="{{$.Form.RouteBase}}/{{.ID}}/edit" title="Edit" aria-label="Edit {{.EntryID}}">
+                <a class="transaction-row-action" href="{{.EditRoute}}" title="{{if not .CanDelete}}Open source purchase{{else}}Edit{{end}}" aria-label="{{if not .CanDelete}}Open source purchase{{else}}Edit {{.EntryID}}{{end}}">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
                 </a>
-                {{if $.User.CanWrite}}
+                {{if and $.User.CanWrite .CanDelete}}
                 <form method="post" action="{{$.Form.RouteBase}}/{{.ID}}/delete" class="transaction-row-delete-form" onsubmit="return confirm('Delete this transaction record?')">
                   <button type="submit" class="transaction-row-action transaction-row-delete" title="Delete" aria-label="Delete {{.EntryID}}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V4h6v3"/><path d="M8 7l1 13h6l1-13"/></svg>

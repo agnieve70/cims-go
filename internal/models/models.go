@@ -36,6 +36,7 @@ type Record map[string]string
 
 type DocumentListItem struct {
 	ID          int64
+	Kind        string
 	EntryID     string
 	EntryDate   time.Time
 	Party       string
@@ -55,4 +56,6 @@ type DocumentListItem struct {
 	TotalLess   string
 	TotalAdd    string
 	NetTotal    string
+	EditRoute   string
+	CanDelete   bool
 }

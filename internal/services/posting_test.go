@@ -173,8 +173,8 @@ func TestPostingEffectsForInventoryAndBalances(t *testing.T) {
 		PartyID: 33,
 		Paid:    2000,
 	})
-	if apCredit.Balance.PartyType != PartyCustomer || apCredit.Balance.AmountDelta != -2000 {
-		t.Fatalf("AP credit balance = %#v, want customer -2000", apCredit.Balance)
+	if apCredit.Balance.PartyType != PartySupplier || apCredit.Balance.AmountDelta != -2000 {
+		t.Fatalf("AP credit balance = %#v, want supplier -2000", apCredit.Balance)
 	}
 }
 

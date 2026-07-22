@@ -414,6 +414,7 @@ func main() {
 
 	must(state.importMasters(data))
 	must(state.importTransactions(data))
+	must(state.recomputeAverageUnitCosts())
 	must(state.recomputePartyBalances())
 	must(state.assignActiveBranch())
 
@@ -2342,6 +2343,38 @@ func (s *importState) recomputePartyBalances() error {
 			where bl.party_type = 'supplier'
 			  and bl.party_id = s.id
 		), 0);
+	`)
+	return err
+}
+
+func (s *importState) recomputeAverageUnitCosts() error {
+	_, err := s.tx.Exec(s.ctx, `
+		with ordered_costs as (
+		  select dl.stock_id,
+		         dl.unit_cost,
+		         lag(dl.unit_cost) over (
+		           partition by dl.stock_id
+		           order by d.document_date, d.entry_date, d.id, dl.line_no, dl.id
+		         ) as previous_unit_cost
+		  from document_lines dl
+		  join documents d on d.id = dl.document_id
+		  where d.kind in ('purchases', 'stock-in')
+		    and dl.group_key = 'details'
+		    and dl.stock_id is not null
+		    and dl.unit_cost > 0
+		),
+		average_costs as (
+		  select stock_id,
+		         avg(unit_cost) as average_unit_cost
+		  from ordered_costs
+		  where unit_cost is distinct from previous_unit_cost
+		  group by stock_id
+		)
+		update stocks st
+		set latest_cost = average_costs.average_unit_cost,
+		    updated_at = now()
+		from average_costs
+		where st.id = average_costs.stock_id
 	`)
 	return err
 }
