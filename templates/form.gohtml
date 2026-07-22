@@ -701,7 +701,7 @@
         <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><button type="button" data-ap-credit-customer-browse>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
-        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true" data-comma-number></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <input type="hidden" name="remarks" value="{{fieldValue $.Record "remarks"}}">
@@ -754,7 +754,7 @@
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         {{$currentARCreditCustomer := fieldValue $.Record "party_id"}}
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><select name="party_id" data-ar-credit-party-select required><option value="">Select company</option>{{range index $.Options "customers"}}<option value="{{.Value}}" {{if eq .Value $currentARCreditCustomer}}selected{{end}}>{{.Label}}</option>{{end}}</select><button type="button" data-ar-credit-customer-browse>Browse...</button></span></label>
-        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true" data-ar-credit-balance></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true" data-ar-credit-balance data-comma-number></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
@@ -801,7 +801,7 @@
         <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
         <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="rebates_company_name" list="rebates-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-rebates-party-id><datalist id="rebates-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
-        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true" data-comma-number></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
@@ -1213,7 +1213,7 @@
           </label>
           <label class="legacy-record-field legacy-record-date legacy-record-field-split">
             <span>SOH:</span>
-            <input value="{{fieldValue $.Record "soh"}}" readonly tabindex="-1" aria-readonly="true">
+            <input value="{{fieldValue $.Record "soh"}}" readonly tabindex="-1" aria-readonly="true" data-comma-number>
           </label>
         </div>
         <label class="legacy-record-field">
@@ -2130,38 +2130,81 @@
       return Number.isFinite(number) ? number : 0;
     }
 
+    function formatNumericText(value) {
+      var text = String(value == null ? "" : value).trim();
+      if (!text) return "";
+      var accounting = /^\(.*\)$/.test(text);
+      var percent = /%$/.test(text);
+      var numeric = text.replace(/[(),%]/g, "");
+      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(numeric)) return text;
+      var sign = "";
+      if (/^[+-]/.test(numeric)) {
+        sign = numeric.charAt(0);
+        numeric = numeric.slice(1);
+      }
+      var parts = numeric.split(".");
+      var whole = parts[0] || "0";
+      whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      var formatted = sign + whole + (parts.length > 1 ? "." + parts[1] : "");
+      if (percent) formatted += "%";
+      if (accounting) formatted = "(" + formatted.replace(/^[+-]/, "") + ")";
+      return formatted;
+    }
+
+    function unformatNumericText(value) {
+      return String(value == null ? "" : value).replace(/,/g, "");
+    }
+
+    function formatNumericElement(element) {
+      if (!element) return;
+      if ("value" in element) element.value = formatNumericText(element.value);
+      else element.textContent = formatNumericText(element.textContent);
+    }
+
+    function prepareCommaNumbers(root) {
+      if (!root) return;
+      root.querySelectorAll("input[type='number']").forEach(function (input) {
+        input.type = "text";
+        input.inputMode = input.step === "1" ? "numeric" : "decimal";
+        input.setAttribute("data-comma-number", "");
+        formatNumericElement(input);
+      });
+      root.querySelectorAll("[data-comma-number], .number-cell").forEach(formatNumericElement);
+    }
+
     function formatMoney(value) {
       if (!Number.isFinite(value) || value === 0) return "";
-      return value.toFixed(2);
+      return formatNumericText(value.toFixed(2));
     }
 
     function formatPercent(value) {
       if (!Number.isFinite(value) || value === 0) return "";
-      return (value * 100).toFixed(2) + "%";
+      return formatNumericText((value * 100).toFixed(2)) + "%";
     }
 
     function formatZeroMoney(value) {
       var number = Number.isFinite(value) ? value : parseMoney(value);
       if (!Number.isFinite(number) || number === 0) return "0";
-      return number.toFixed(2);
+      return formatNumericText(number.toFixed(2));
     }
 
     function formatZeroPercent(value) {
       var number = Number.isFinite(value) ? value : parseMoney(value);
       if (!Number.isFinite(number) || number === 0) return "0";
-      return (number * 100).toFixed(2) + "%";
+      return formatNumericText((number * 100).toFixed(2)) + "%";
     }
 
     function formatAccountingZeroMoney(value) {
       var number = Number.isFinite(value) ? value : parseMoney(value);
       if (!Number.isFinite(number) || number === 0) return "0";
-      return number < 0 ? "(" + Math.abs(number).toFixed(2) + ")" : number.toFixed(2);
+      var formatted = formatNumericText(Math.abs(number).toFixed(2));
+      return number < 0 ? "(" + formatted + ")" : formatted;
     }
 
     function formatAccountingZeroPercent(value) {
       var number = Number.isFinite(value) ? value : parseMoney(value);
       if (!Number.isFinite(number) || number === 0) return "0";
-      var formatted = Math.abs(number * 100).toFixed(2) + "%";
+      var formatted = formatNumericText(Math.abs(number * 100).toFixed(2)) + "%";
       return number < 0 ? "(" + formatted + ")" : formatted;
     }
 
@@ -2998,7 +3041,7 @@
         })
         .then(function (data) {
           if (requestID !== arCreditBalanceRequest) return;
-          balance.value = data.balance || "0.000";
+          balance.value = formatNumericText(data.balance || "0.000");
         })
         .catch(function () {
           if (requestID === arCreditBalanceRequest) balance.value = "";
@@ -4283,6 +4326,22 @@
       if (event.target.matches && event.target.matches(".credit-cash input[name='cash_amount']")) updateCreditPaymentTotals();
     }, true);
 
+    document.addEventListener("focus", function (event) {
+      var target = event.target.closest && event.target.closest("[data-comma-number], .number-cell[contenteditable='true']");
+      if (!target || target.readOnly) return;
+      if ("value" in target) target.value = unformatNumericText(target.value);
+      else target.textContent = unformatNumericText(target.textContent);
+    }, true);
+
+    document.addEventListener("blur", function (event) {
+      var target = event.target.closest && event.target.closest("[data-comma-number], .number-cell");
+      if (target) formatNumericElement(target);
+    }, true);
+
+    document.addEventListener("htmx:afterSwap", function (event) {
+      prepareCommaNumbers(event.target);
+    });
+
     if (purchaseSupplierPickerState.search) {
       purchaseSupplierPickerState.search.addEventListener("input", function () {
         renderPurchaseSupplierPicker(purchaseSupplierPickerState.search.value);
@@ -4737,6 +4796,14 @@
 
     hydratePurchaseDetails();
     hydratePurchaseAdjustments();
+    prepareCommaNumbers(formShell);
+    if (formShell) {
+      formShell.addEventListener("submit", function () {
+        formShell.querySelectorAll("[data-comma-number]").forEach(function (input) {
+          input.value = unformatNumericText(input.value);
+        });
+      }, true);
+    }
     hydratePurchasePaymentRows();
     hydratePurchaseSupplier();
     hydrateDRDetails();
@@ -4753,6 +4820,7 @@
     applyLinkedDetailEditsAfterReload();
     updatePurchaseTotals();
     updateSalesTotals();
+    prepareCommaNumbers(formShell);
     setPurchaseTab("adjustments");
     setSalesTab("markup");
     rememberFormModeState();
