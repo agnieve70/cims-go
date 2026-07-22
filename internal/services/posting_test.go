@@ -105,6 +105,20 @@ func TestSalesMarkupPercentUsesAmountAsDenominator(t *testing.T) {
 	}
 }
 
+func TestCashSaleDoesNotCreateReceivableBalance(t *testing.T) {
+	total := ComputeSales(SalesDocument{
+		Cash:  true,
+		Lines: []SalesLine{{Qty: 2000, UnitCost: 150000}},
+	})
+
+	if total.Net != 300000 {
+		t.Fatalf("Net = %d, want 300000", total.Net)
+	}
+	if total.Balance != 0 {
+		t.Fatalf("Balance = %d, want 0 for a cash sale", total.Balance)
+	}
+}
+
 func TestPostingEffectsForInventoryAndBalances(t *testing.T) {
 	purchase := PostingRequest{
 		Kind:     DocumentPurchase,
@@ -159,8 +173,8 @@ func TestPostingEffectsForInventoryAndBalances(t *testing.T) {
 		PartyID: 33,
 		Paid:    2000,
 	})
-	if apCredit.Balance.PartyType != PartySupplier || apCredit.Balance.AmountDelta != -2000 {
-		t.Fatalf("AP credit balance = %#v, want supplier -2000", apCredit.Balance)
+	if apCredit.Balance.PartyType != PartyCustomer || apCredit.Balance.AmountDelta != -2000 {
+		t.Fatalf("AP credit balance = %#v, want customer -2000", apCredit.Balance)
 	}
 }
 

@@ -186,7 +186,7 @@ func TransactionForms() []FormDefinition {
 				append(baseTransactionFields(false, ""), Field{Key: "transfer_date", Label: "Transfer Date", Column: "transfer_date", Type: FieldDate}, Field{Key: "transfer_id", Label: "Transfer ID", Column: "transfer_id", Type: FieldText}, Field{Key: "transaction", Label: "Transaction", Column: "transaction", Type: FieldText}, Field{Key: "branch_location", Label: "Branch/Location", Column: "branch_location", Type: FieldSelect, Source: "branches"}, Field{Key: "customer_id", Label: "Customer", Column: "customer_id", Type: FieldSelect, Source: "customers"}, Field{Key: "supplier_id", Label: "Supplier", Column: "supplier_id", Type: FieldSelect, Source: "suppliers"})...),
 			LineGroups: []LineGroup{drBackedSalesLines("details", "Details"), adjustmentLines("discounts", "Discounts"), adjustmentLines("additionals", "Additionals")},
 		},
-		{Kind: "ap-credit", Title: "AP Credit File", RouteBase: "/transactions/ap-credit", PartyType: "supplier", Fields: creditFields("suppliers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
+		{Kind: "ap-credit", Title: "AP Credit File", RouteBase: "/transactions/ap-credit", PartyType: "customer", Fields: creditFields("customers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
 		{Kind: "ap-debit", Title: "AP Debit File", RouteBase: "/transactions/ap-debit", PartyType: "supplier", Fields: debitFields("suppliers")},
 		{Kind: "ar-credit", Title: "AR Credit File", RouteBase: "/transactions/ar-credit", PartyType: "customer", Fields: creditFields("customers"), LineGroups: []LineGroup{checkLines("checks", "Checks")}},
 		{Kind: "ar-debit", Title: "AR Debit File", RouteBase: "/transactions/ar-debit", PartyType: "customer", Fields: debitFields("customers")},

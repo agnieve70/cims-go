@@ -576,9 +576,9 @@
             <option value="2 - Stock Return" {{if eq $currentTransaction "2 - Stock Return"}}selected{{end}}>2 - Stock Return</option>
           </select>
         </label>
-        <label class="transfer-field transfer-branch"><span>Branch/Location:</span><select name="branch_location"><option value="">Select</option>{{$currentBranch := fieldValue $.Record "branch_location"}}{{range index $.Options "branches"}}<option value="{{.Value}}" {{if eq .Value $currentBranch}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-        <label class="transfer-field transfer-customer" data-transfer-customer><span>Customer:</span><select name="customer_id"><option value="">Select customer</option>{{$currentCustomer := fieldValue $.Record "customer_id"}}{{range index $.Options "customers"}}<option value="{{.Value}}" {{if eq .Value $currentCustomer}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
-        <label class="transfer-field transfer-supplier is-hidden" data-transfer-supplier><span>Supplier:</span><select name="supplier_id"><option value="">Select supplier</option>{{$currentSupplier := fieldValue $.Record "supplier_id"}}{{range index $.Options "suppliers"}}<option value="{{.Value}}" {{if eq .Value $currentSupplier}}selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        <input type="hidden" name="branch_location" value="{{fieldValue $.Record "branch_location"}}">
+        <input type="hidden" name="customer_id" value="{{fieldValue $.Record "customer_id"}}">
+        <input type="hidden" name="supplier_id" value="{{fieldValue $.Record "supplier_id"}}">
         <label class="transfer-field transfer-dr-file">
           <span>SO Number:</span>
           <span class="purchase-supplier-control">
@@ -700,13 +700,35 @@
         <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
-        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><button type="button" disabled>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "suppliers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ap_credit_company_name" list="ap-credit-company-options" autocomplete="off" required><button type="button" data-ap-credit-customer-browse>Browse...</button><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ap-credit-party-id><datalist id="ap-credit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
         <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <input type="hidden" name="remarks" value="{{fieldValue $.Record "remarks"}}">
         <div class="credit-payment-label">PAYMENT</div>
       </section>
+      <div class="purchase-supplier-picker is-hidden" data-ap-credit-customer-picker aria-hidden="true">
+        <div class="purchase-supplier-picker-backdrop" data-ap-credit-customer-picker-close></div>
+        <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="ap-credit-customer-picker-title">
+          <div class="purchase-supplier-picker-titlebar">
+            <h3 id="ap-credit-customer-picker-title">Customer List</h3>
+            <button type="button" class="purchase-supplier-picker-close" data-ap-credit-customer-picker-close aria-label="Close">×</button>
+          </div>
+          <div class="purchase-supplier-picker-body">
+            <label class="purchase-supplier-picker-search">
+              <span>Search:</span>
+              <input type="search" data-ap-credit-customer-picker-search placeholder="Type customer name">
+            </label>
+            <div class="purchase-supplier-picker-table-wrap">
+              <table>
+                <thead><tr><th>Customer</th></tr></thead>
+                <tbody data-ap-credit-customer-picker-results></tbody>
+              </table>
+              <p class="purchase-supplier-picker-empty is-hidden" data-ap-credit-customer-picker-empty>No matching customer found.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section credit-line-checks">
@@ -726,16 +748,39 @@
         <label>Total Payment:<input readonly data-credit-payment-total></label>
       </section>
       {{else if eq .Form.Kind "ar-credit"}}
-      <section class="credit-legacy-form">
+      <section class="credit-legacy-form ar-credit-legacy-form">
         <label class="credit-field credit-entry-id"><span>Entry ID:</span><input value="{{fieldValue $.Record "id"}}" readonly></label>
         <label class="credit-field credit-date"><span>Date:</span><input name="entry_date" type="date" value="{{fieldValue $.Record "entry_date"}}" required></label>
         <label class="credit-field credit-reference"><span>Reference:</span><input name="reference" value="{{fieldValue $.Record "reference"}}"></label>
-        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><input name="ar_credit_company_name" list="ar-credit-company-options" autocomplete="off" required><input type="hidden" name="party_id" value="{{fieldValue $.Record "party_id"}}" data-ar-credit-party-id><datalist id="ar-credit-company-options">{{range index $.Options "customers"}}<option value="{{.Label}}"></option>{{end}}</datalist></span></label>
-        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true"></label>
+        {{$currentARCreditCustomer := fieldValue $.Record "party_id"}}
+        <label class="credit-field credit-company"><span>Company:</span><span class="credit-combobox-wrap"><select name="party_id" data-ar-credit-party-select required><option value="">Select company</option>{{range index $.Options "customers"}}<option value="{{.Value}}" {{if eq .Value $currentARCreditCustomer}}selected{{end}}>{{.Label}}</option>{{end}}</select><button type="button" data-ar-credit-customer-browse>Browse...</button></span></label>
+        <label class="credit-field credit-balance"><span>Balance:</span><input value="{{fieldValue $.Record "balance"}}" readonly tabindex="-1" aria-readonly="true" data-ar-credit-balance></label>
         <label class="credit-field credit-cash"><span>Cash Amount:</span><input name="cash_amount" type="number" step="0.001" value="{{fieldValue $.Record "cash_amount"}}"></label>
         <label class="credit-field credit-encoder"><span>Encoder:</span><input value="{{fieldValue $.Record "encoder"}}" readonly tabindex="-1" aria-readonly="true"></label>
         <label class="credit-field credit-remarks"><span>Remarks:</span><textarea name="remarks" rows="2">{{fieldValue $.Record "remarks"}}</textarea></label>
       </section>
+      <div class="purchase-supplier-picker is-hidden" data-ar-credit-customer-picker aria-hidden="true">
+        <div class="purchase-supplier-picker-backdrop" data-ar-credit-customer-picker-close></div>
+        <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="ar-credit-customer-picker-title">
+          <div class="purchase-supplier-picker-titlebar">
+            <h3 id="ar-credit-customer-picker-title">Customer List</h3>
+            <button type="button" class="purchase-supplier-picker-close" data-ar-credit-customer-picker-close aria-label="Close">×</button>
+          </div>
+          <div class="purchase-supplier-picker-body">
+            <label class="purchase-supplier-picker-search">
+              <span>Search:</span>
+              <input type="search" data-ar-credit-customer-picker-search placeholder="Type customer name">
+            </label>
+            <div class="purchase-supplier-picker-table-wrap">
+              <table>
+                <thead><tr><th>Customer</th></tr></thead>
+                <tbody data-ar-credit-customer-picker-results></tbody>
+              </table>
+              <p class="purchase-supplier-picker-empty is-hidden" data-ar-credit-customer-picker-empty>No matching customer found.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{$creditChecksGroup := index .Form.LineGroups 0}}
       <section class="line-section modal-line-section purchase-line-section credit-line-checks">
@@ -956,10 +1001,10 @@
       {{else if eq .Form.Kind "dr"}}
       <section class="dr-legacy-form">
         <label class="dr-field dr-customer">
-          <span>Customer:</span>
+          <span>Customer/Branch:</span>
           <span class="purchase-supplier-control">
             <select name="party_id" data-dr-party-select required>
-              <option value="">Select customer</option>
+              <option value="">Select customer or branch</option>
               {{$currentDRCustomer := fieldValue $.Record "party_id"}}
               {{range index $.Options "customers"}}
                 <option value="{{.Value}}" {{if eq .Value $currentDRCustomer}}selected{{end}}>{{.Label}}</option>
@@ -972,24 +1017,24 @@
           <div class="purchase-supplier-picker-backdrop" data-dr-customer-picker-close></div>
           <div class="purchase-supplier-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="dr-customer-picker-title">
             <div class="purchase-supplier-picker-titlebar">
-              <h3 id="dr-customer-picker-title">Customer List</h3>
+              <h3 id="dr-customer-picker-title">Customer / Branch List</h3>
               <button type="button" class="purchase-supplier-picker-close" data-dr-customer-picker-close aria-label="Close">×</button>
             </div>
             <div class="purchase-supplier-picker-body">
               <label class="purchase-supplier-picker-search">
                 <span>Search:</span>
-                <input type="search" data-dr-customer-picker-search placeholder="Type customer name">
+                <input type="search" data-dr-customer-picker-search placeholder="Type customer or branch name">
               </label>
               <div class="purchase-supplier-picker-table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Customer</th>
+                      <th>Customer / Branch</th>
                     </tr>
                   </thead>
                   <tbody data-dr-customer-picker-results></tbody>
                 </table>
-                <p class="purchase-supplier-picker-empty is-hidden" data-dr-customer-picker-empty>No matching customer found.</p>
+                <p class="purchase-supplier-picker-empty is-hidden" data-dr-customer-picker-empty>No matching customer or branch found.</p>
               </div>
             </div>
           </div>
@@ -2403,10 +2448,10 @@
     }
 
     var drCustomerPickerState = {
-      root: document.querySelector("[data-dr-customer-picker]"),
-      search: document.querySelector("[data-dr-customer-picker-search]"),
-      results: document.querySelector("[data-dr-customer-picker-results]"),
-      empty: document.querySelector("[data-dr-customer-picker-empty]"),
+      root: document.querySelector("[data-dr-customer-picker], [data-ap-credit-customer-picker], [data-ar-credit-customer-picker]"),
+      search: document.querySelector("[data-dr-customer-picker-search], [data-ap-credit-customer-picker-search], [data-ar-credit-customer-picker-search]"),
+      results: document.querySelector("[data-dr-customer-picker-results], [data-ap-credit-customer-picker-results], [data-ar-credit-customer-picker-results]"),
+      empty: document.querySelector("[data-dr-customer-picker-empty], [data-ap-credit-customer-picker-empty], [data-ar-credit-customer-picker-empty]"),
       matches: [],
       selectedIndex: -1
     };
@@ -2473,7 +2518,7 @@
       drCustomerPickerState.root.setAttribute("aria-hidden", "true");
       drCustomerPickerState.matches = [];
       drCustomerPickerState.selectedIndex = -1;
-      var button = document.querySelector("[data-dr-customer-browse]");
+      var button = document.querySelector("[data-dr-customer-browse], [data-ap-credit-customer-browse], [data-ar-credit-customer-browse]");
       if (button) button.focus();
     }
 
@@ -2483,6 +2528,20 @@
       if (select) {
         select.value = customer.id;
         syncDRCustomer();
+      } else {
+        var arCreditSelect = document.querySelector("[data-ar-credit-party-select]");
+        if (arCreditSelect) {
+          arCreditSelect.value = customer.id;
+          refreshARCreditBalance();
+          closeDRCustomerPicker();
+          return;
+        }
+        var input = document.querySelector("input[name='ap_credit_company_name']");
+        var hidden = document.querySelector("[data-ap-credit-party-id]");
+        if (input && hidden) {
+          input.value = customer.label;
+          hidden.value = customer.id;
+        }
       }
       closeDRCustomerPicker();
     }
@@ -2911,33 +2970,50 @@
       select.addEventListener("change", syncDRCustomer);
     }
 
+    var arCreditBalanceRequest = 0;
+
     function syncARCreditCompany() {
-      var input = document.querySelector("input[name='ar_credit_company_name']");
-      var hidden = document.querySelector("[data-ar-credit-party-id]");
-      if (!input || !hidden) return;
-      var query = input.value.trim().toLowerCase();
-      var customer = drCustomers.find(function (item) {
-        return item.label.toLowerCase() === query;
-      }) || drCustomers.find(function (item) {
-        return item.label.toLowerCase().indexOf(query) === 0;
-      });
-      hidden.value = customer ? customer.id : "";
-      if (customer && input.value !== customer.label) input.value = customer.label;
+      var select = document.querySelector("[data-ar-credit-party-select]");
+      if (!select) return null;
+      return drCustomers.find(function (item) {
+        return item.id === String(select.value || "");
+      }) || null;
+    }
+
+    function refreshARCreditBalance() {
+      var select = document.querySelector("[data-ar-credit-party-select]");
+      var balance = document.querySelector("[data-ar-credit-balance]");
+      if (!select || !balance) return;
+      var customerID = String(select.value || "");
+      var requestID = ++arCreditBalanceRequest;
+      balance.value = "";
+      if (!customerID) return;
+      var documentID = "{{fieldValue .Record "record_id"}}";
+      var url = "/transactions/ar-credit/balance?party_id=" + encodeURIComponent(customerID) +
+        "&document_id=" + encodeURIComponent(documentID || "0");
+      fetch(url, { headers: { "Accept": "application/json" } })
+        .then(function (response) {
+          if (!response.ok) throw new Error("Unable to load customer balance");
+          return response.json();
+        })
+        .then(function (data) {
+          if (requestID !== arCreditBalanceRequest) return;
+          balance.value = data.balance || "0.000";
+        })
+        .catch(function () {
+          if (requestID === arCreditBalanceRequest) balance.value = "";
+        });
     }
 
     function hydrateARCreditCompany() {
-      var input = document.querySelector("input[name='ar_credit_company_name']");
-      var hidden = document.querySelector("[data-ar-credit-party-id]");
-      if (!input || !hidden) return;
-      var customer = drCustomers.find(function (item) {
-        return item.id === hidden.value;
+      var select = document.querySelector("[data-ar-credit-party-select]");
+      if (!select) return;
+      if (select.value && !syncARCreditCompany()) select.value = "";
+      select.addEventListener("change", function () {
+        syncARCreditCompany();
+        refreshARCreditBalance();
       });
-      if (customer) input.value = customer.label;
-      input.addEventListener("input", syncARCreditCompany);
-      input.addEventListener("change", syncARCreditCompany);
-      input.addEventListener("blur", syncARCreditCompany);
-      var form = input.closest("form");
-      if (form) form.addEventListener("submit", syncARCreditCompany);
+      refreshARCreditBalance();
     }
 
     function syncAPDebitCompany() {
@@ -2974,23 +3050,23 @@
       var hidden = document.querySelector("[data-ap-credit-party-id]");
       if (!input || !hidden) return;
       var query = input.value.trim().toLowerCase();
-      var supplier = purchaseSuppliers.find(function (item) {
+      var customer = drCustomers.find(function (item) {
         return item.label.toLowerCase() === query;
-      }) || purchaseSuppliers.find(function (item) {
+      }) || drCustomers.find(function (item) {
         return item.label.toLowerCase().indexOf(query) === 0;
       });
-      hidden.value = supplier ? supplier.id : "";
-      if (supplier && input.value !== supplier.label) input.value = supplier.label;
+      hidden.value = customer ? customer.id : "";
+      if (customer && input.value !== customer.label) input.value = customer.label;
     }
 
     function hydrateAPCreditCompany() {
       var input = document.querySelector("input[name='ap_credit_company_name']");
       var hidden = document.querySelector("[data-ap-credit-party-id]");
       if (!input || !hidden) return;
-      var supplier = purchaseSuppliers.find(function (item) {
+      var customer = drCustomers.find(function (item) {
         return item.id === hidden.value;
       });
-      if (supplier) input.value = supplier.label;
+      if (customer) input.value = customer.label;
       input.addEventListener("input", syncAPCreditCompany);
       input.addEventListener("change", syncAPCreditCompany);
       input.addEventListener("blur", syncAPCreditCompany);
@@ -4058,7 +4134,7 @@
     });
 
     document.addEventListener("click", function (event) {
-      var button = event.target.closest && event.target.closest("[data-dr-customer-browse]");
+      var button = event.target.closest && event.target.closest("[data-dr-customer-browse], [data-ap-credit-customer-browse], [data-ar-credit-customer-browse]");
       if (!button) return;
       openDRCustomerPicker();
     });
@@ -4369,7 +4445,7 @@
       });
     }
 
-    document.querySelectorAll("[data-dr-customer-picker-close]").forEach(function (button) {
+    document.querySelectorAll("[data-dr-customer-picker-close], [data-ap-credit-customer-picker-close], [data-ar-credit-customer-picker-close]").forEach(function (button) {
       button.addEventListener("click", function () {
         closeDRCustomerPicker();
       });

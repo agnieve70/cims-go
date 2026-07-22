@@ -52,8 +52,9 @@ type drLineState struct {
 }
 
 type drValidationState struct {
-	PartyID int64
-	Lines   map[int64]drLineState
+	PartyType string
+	PartyID   int64
+	Lines     map[int64]drLineState
 }
 
 type inventoryKey struct {
@@ -270,7 +271,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			concat_ws(' ',
 				coalesce(d.entry_id, ''),
 				coalesce(to_char(d.entry_date, 'YYYY-MM-DD'), ''),
-				coalesce(nullif(s.company, ''), nullif(c.company, ''), s.code, c.code, ''),
+				coalesce(nullif(s.company, ''), nullif(c.company, ''), nullif(bp.name, ''), s.code, c.code, bp.code, ''),
 				coalesce(b.name, ''),
 				coalesce(d.reference, ''),
 				coalesce(dr.reference, ''),
@@ -283,7 +284,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 	query := fmt.Sprintf(`
 		with listed as (
 			select d.id, d.entry_id, d.entry_date, d.kind,
-			       coalesce(nullif(s.company, ''), nullif(c.company, ''), s.code, c.code, '') as party,
+			       coalesce(nullif(s.company, ''), nullif(c.company, ''), nullif(bp.name, ''), s.code, c.code, bp.code, '') as party,
 			       coalesce(b.name, '') as branch,
 			       case
 			         when d.kind in ('sales', 'purchases') then coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), '')
@@ -307,6 +308,7 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 			left join users uu on uu.id = d.last_update_by_user_id
 			left join suppliers s on d.party_type='supplier' and s.id=d.party_id
 			left join customers c on d.party_type='customer' and c.id=d.party_id
+			left join branches bp on d.party_type='branch' and bp.id=d.party_id
 			left join documents dr on dr.id = d.dr_reference_id
 			where %s
 			order by d.id desc
@@ -840,7 +842,7 @@ func (s *PostgresStore) ARLedgerReportRows(ctx context.Context, _ time.Time, to 
 		join customers c on bl.party_type = 'customer' and c.id = bl.party_id
 		where bl.party_type = 'customer'
 		  and d.entry_date <= $1::date
-		  and d.kind in ('sales', 'ar-credit', 'ar-debit', 'stock-transactions')
+		  and d.kind in ('sales', 'ap-credit', 'ar-credit', 'ar-debit', 'stock-transactions')
 		order by customer_name, d.entry_date, d.entry_id`, to)
 	if err != nil {
 		return nil, err
@@ -919,7 +921,7 @@ func (s *PostgresStore) OutgoingCheckReportRows(ctx context.Context, cutoff time
 			select d.kind,
 			       d.entry_id,
 			       d.reference as document_reference,
-			       coalesce(nullif(s.company, ''), nullif(s.code, ''), nullif(d.payload->'values'->>'payee', ''), 'No Payee') as payee,
+			       coalesce(nullif(s.company, ''), nullif(s.code, ''), nullif(c.company, ''), nullif(c.code, ''), nullif(d.payload->'values'->>'payee', ''), 'No Payee') as payee,
 			       coalesce(dl.payload->>'number', '') as check_number,
 			       coalesce(dl.payload->>'bank_name', '') as bank_name,
 			       case
@@ -933,6 +935,7 @@ func (s *PostgresStore) OutgoingCheckReportRows(ctx context.Context, cutoff time
 			from document_lines dl
 			join documents d on d.id = dl.document_id
 			left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
+			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			where dl.group_key in ('checks', 'payments')
 			  and d.kind in ('ap-credit', 'purchases', 'expenses', 'checks-in')
 			  and (d.kind <> 'checks-in' or lower(coalesce(dl.payload->>'nature', '')) ~ '(^1([[:space:]]*-)?|outgoing)')
@@ -2201,6 +2204,7 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	var entryDate string
 	var branchID string
 	var partyID string
+	var partyType string
 	var reference string
 	var remarks string
 	var cash bool
@@ -2214,6 +2218,7 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 		       entry_date::date::text,
 		       coalesce(branch_id::text, ''),
 		       coalesce(party_id::text, ''),
+		       coalesce(party_type, ''),
 		       coalesce(reference, ''),
 		       coalesce(remarks, ''),
 		       cash,
@@ -2224,7 +2229,7 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 		from documents
 		left join users u on u.id = documents.encoder_user_id
 		left join users uu on uu.id = documents.last_update_by_user_id
-		where documents.id=$1`, id).Scan(&kind, &entryID, &entryDate, &branchID, &partyID, &reference, &remarks, &cash, &drReferenceID, &encoder, &updatedBy, &payloadBytes)
+		where documents.id=$1`, id).Scan(&kind, &entryID, &entryDate, &branchID, &partyID, &partyType, &reference, &remarks, &cash, &drReferenceID, &encoder, &updatedBy, &payloadBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2262,6 +2267,13 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	if values["party_id"] == "" {
 		values["party_id"] = partyID
 	}
+	if form.Kind == "dr" && partyID != "" {
+		if partyType != "branch" {
+			partyType = "customer"
+		}
+		values["party_id"] = partyType + ":" + partyID
+		values["party_type"] = partyType
+	}
 	if values["remarks"] == "" {
 		values["remarks"] = remarks
 	}
@@ -2274,9 +2286,11 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 		values["dr_document_id"] = drReferenceID
 		var drLabel string
 		err := s.pool.QueryRow(ctx, `
-			select coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' || coalesce(nullif(c.company,''), c.code, '')
+			select coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' ||
+			       coalesce(nullif(c.company,''), c.code, nullif(b.name,''), b.code, '')
 			from documents d
-			left join customers c on c.id = d.party_id
+			left join customers c on d.party_type = 'customer' and c.id = d.party_id
+			left join branches b on d.party_type = 'branch' and b.id = d.party_id
 			where d.id=$1 and d.kind='dr'`, drReferenceID).Scan(&drLabel)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, err
@@ -2290,6 +2304,13 @@ func (s *PostgresStore) GetDocument(ctx context.Context, form models.FormDefinit
 	}
 	if (form.Kind == "sales" || form.Kind == "purchases") && values["or_ci_number"] == "" && reference != "" {
 		values["or_ci_number"] = reference
+	}
+	if (form.Kind == "ap-credit" || form.Kind == "ar-credit") && parseInt(values["party_id"]) != 0 {
+		balance, err := s.availablePaymentBalance(ctx, form, id, parseInt(values["party_id"]))
+		if err != nil {
+			return nil, nil, err
+		}
+		values["balance"] = balance
 	}
 
 	lineRows := lineRowsFromInput(payload.LineInput)
@@ -2331,22 +2352,53 @@ func (s *PostgresStore) documentLineRows(ctx context.Context, documentID int64) 
 	return rowsByGroup, rows.Err()
 }
 
+func (s *PostgresStore) availablePaymentBalance(ctx context.Context, form models.FormDefinition, documentID, partyID int64) (string, error) {
+	table := "customers"
+	partyType := string(services.PartyCustomer)
+	if form.PartyType == "supplier" {
+		table = "suppliers"
+		partyType = string(services.PartySupplier)
+	}
+	var balance string
+	err := s.pool.QueryRow(ctx, fmt.Sprintf(`
+		select (
+			greatest(coalesce(balance, 0), 0) +
+			coalesce((
+				select sum(-amount_delta)
+				from balance_ledger
+				where document_id=$2
+				  and party_type=$3
+				  and party_id=$1
+				  and amount_delta < 0
+			), 0)
+		)::text
+		from %s
+		where id=$1`, table), partyID, documentID, partyType).Scan(&balance)
+	return balance, err
+}
+
+func (s *PostgresStore) ARCreditBalance(ctx context.Context, customerID, documentID int64) (string, error) {
+	return s.availablePaymentBalance(ctx, models.FormDefinition{PartyType: "customer"}, documentID, customerID)
+}
+
 func (s *PostgresStore) LoadDRSelection(ctx context.Context, id int64) (DRSelection, error) {
 	selection := DRSelection{Values: models.Record{}}
 	var partyID int64
+	var partyType string
 	var reference string
 	var entryDate string
 	var remarks string
 	var salesDate string
 	err := s.pool.QueryRow(ctx, `
-		select party_id, coalesce(reference, ''), entry_date::date::text, coalesce(remarks, ''), coalesce(payload->'values'->>'sales_date', '')
+		select party_id, coalesce(party_type, 'customer'), coalesce(reference, ''), entry_date::date::text, coalesce(remarks, ''), coalesce(payload->'values'->>'sales_date', '')
 		from documents
-		where id=$1 and kind='dr'`, id).Scan(&partyID, &reference, &entryDate, &remarks, &salesDate)
+		where id=$1 and kind='dr'`, id).Scan(&partyID, &partyType, &reference, &entryDate, &remarks, &salesDate)
 	if err != nil {
 		return DRSelection{}, err
 	}
 	selection.Values["dr_document_id"] = strconv.FormatInt(id, 10)
 	selection.Values["party_id"] = strconv.FormatInt(partyID, 10)
+	selection.Values["party_type"] = partyType
 	selection.Values["reference"] = reference
 	selection.Values["entry_date"] = entryDate
 	selection.Values["remarks"] = remarks
@@ -2420,18 +2472,29 @@ func (s *PostgresStore) validateDRReference(ctx context.Context, tx pgx.Tx, kind
 		return drValidationState{}, err
 	}
 	err := tx.QueryRow(ctx, `
-		select party_id
+		select coalesce(party_type, 'customer'), party_id
 		from documents
-		where id=$1 and kind='dr'`, drReferenceID).Scan(&state.PartyID)
+		where id=$1 and kind='dr'`, drReferenceID).Scan(&state.PartyType, &state.PartyID)
 	if err != nil {
 		return drValidationState{}, err
 	}
-	if kind == "sales" && parseInt(values["party_id"]) != 0 && parseInt(values["party_id"]) != state.PartyID {
-		return drValidationState{}, errors.New("customer must match selected DR")
+	if kind == "sales" {
+		if state.PartyType != "customer" {
+			return drValidationState{}, errors.New("branch Stock Out Files cannot be used for sales")
+		}
+		if parseInt(values["party_id"]) != 0 && parseInt(values["party_id"]) != state.PartyID {
+			return drValidationState{}, errors.New("customer must match selected DR")
+		}
 	}
-	if kind == "stock-transactions" && transferMode(values["transaction"]) == services.TransferSalesReturn {
-		if parseInt(values["customer_id"]) == 0 || parseInt(values["customer_id"]) != state.PartyID {
-			return drValidationState{}, errors.New("sales return customer must match selected Stock Out File")
+	if kind == "stock-transactions" {
+		if state.PartyType == "branch" {
+			if transferMode(values["transaction"]) != services.TransferStock || parseInt(values["branch_location"]) != state.PartyID {
+				return drValidationState{}, errors.New("destination branch must match selected Stock Out File")
+			}
+		} else if transferMode(values["transaction"]) == services.TransferSalesReturn {
+			if parseInt(values["customer_id"]) == 0 || parseInt(values["customer_id"]) != state.PartyID {
+				return drValidationState{}, errors.New("sales return customer must match selected Stock Out File")
+			}
 		}
 	}
 	rows, err := tx.Query(ctx, `
@@ -2527,6 +2590,16 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 		return 0, err
 	}
 	defer tx.Rollback(ctx)
+	input.Values = copyStringMap(input.Values)
+	if form.Kind == "dr" {
+		partyType, partyID := parseStockOutParty(input.Values["party_id"])
+		input.Values["party_type"] = partyType
+		if partyID != 0 {
+			input.Values["party_id"] = strconv.FormatInt(partyID, 10)
+		} else {
+			input.Values["party_id"] = ""
+		}
+	}
 
 	entryDate := nullableDate(input.Values["entry_date"])
 	if entryDate == nil {
@@ -2553,11 +2626,16 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 
 	totalInput := buildTotalsInput(form.Kind, input.Values, input.LineInput)
 	effects := services.BuildPostingEffects(totalInput.posting)
+	previousPayment := int64(0)
 	drReferenceID := parseInt(input.Values["dr_document_id"])
 	var drState drValidationState
 	var latestCostStockIDs []int64
 	previousOutbound := map[inventoryKey]int64{}
 	if id != 0 {
+		previousPayment, err = s.documentPaymentAmount(ctx, tx, id, effects.Balance)
+		if err != nil {
+			return 0, err
+		}
 		previousOutbound, err = s.documentOutboundInventory(ctx, tx, id)
 		if err != nil {
 			return 0, err
@@ -2581,7 +2659,7 @@ func (s *PostgresStore) SaveDocument(ctx context.Context, form models.FormDefini
 	if err := validateDocumentInput(form.Kind, input.Values, input.LineInput, totalInput); err != nil {
 		return 0, err
 	}
-	if err := s.validatePostingBalances(ctx, tx, totalInput.posting, effects); err != nil {
+	if err := s.validatePostingBalances(ctx, tx, totalInput.posting, effects, previousPayment); err != nil {
 		return 0, err
 	}
 	if err := s.validateInventoryAvailability(ctx, tx, effects.Inventory, previousOutbound); err != nil {
@@ -2905,9 +2983,11 @@ func optionQuery(source string) string {
 	case "dr_documents":
 		return `
 			select d.id::text,
-			       coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' || coalesce(nullif(c.company,''), c.code, '')
+			       coalesce(nullif(d.reference, ''), d.entry_id, 'SO') || ' - ' ||
+			       coalesce(nullif(c.company,''), c.code, nullif(b.name,''), b.code, '')
 			from documents d
-			left join customers c on c.id = d.party_id
+			left join customers c on d.party_type = 'customer' and c.id = d.party_id
+			left join branches b on d.party_type = 'branch' and b.id = d.party_id
 			where d.kind='dr'
 			  and exists (
 			    select 1
@@ -3054,6 +3134,13 @@ func transferMode(value string) services.TransferMode {
 }
 
 func documentParty(kind, configuredPartyType string, values map[string]string) (string, int64) {
+	if kind == "dr" {
+		partyType := values["party_type"]
+		if partyType != "customer" && partyType != "branch" {
+			partyType = configuredPartyType
+		}
+		return partyType, parseInt(values["party_id"])
+	}
 	if kind != "stock-transactions" {
 		return configuredPartyType, parseInt(values["party_id"])
 	}
@@ -3065,6 +3152,27 @@ func documentParty(kind, configuredPartyType string, values map[string]string) (
 	default:
 		return "", 0
 	}
+}
+
+func parseStockOutParty(value string) (string, int64) {
+	value = strings.TrimSpace(value)
+	partyType := "customer"
+	if prefix, id, found := strings.Cut(value, ":"); found {
+		if prefix != "customer" && prefix != "branch" {
+			return "", 0
+		}
+		partyType = prefix
+		value = id
+	}
+	return partyType, parseInt(value)
+}
+
+func copyStringMap(values map[string]string) map[string]string {
+	copy := make(map[string]string, len(values))
+	for key, value := range values {
+		copy[key] = value
+	}
+	return copy
 }
 
 func isAcquisitionKind(kind string) bool {
@@ -3114,6 +3222,9 @@ func validateDocumentInput(kind string, values map[string]string, groups []LineI
 			}
 			if kind != "dr" && parseMoney(row["unit_cost"]) <= 0 {
 				return errors.New("every detail row must have a unit cost greater than zero")
+			}
+			if (kind == "sales" || kind == "stock-transactions") && parseMoney(row["amount"]) <= 0 {
+				return errors.New("every detail row must have an amount greater than zero")
 			}
 			if (kind == "sales" || kind == "stock-transactions") && parseInt(row["dr_line_id"]) == 0 {
 				return errors.New("every detail row must come from the selected Stock Out File")
@@ -3217,7 +3328,32 @@ func validateCheckRows(rows []map[string]string) (int64, int, error) {
 	return total, count, nil
 }
 
-func (s *PostgresStore) validatePostingBalances(ctx context.Context, tx pgx.Tx, posting services.PostingRequest, effects services.PostingEffects) error {
+func (s *PostgresStore) documentPaymentAmount(ctx context.Context, tx pgx.Tx, documentID int64, effect services.BalanceEffect) (int64, error) {
+	if effect.PartyType == services.PartyNone || effect.PartyID == 0 {
+		return 0, nil
+	}
+	var amount string
+	err := tx.QueryRow(ctx, `
+		select coalesce(sum(-amount_delta), 0)::text
+		from balance_ledger
+		where document_id=$1
+		  and party_type=$2
+		  and party_id=$3
+		  and amount_delta < 0`, documentID, effect.PartyType, effect.PartyID).Scan(&amount)
+	if err != nil {
+		return 0, err
+	}
+	return parseMoney(amount), nil
+}
+
+func paymentWithinAccountBalance(availableBalance, payment, previousPayment int64) bool {
+	if previousPayment > 0 && payment <= previousPayment {
+		return true
+	}
+	return payment <= availableBalance
+}
+
+func (s *PostgresStore) validatePostingBalances(ctx context.Context, tx pgx.Tx, posting services.PostingRequest, effects services.PostingEffects, previousPayment int64) error {
 	if posting.Kind != services.DocumentAPCredit && posting.Kind != services.DocumentARCredit {
 		return nil
 	}
@@ -3232,7 +3368,7 @@ func (s *PostgresStore) validatePostingBalances(ctx context.Context, tx pgx.Tx, 
 	if err := tx.QueryRow(ctx, fmt.Sprintf(`select coalesce(balance, 0)::text from %s where id=$1 for update`, table), effects.Balance.PartyID).Scan(&balance); err != nil {
 		return err
 	}
-	if -effects.Balance.AmountDelta > parseMoney(balance) {
+	if !paymentWithinAccountBalance(parseMoney(balance), -effects.Balance.AmountDelta, previousPayment) {
 		return errors.New("payment cannot exceed the current account balance")
 	}
 	return nil
@@ -3257,7 +3393,13 @@ func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pg
 	})
 	for _, key := range keys {
 		needed := required[key]
-		if _, err := tx.Exec(ctx, `select id from stocks where id=$1 for update`, key.stockID); err != nil {
+		var stockCode string
+		var stockName string
+		if err := tx.QueryRow(ctx, `
+			select coalesce(code, ''), coalesce(name, '')
+			from stocks
+			where id=$1
+			for update`, key.stockID).Scan(&stockCode, &stockName); err != nil {
 			return err
 		}
 		previous := previousOutbound[key]
@@ -3272,11 +3414,30 @@ func (s *PostgresStore) validateInventoryAvailability(ctx context.Context, tx pg
 			where stock_id=$1 and branch_id is not distinct from $2`, key.stockID, nullInt(key.branchID)).Scan(&available); err != nil {
 			return err
 		}
-		if !inventoryAvailableForUpdate(parseQuantity(available), needed, previous) {
-			return fmt.Errorf("insufficient stock on hand for stock ID %d", key.stockID)
+		availableQuantity := parseQuantity(available)
+		if !inventoryAvailableForUpdate(availableQuantity, needed, previous) {
+			return insufficientStockError(key.stockID, stockCode, stockName, needed, availableQuantity)
 		}
 	}
 	return nil
+}
+
+func insufficientStockError(stockID int64, stockCode, stockName string, requested, available int64) error {
+	description := strings.TrimSpace(strings.TrimSpace(stockCode) + " - " + strings.TrimSpace(stockName))
+	description = strings.Trim(description, " -")
+	if description == "" {
+		description = fmt.Sprintf("stock ID %d", stockID)
+	}
+	return fmt.Errorf(
+		"insufficient stock on hand for %s (requested: %s, available: %s)",
+		description,
+		formatQuantity(requested),
+		formatQuantity(available),
+	)
+}
+
+func formatQuantity(quantity int64) string {
+	return strings.TrimRight(strings.TrimRight(centsToNumeric(quantity), "0"), ".")
 }
 
 func inventoryAvailableForUpdate(availableAfterRemovingPrevious, needed, previous int64) bool {

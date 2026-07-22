@@ -5011,6 +5011,19 @@ textarea:focus {
   font-weight: 700;
 }
 
+.ar-credit-legacy-form {
+  grid-template-areas:
+    "entry date reference encoder"
+    "balance cash company company"
+    "remarks remarks remarks remarks"
+    "payment payment payment payment";
+}
+
+.ar-credit-legacy-form .credit-cash {
+  grid-template-columns: 100px 150px;
+  justify-self: start;
+}
+
 .ap-credit-legacy-form {
   grid-template-columns: minmax(0, 32%) minmax(0, 23%) minmax(0, 45%);
   grid-template-areas:

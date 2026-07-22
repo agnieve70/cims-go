@@ -42,9 +42,14 @@ type fakeStore struct {
 	lastSavedDocKind      string
 	lastSavedDocID        int64
 	lastSavedDocInput     repositories.DocumentInput
+	saveDocumentErr       error
+	arCreditBalance       string
+	lastBalanceCustomerID int64
+	lastBalanceDocumentID int64
 	drErr                 error
 	userByIDCalls         int
 	emptyIncentiveRows    bool
+	options               map[string][]models.Option
 }
 
 func (s *fakeStore) EnsureAdmin(context.Context, string, string) error { return nil }
@@ -136,6 +141,15 @@ func (s *fakeStore) GetDocument(context.Context, models.FormDefinition, int64) (
 	return models.Record{"id": "ENT-197", "record_id": "197", "entry_date": "2026-04-21"}, nil, nil
 }
 
+func (s *fakeStore) ARCreditBalance(_ context.Context, customerID, documentID int64) (string, error) {
+	s.lastBalanceCustomerID = customerID
+	s.lastBalanceDocumentID = documentID
+	if s.arCreditBalance == "" {
+		return "0.000", nil
+	}
+	return s.arCreditBalance, nil
+}
+
 func (s *fakeStore) LoadDRSelection(context.Context, int64) (repositories.DRSelection, error) {
 	if s.drErr != nil {
 		return repositories.DRSelection{}, s.drErr
@@ -148,7 +162,7 @@ func (s *fakeStore) SaveDocument(_ context.Context, form models.FormDefinition, 
 	s.lastSavedDocKind = form.Kind
 	s.lastSavedDocID = id
 	s.lastSavedDocInput = input
-	return 1, nil
+	return 1, s.saveDocumentErr
 }
 
 func (s *fakeStore) DeleteDocument(_ context.Context, form models.FormDefinition, id int64, _ models.User) error {
@@ -453,6 +467,9 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 }
 
 func (s *fakeStore) Options(_ context.Context, source string) ([]models.Option, error) {
+	if options, ok := s.options[source]; ok {
+		return options, nil
+	}
 	switch source {
 	case "stock_categories":
 		return []models.Option{{Value: "Feeds", Label: "Feeds"}}, nil
@@ -523,6 +540,31 @@ func TestStaticAssetsBypassUserLookup(t *testing.T) {
 	}
 	if body := rec.Body.String(); !strings.Contains(body, ".purchase-legacy-form") || !strings.Contains(body, `"cash . ."`) {
 		t.Fatalf("app css missing purchase cash left-column placement")
+	}
+	if body := rec.Body.String(); !strings.Contains(body, ".ar-credit-legacy-form") ||
+		!strings.Contains(body, `"balance cash company company"`) ||
+		!strings.Contains(body, "grid-template-columns: 100px 150px;") {
+		t.Fatalf("app css missing AR Credit company/encoder swap or compact cash amount field")
+	}
+}
+
+func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	app, err := NewApp(store, auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), `/static/app.css?v=202607220002`) {
+		t.Fatal("layout should use the current stylesheet version")
 	}
 }
 
@@ -1040,6 +1082,10 @@ func TestSalesEditKeepsSavedRowsWhenSelectedSOHasNoRemainingQuantity(t *testing.
 func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 	store := &fakeStore{
 		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		options: map[string][]models.Option{
+			"customers": {{Value: "1", Label: "Customer A"}},
+			"suppliers": {{Value: "1", Label: "Supplier A"}},
+		},
 		documentValues: models.Record{
 			"id":          "4",
 			"record_id":   "4",
@@ -1077,7 +1123,11 @@ func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 	for _, want := range []string{
 		`<strong>AP Credit File</strong>`,
 		`<section class="credit-legacy-form ap-credit-legacy-form">`,
-		`<button type="button" disabled>Browse...</button>`,
+		`<button type="button" data-ap-credit-customer-browse>Browse...</button>`,
+		`data-ap-credit-customer-picker aria-hidden="true"`,
+		`id="ap-credit-customer-picker-title">Customer List</h3>`,
+		`data-ap-credit-customer-picker-results`,
+		`<option value="Customer A"></option>`,
 		`<input type="hidden" name="remarks"`,
 		`class="credit-payment-label">PAYMENT</div>`,
 		`<th class="credit-hidden-check-nature">Nature</th>`,
@@ -1089,6 +1139,139 @@ func TestAPCreditFormMatchesPaymentReferenceLayout(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %q", want)
 		}
+	}
+	if strings.Contains(body, `<option value="Supplier A"></option>`) {
+		t.Fatal("AP Credit company options should not include suppliers")
+	}
+}
+
+func TestARCreditUpdateErrorRestoresDisplayOnlyValues(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		documentValues: models.Record{
+			"id":          "CR-003373",
+			"record_id":   "4",
+			"entry_date":  "2026-07-18",
+			"party_id":    "1",
+			"cash_amount": "1000",
+			"balance":     "145383.500",
+			"encoder":     "Admin",
+		},
+		saveDocumentErr: errors.New("payment cannot exceed the current account balance"),
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := url.Values{
+		"entry_date":            {"2026-07-18"},
+		"reference":             {"CR_003373"},
+		"party_id":              {"1"},
+		"cash_amount":           {"1000"},
+		"remarks":               {"TEST"},
+		"line_checks_number":    {"003373"},
+		"line_checks_date":      {"2026-04-01"},
+		"line_checks_bank_name": {"BDO"},
+		"line_checks_amount":    {"144383.5"},
+	}.Encode()
+	req := httptest.NewRequest(http.MethodPost, "/transactions/ar-credit/4", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+	responseBody := rec.Body.String()
+	for _, want := range []string{
+		`payment cannot exceed the current account balance`,
+		`class="credit-field credit-entry-id"><span>Entry ID:</span><input value="CR-003373"`,
+		`class="credit-field credit-balance"><span>Balance:</span><input value="145383.500"`,
+		`class="credit-field credit-encoder"><span>Encoder:</span><input value="Admin"`,
+	} {
+		if !strings.Contains(responseBody, want) {
+			t.Fatalf("body missing %q", want)
+		}
+	}
+}
+
+func TestARCreditFormProvidesBrowsableCompanySelection(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		options: map[string][]models.Option{
+			"customers": {{Value: "1", Label: "Customer A"}},
+		},
+		documentValues: models.Record{
+			"id":         "CR-000001",
+			"record_id":  "1",
+			"entry_date": "2026-07-22",
+			"party_id":   "1",
+		},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/ar-credit/1/edit", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<section class="credit-legacy-form ar-credit-legacy-form">`,
+		`<select name="party_id" data-ar-credit-party-select required>`,
+		`<option value="1" selected>Customer A</option>`,
+		`data-ar-credit-balance`,
+		`<button type="button" data-ar-credit-customer-browse>Browse...</button>`,
+		`data-ar-credit-customer-picker aria-hidden="true"`,
+		`id="ar-credit-customer-picker-title">Customer List</h3>`,
+		`data-ar-credit-customer-picker-search placeholder="Type customer name"`,
+		`data-ar-credit-customer-picker-results`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing %q", want)
+		}
+	}
+	if strings.Contains(body, `name="ar_credit_company_name"`) || strings.Contains(body, `id="ar-credit-company-options"`) {
+		t.Fatal("AR Credit company should render as a select, not a combobox")
+	}
+}
+
+func TestARCreditBalanceReturnsSelectedCustomerReceivable(t *testing.T) {
+	store := &fakeStore{
+		user:            models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		arCreditBalance: "145383.500",
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/ar-credit/balance?party_id=7&document_id=11", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if store.lastBalanceCustomerID != 7 || store.lastBalanceDocumentID != 11 {
+		t.Fatalf("balance lookup = customer %d document %d, want customer 7 document 11", store.lastBalanceCustomerID, store.lastBalanceDocumentID)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"balance":"145383.500"}` {
+		t.Fatalf("response body = %q", got)
 	}
 }
 
@@ -1140,6 +1323,9 @@ func TestStockTransactionFormIncludesStockOutPicker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	app.now = func() time.Time {
+		return time.Date(2026, time.July, 22, 10, 0, 0, 0, time.FixedZone("Asia/Manila", 8*60*60))
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/new", nil)
 	req = req.WithContext(auth.WithUser(req.Context(), store.user))
@@ -1172,6 +1358,87 @@ func TestStockTransactionFormIncludesStockOutPicker(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %s", want)
 		}
+	}
+	if strings.Contains(body, `<span>Branch/Location:</span>`) {
+		t.Fatalf("stock transaction form should not show an editable branch/location field")
+	}
+	if !strings.Contains(body, `type="hidden" name="branch_location"`) {
+		t.Fatalf("stock transaction form should retain the Stock Out branch as a hidden value")
+	}
+	if strings.Contains(body, `<span>Customer:</span>`) || strings.Contains(body, `<span>Supplier:</span>`) {
+		t.Fatalf("stock transaction form should not show customer or supplier input fields")
+	}
+	if !strings.Contains(body, `type="hidden" name="customer_id"`) || !strings.Contains(body, `type="hidden" name="supplier_id"`) {
+		t.Fatalf("stock transaction form should retain customer and supplier values as hidden fields")
+	}
+	if !strings.Contains(body, `name="entry_date" type="date" value="2026-07-22"`) ||
+		!strings.Contains(body, `name="transfer_date" type="date" value="2026-07-22"`) {
+		t.Fatalf("new stock transaction should default transfer date to entry date")
+	}
+}
+
+func TestStockOutCustomerListCombinesCustomersAndBranches(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/dr/new", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<span>Customer/Branch:</span>`,
+		`Customer / Branch List`,
+		`value="customer:1"`,
+		`[Customer] Main`,
+		`value="branch:1"`,
+		`[Branch] Main`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing combined Stock Out party value %q", want)
+		}
+	}
+}
+
+func TestStockTransactionLoadsBranchFromSelectedStockOut(t *testing.T) {
+	store := &fakeStore{
+		user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin},
+		dr: repositories.DRSelection{
+			Values: models.Record{"dr_document_id": "7", "party_type": "branch", "party_id": "1"},
+			Rows:   []models.Record{{"dr_line_id": "11", "stock_id": "5", "stock_label": "ST-01 - Test Stock", "qty": "4"}},
+		},
+	}
+	manager := auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456")
+	app, err := NewApp(store, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/transactions/stock-transactions/new?dr_document_id=7", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), store.user))
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `type="hidden" name="branch_location" value="1"`) {
+		t.Fatalf("selected Stock Out branch was not carried into Stock Transaction")
+	}
+	if !strings.Contains(body, `<option value="0 - Stock Transfer" selected>`) {
+		t.Fatalf("branch Stock Out should select Stock Transfer mode")
+	}
+	if strings.Contains(body, `<span>Branch/Location:</span>`) {
+		t.Fatalf("loaded Stock Transaction should not expose an editable branch/location field")
 	}
 }
 

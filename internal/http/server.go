@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -32,6 +33,7 @@ type Store interface {
 	DeleteMaster(ctx context.Context, form models.FormDefinition, id int64, user models.User) error
 	ListDocuments(ctx context.Context, kind string, search string, year int) ([]models.DocumentListItem, error)
 	GetDocument(ctx context.Context, form models.FormDefinition, id int64) (models.Record, map[string][]models.Record, error)
+	ARCreditBalance(ctx context.Context, customerID, documentID int64) (string, error)
 	LoadDRSelection(ctx context.Context, id int64) (repositories.DRSelection, error)
 	SaveDocument(ctx context.Context, form models.FormDefinition, id int64, input repositories.DocumentInput) (int64, error)
 	DeleteDocument(ctx context.Context, form models.FormDefinition, id int64, user models.User) error
@@ -201,6 +203,7 @@ func (a *App) Routes() http.Handler {
 			protected.Get("/reports/stock-summary", a.stockSummaryReport)
 			protected.Get("/transactions/sales/{id}/invoice", a.salesInvoicePrint)
 			protected.Get("/transactions/stock-transactions/{id}/withdrawal", a.stockTransferWithdrawalPrint)
+			protected.Get("/transactions/ar-credit/balance", a.arCreditBalance)
 
 			protected.Route("/masters/{kind}", func(cr chi.Router) {
 				cr.Get("/", a.masterList)
@@ -411,7 +414,11 @@ func (a *App) transactionForm(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	values := models.Record{"entry_date": a.now().Format("2006-01-02")}
+	defaultDate := a.now().Format("2006-01-02")
+	values := models.Record{"entry_date": defaultDate}
+	if form.Kind == "stock-transactions" {
+		values["transfer_date"] = defaultDate
+	}
 	lineRows, err := a.loadTransactionFormRows(r.Context(), form, values, r.URL.Query().Get("dr_document_id"))
 	if err != nil {
 		if isNoRemainingDRQuantityError(err) {
@@ -423,6 +430,28 @@ func (a *App) transactionForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.renderForm(w, r, form, values, "/transactions/"+form.Kind, lineRows)
+}
+
+func (a *App) arCreditBalance(w http.ResponseWriter, r *http.Request) {
+	customerID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("party_id")), 10, 64)
+	if err != nil || customerID <= 0 {
+		http.Error(w, "valid customer is required", http.StatusBadRequest)
+		return
+	}
+	documentID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("document_id")), 10, 64)
+	if err != nil || documentID < 0 {
+		http.Error(w, "invalid AR Credit document", http.StatusBadRequest)
+		return
+	}
+	balance, err := a.store.ARCreditBalance(r.Context(), customerID, documentID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"balance": balance}); err != nil {
+		a.serverError(w, r, err)
+	}
 }
 
 func (a *App) transactionEdit(w http.ResponseWriter, r *http.Request) {
@@ -559,6 +588,7 @@ func (a *App) saveTransaction(w http.ResponseWriter, r *http.Request, id int64) 
 	values, err := parseValues(r, form.Fields)
 	lines := parseLineInputs(r, form.LineGroups)
 	if err != nil {
+		a.restoreTransactionDisplayValues(r.Context(), form, id, values)
 		a.renderFormError(w, r, form, values, lineRowsFromInput(lines), err)
 		return
 	}
@@ -569,6 +599,7 @@ func (a *App) saveTransaction(w http.ResponseWriter, r *http.Request, id int64) 
 		User:      user,
 	})
 	if err != nil {
+		a.restoreTransactionDisplayValues(r.Context(), form, id, values)
 		a.renderFormError(w, r, form, values, lineRowsFromInput(lines), err)
 		return
 	}
@@ -578,6 +609,19 @@ func (a *App) saveTransaction(w http.ResponseWriter, r *http.Request, id int64) 
 		return
 	}
 	http.Redirect(w, r, form.RouteBase+"/", http.StatusSeeOther)
+}
+
+func (a *App) restoreTransactionDisplayValues(ctx context.Context, form models.FormDefinition, id int64, values models.Record) {
+	if id == 0 || values == nil {
+		return
+	}
+	record, _, err := a.store.GetDocument(ctx, form, id)
+	if err != nil {
+		return
+	}
+	for _, key := range []string{"id", "record_id", "encoder", "updated_by", "balance"} {
+		values[key] = record[key]
+	}
 }
 
 func (a *App) lineRow(w http.ResponseWriter, r *http.Request) {
@@ -650,9 +694,20 @@ func (a *App) loadTransactionFormRows(ctx context.Context, form models.FormDefin
 	}
 	values["dr_document_id"] = selection.Values["dr_document_id"]
 	if form.Kind == "sales" {
+		if selection.Values["party_type"] == "branch" {
+			return nil, errors.New("branch Stock Out Files must be used in Stock Transactions")
+		}
 		values["party_id"] = selection.Values["party_id"]
 	} else if form.Kind == "stock-transactions" {
-		values["customer_id"] = selection.Values["party_id"]
+		if selection.Values["party_type"] == "branch" {
+			values["transaction"] = "0 - Stock Transfer"
+			values["branch_location"] = selection.Values["party_id"]
+			values["customer_id"] = ""
+		} else {
+			values["transaction"] = "1 - Sales Return"
+			values["customer_id"] = selection.Values["party_id"]
+			values["branch_location"] = ""
+		}
 	}
 	return map[string][]models.Record{"details": selection.Rows}, nil
 }
@@ -786,6 +841,20 @@ func (a *App) optionsForForm(ctx context.Context, form models.FormDefinition) ma
 	}
 	if form.Kind == "sales" || form.Kind == "stock-transactions" {
 		options["stock_groups"] = a.loadOptions(ctx, "stock_groups")
+	}
+	if form.Kind == "dr" {
+		options["customers"] = stockOutPartyOptions(options["customers"], a.loadOptions(ctx, "branches"))
+	}
+	return options
+}
+
+func stockOutPartyOptions(customers, branches []models.Option) []models.Option {
+	options := make([]models.Option, 0, len(customers)+len(branches))
+	for _, option := range customers {
+		options = append(options, models.Option{Value: "customer:" + option.Value, Label: "[Customer] " + option.Label})
+	}
+	for _, option := range branches {
+		options = append(options, models.Option{Value: "branch:" + option.Value, Label: "[Branch] " + option.Label})
 	}
 	return options
 }

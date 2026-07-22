@@ -39,16 +39,79 @@ func TestParseFixedPreservesThreeDecimals(t *testing.T) {
 	}
 }
 
+func TestInsufficientStockErrorIdentifiesStockAndQuantities(t *testing.T) {
+	err := insufficientStockError(189, "GALLIMAX 1", "GALLIMAX 1 BOOSTER CRUMBLE, 50KG", 10000, 4000)
+	want := "insufficient stock on hand for GALLIMAX 1 - GALLIMAX 1 BOOSTER CRUMBLE, 50KG (requested: 10, available: 4)"
+	if err.Error() != want {
+		t.Fatalf("error = %q, want %q", err, want)
+	}
+}
+
 func TestStockTransactionRequiresStockOutLineReferences(t *testing.T) {
 	input := totalsInput{net: 1000}
 	groups := []LineInput{{Group: "details", Rows: []map[string]string{{
-		"stock_id": "1", "qty": "1", "unit_cost": "1",
+		"stock_id": "1", "qty": "1", "unit_cost": "1", "amount": "1",
 	}}}}
 	err := validateDocumentInput("stock-transactions", map[string]string{
 		"dr_document_id": "7", "transaction": "0 - Stock Transfer", "branch_location": "2",
 	}, groups, input)
 	if err == nil || !strings.Contains(err.Error(), "come from the selected Stock Out File") {
 		t.Fatalf("validation error = %v, want Stock Out File line requirement", err)
+	}
+}
+
+func TestParseStockOutPartyDistinguishesOverlappingIDs(t *testing.T) {
+	tests := []struct {
+		value     string
+		wantType  string
+		wantParty int64
+	}{
+		{value: "customer:7", wantType: "customer", wantParty: 7},
+		{value: "branch:7", wantType: "branch", wantParty: 7},
+		{value: "7", wantType: "customer", wantParty: 7},
+		{value: "supplier:7", wantType: "", wantParty: 0},
+	}
+	for _, test := range tests {
+		gotType, gotParty := parseStockOutParty(test.value)
+		if gotType != test.wantType || gotParty != test.wantParty {
+			t.Errorf("parseStockOutParty(%q) = (%q, %d), want (%q, %d)", test.value, gotType, gotParty, test.wantType, test.wantParty)
+		}
+	}
+}
+
+func TestSalesAndStockTransferRejectZeroDetailAmounts(t *testing.T) {
+	tests := []struct {
+		name   string
+		kind   string
+		values map[string]string
+	}{
+		{
+			name: "sales",
+			kind: "sales",
+			values: map[string]string{
+				"dr_document_id": "7", "party_id": "3",
+			},
+		},
+		{
+			name: "stock transfer",
+			kind: "stock-transactions",
+			values: map[string]string{
+				"dr_document_id": "7", "transaction": "0 - Stock Transfer", "branch_location": "2",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			groups := []LineInput{{Group: "details", Rows: []map[string]string{{
+				"dr_line_id": "11", "stock_id": "1", "qty": "1", "unit_cost": "1", "amount": "0",
+			}}}}
+
+			err := validateDocumentInput(test.kind, test.values, groups, totalsInput{net: 1000})
+			if err == nil || !strings.Contains(err.Error(), "amount greater than zero") {
+				t.Fatalf("validation error = %v, want positive detail amount requirement", err)
+			}
+		})
 	}
 }
 
@@ -91,6 +154,26 @@ func TestInventoryAvailabilityAllowsMetadataOnlyUpdate(t *testing.T) {
 	}
 	if inventoryAvailableForUpdate(5000, 6000, 0) {
 		t.Fatal("a new document must still reject an outbound quantity above stock on hand")
+	}
+}
+
+func TestPaymentBalanceAllowsMetadataOnlyUpdate(t *testing.T) {
+	const previousPayment = int64(145383500)
+
+	if !paymentWithinAccountBalance(140000000, previousPayment, previousPayment) {
+		t.Fatal("an unchanged historical payment should remain valid when later activity lowered the account balance")
+	}
+	if !paymentWithinAccountBalance(140000000, 144383500, previousPayment) {
+		t.Fatal("a reduced historical payment should remain valid")
+	}
+	if paymentWithinAccountBalance(140000000, 146383500, previousPayment) {
+		t.Fatal("an update must not increase a payment beyond the available account balance")
+	}
+	if !paymentWithinAccountBalance(150000000, 146383500, previousPayment) {
+		t.Fatal("an increased payment should be valid when the restored account balance covers it")
+	}
+	if paymentWithinAccountBalance(140000000, previousPayment, 0) {
+		t.Fatal("a new payment must still reject an amount above the account balance")
 	}
 }
 
@@ -323,6 +406,7 @@ func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 	}
 	salesRow["unit_cost"] = "12.50"
 	salesRow["capital"] = "12.50"
+	salesRow["amount"] = "62.50"
 	salesInput := DocumentInput{
 		Kind: "sales",
 		User: user,
