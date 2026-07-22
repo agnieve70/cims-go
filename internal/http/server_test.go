@@ -554,6 +554,9 @@ func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	app.now = func() time.Time {
+		return time.Date(2026, time.July, 22, 0, 0, 0, 0, time.FixedZone("Asia/Manila", 8*60*60))
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
 	req = req.WithContext(auth.WithUser(req.Context(), store.user))
@@ -568,6 +571,9 @@ func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `/static/content-window.js?v=202607220001`) {
 		t.Fatal("layout should use the current content-window script version")
+	}
+	if !strings.Contains(rec.Body.String(), `/reports/ar-ledger?run=1&amp;report_type=detailed&amp;coverage=month&amp;month=7&amp;year=2026&amp;paper_size=letter`) {
+		t.Fatal("dashboard AR Ledger link should open the current-month detailed report")
 	}
 }
 

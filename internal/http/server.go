@@ -1062,6 +1062,8 @@ type viewData struct {
 	Title                              string
 	Error                              string
 	User                               models.User
+	CurrentMonth                       int
+	CurrentYear                        int
 	MasterForms                        []models.FormDefinition
 	TransactionForms                   []models.FormDefinition
 	Form                               models.FormDefinition
@@ -1127,6 +1129,9 @@ func (a *App) render(w http.ResponseWriter, r *http.Request, name string, data v
 	if w.Header().Get("Content-Type") == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
+	now := a.now()
+	data.CurrentMonth = int(now.Month())
+	data.CurrentYear = now.Year()
 	if user, ok := auth.CurrentUser(r.Context()); ok {
 		data.User = user
 	}

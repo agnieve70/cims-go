@@ -3029,7 +3029,7 @@ func (a *App) defaultARLedgerReportData(r *http.Request) arLedgerReportData {
 		ReportType:  "detailed",
 		Coverage:    "month",
 		Year:        listYear(r, a.now),
-		Month:       defaultReportMonth,
+		Month:       int(now.Month()),
 		FromDate:    time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02"),
 		ToDate:      now.Format("2006-01-02"),
 		PaperSize:   "letter",
