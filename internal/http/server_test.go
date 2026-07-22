@@ -561,6 +561,12 @@ func TestStaticAssetsBypassUserLookup(t *testing.T) {
 		!strings.Contains(body, "grid-template-columns: 100px 150px;") {
 		t.Fatalf("app css missing AR Credit company/encoder swap or compact cash amount field")
 	}
+	if body := rec.Body.String(); !strings.Contains(body, "html.theme-dark .income-statement-section h3") ||
+		!strings.Contains(body, "html.theme-dark .income-statement-table") ||
+		!strings.Contains(body, "background: #243a55;") ||
+		!strings.Contains(body, "color: #f4f8ff;") {
+		t.Fatal("app css missing readable dark-mode income statement colors")
+	}
 }
 
 func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
@@ -581,7 +587,7 @@ func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if !strings.Contains(rec.Body.String(), `/static/app.css?v=202607220002`) {
+	if !strings.Contains(rec.Body.String(), `/static/app.css?v=202607220003`) {
 		t.Fatal("layout should use the current stylesheet version")
 	}
 	if !strings.Contains(rec.Body.String(), `/static/content-window.js?v=202607220001`) {

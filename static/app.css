@@ -7792,6 +7792,63 @@ html.theme-dark .report-empty {
   color: #d8e2ef;
 }
 
+html.theme-dark .income-statement-section h3 {
+  border-color: #6684a8;
+  background: #243a55;
+  color: #f4f8ff;
+}
+
+html.theme-dark .income-statement-table,
+html.theme-dark .income-statement-table td,
+html.theme-dark .income-statement-table tbody tr td,
+html.theme-dark .income-statement-table tbody tr:nth-child(odd) td,
+html.theme-dark .income-statement-table tbody tr:nth-child(even) td {
+  background: #162231;
+  color: #dce6f3;
+}
+
+html.theme-dark .income-statement-total td:nth-child(3),
+html.theme-dark .income-statement-grand td:nth-child(3),
+html.theme-dark .income-statement-net td {
+  border-color: #8ba1bc;
+}
+
+html.theme-dark .income-statement-net td {
+  background: #1c2d42;
+  color: #f4f8ff;
+}
+
+html.theme-dark .income-statement-markup-table,
+html.theme-dark .income-statement-transfer-table {
+  border-color: #6684a8;
+  color: #dce6f3;
+}
+
+html.theme-dark .income-statement-markup-table th,
+html.theme-dark .income-statement-transfer-table th {
+  border-color: #526b8a;
+  background: #243a55;
+  color: #f4f8ff;
+}
+
+html.theme-dark .income-statement-markup-table td,
+html.theme-dark .income-statement-transfer-table td {
+  border-color: #40536d;
+  background: #162231;
+  color: #dce6f3;
+}
+
+html.theme-dark .income-statement-transfer-group h3,
+html.theme-dark .income-statement-page-label,
+html.theme-dark .income-statement-paper .report-page-label {
+  color: #dce6f3;
+}
+
+html.theme-dark .income-statement-section.report-row-highlight {
+  background: #203550;
+  box-shadow: inset 0 0 0 1px #6aa7ff;
+}
+
 html.theme-dark .report-options-dialog {
   background: #141e2a;
   border-color: #48617e;
@@ -7857,6 +7914,32 @@ html.theme-dark .report-options-dialog legend {
   html.theme-dark .report-table td {
     background: transparent !important;
     border-color: #008b8b !important;
+  }
+
+  html.theme-dark .income-statement-section h3,
+  html.theme-dark .income-statement-table,
+  html.theme-dark .income-statement-table td,
+  html.theme-dark .income-statement-markup-table th,
+  html.theme-dark .income-statement-markup-table td,
+  html.theme-dark .income-statement-transfer-table th,
+  html.theme-dark .income-statement-transfer-table td,
+  html.theme-dark .income-statement-transfer-group h3,
+  html.theme-dark .income-statement-paper .report-page-label {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  html.theme-dark .income-statement-section h3,
+  html.theme-dark .income-statement-markup-table,
+  html.theme-dark .income-statement-transfer-table,
+  html.theme-dark .income-statement-markup-table th,
+  html.theme-dark .income-statement-markup-table td,
+  html.theme-dark .income-statement-transfer-table th,
+  html.theme-dark .income-statement-transfer-table td,
+  html.theme-dark .income-statement-total td:nth-child(3),
+  html.theme-dark .income-statement-grand td:nth-child(3),
+  html.theme-dark .income-statement-net td {
+    border-color: #000 !important;
   }
 }
 
