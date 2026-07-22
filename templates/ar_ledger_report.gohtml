@@ -278,7 +278,11 @@
         switch (button.getAttribute("data-report-action")) {
         case "print": window.print(); break;
         case "export": exportCSV(); break;
-        case "refresh": window.location.reload(); break;
+        case "refresh":
+          var refreshURL = new URL(window.location.href);
+          refreshURL.searchParams.set("_refresh", Date.now().toString());
+          window.location.replace(refreshURL.href);
+          break;
         case "tree": shell.classList.toggle("report-tree-hidden"); break;
         case "find":
           var term = window.prompt("Find text");

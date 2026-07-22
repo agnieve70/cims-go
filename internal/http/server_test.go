@@ -566,6 +566,29 @@ func TestLayoutUsesCurrentStylesheetVersion(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), `/static/app.css?v=202607220002`) {
 		t.Fatal("layout should use the current stylesheet version")
 	}
+	if !strings.Contains(rec.Body.String(), `/static/content-window.js?v=202607220001`) {
+		t.Fatal("layout should use the current content-window script version")
+	}
+}
+
+func TestContentWindowFramesBypassBrowserCache(t *testing.T) {
+	store := &fakeStore{user: models.User{ID: 1, Username: "admin", DisplayName: "Admin", Role: models.RoleAdmin}}
+	app, err := NewApp(store, auth.NewManager(store, "12345678901234567890123456789012", "1234567890123456"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/static/content-window.js?v=202607220001", nil)
+	rec := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `searchParams.set("_frame",`) || !strings.Contains(body, `iframe.src = freshFrameURL(url)`) {
+		t.Fatal("content windows should give each iframe a cache-busting URL")
+	}
 }
 
 func TestDynamicHTMLIsCompressed(t *testing.T) {
@@ -584,6 +607,12 @@ func TestDynamicHTMLIsCompressed(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store, max-age=0" {
+		t.Fatalf("Cache-Control = %q, want dynamic responses to bypass browser caches", got)
+	}
+	if got := rec.Header().Get("Pragma"); got != "no-cache" {
+		t.Fatalf("Pragma = %q, want no-cache", got)
 	}
 	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "text/html") {
 		t.Fatalf("Content-Type = %q, want text/html", got)
@@ -2422,6 +2451,9 @@ func TestARLedgerAgingMatchesReferenceHeaders(t *testing.T) {
 		if !strings.Contains(body, column) {
 			t.Fatalf("body missing AR detailed column %q", column)
 		}
+	}
+	if !strings.Contains(body, `searchParams.set("_refresh",`) || !strings.Contains(body, `window.location.replace(refreshURL.href)`) {
+		t.Fatal("AR ledger refresh should force a new browser request")
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/reports/ar-ledger?run=1&report_type=summary&coverage=month&month=1&year=2026", nil)

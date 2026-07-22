@@ -472,6 +472,16 @@
     }
   }
 
+  function freshFrameURL(url) {
+    try {
+      var parsed = new URL(url, window.location.href);
+      parsed.searchParams.set("_frame", Date.now().toString() + "-" + windowCount);
+      return parsed.href;
+    } catch (error) {
+      return url;
+    }
+  }
+
   function openPageWindow(url, title) {
     windowCount += 1;
 
@@ -517,7 +527,7 @@
 
     var iframe = document.createElement("iframe");
     iframe.className = "desktop-page-frame";
-    iframe.src = url;
+    iframe.src = freshFrameURL(url);
     iframe.title = title || "Window";
     iframe.addEventListener("load", function () {
       injectChildFrameChrome(iframe);

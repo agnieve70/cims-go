@@ -155,6 +155,7 @@ func (a *App) Routes() http.Handler {
 	r.Handle("/static/*", staticHandler())
 
 	r.Group(func(dynamic chi.Router) {
+		dynamic.Use(disableDynamicCaching)
 		dynamic.Use(a.auth.LoadUser)
 		dynamic.Get("/login", a.loginForm)
 		dynamic.Post("/login", a.loginPost)
@@ -226,6 +227,15 @@ func (a *App) Routes() http.Handler {
 	})
 
 	return r
+}
+
+func disableDynamicCaching(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func staticHandler() http.Handler {
