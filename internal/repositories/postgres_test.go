@@ -589,7 +589,7 @@ func TestPostgresStoreARLedgerRecoversUnpostedARCreditDocument(t *testing.T) {
 		insert into documents
 			(kind, entry_date, document_date, party_type, party_id, reference, net, payload, encoder_user_id, last_update_by_user_id)
 		values
-			('ar-credit', '2099-12-15', '2099-12-15', 'customer', $1::bigint, $2, 0, jsonb_build_object('values', jsonb_build_object('party_id', ($1::bigint)::text, 'cash_amount', '200')), $3, $3)
+			('ar-credit', '2099-12-15 15:30:00+08', '2099-12-15', 'customer', $1::bigint, $2, 0, jsonb_build_object('values', jsonb_build_object('party_id', ($1::bigint)::text, 'cash_amount', '200')), $3, $3)
 		returning id`, customerID, "ARC-"+suffix, userID).Scan(&documentID); err != nil {
 		t.Fatalf("insert unposted AR credit document: %v", err)
 	}
@@ -603,7 +603,7 @@ func TestPostgresStoreARLedgerRecoversUnpostedARCreditDocument(t *testing.T) {
 	}
 
 	store := NewPostgresStore(pool)
-	to := time.Date(2099, time.December, 31, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2099, time.December, 15, 0, 0, 0, 0, time.UTC)
 	assertRecoveredCredit := func(wantRows int) {
 		t.Helper()
 		rows, err := store.ARLedgerReportRows(ctx, time.Time{}, to)

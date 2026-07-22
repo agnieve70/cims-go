@@ -893,7 +893,7 @@ func (s *PostgresStore) ARLedgerReportRows(ctx context.Context, _ time.Time, to 
 		from customer_ledger cl
 		join documents d on d.id = cl.document_id
 		join customers c on c.id = cl.party_id
-		where d.entry_date <= $1::date
+		where timezone('Asia/Manila', d.entry_date)::date <= $1::date
 		  and d.kind in ('sales', 'ap-credit', 'ar-credit', 'ar-debit', 'stock-transactions')
 		order by customer_name, d.entry_date, d.entry_id`, to)
 	if err != nil {
