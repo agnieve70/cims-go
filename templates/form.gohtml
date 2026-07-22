@@ -2991,7 +2991,7 @@
       var documentID = "{{fieldValue .Record "record_id"}}";
       var url = "/transactions/ar-credit/balance?party_id=" + encodeURIComponent(customerID) +
         "&document_id=" + encodeURIComponent(documentID || "0");
-      fetch(url, { headers: { "Accept": "application/json" } })
+      fetch(url, { cache: "no-store", headers: { "Accept": "application/json" } })
         .then(function (response) {
           if (!response.ok) throw new Error("Unable to load customer balance");
           return response.json();

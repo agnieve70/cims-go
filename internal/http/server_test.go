@@ -1238,6 +1238,7 @@ func TestARCreditFormProvidesBrowsableCompanySelection(t *testing.T) {
 		`id="ar-credit-customer-picker-title">Customer List</h3>`,
 		`data-ar-credit-customer-picker-search placeholder="Type customer name"`,
 		`data-ar-credit-customer-picker-results`,
+		`fetch(url, { cache: "no-store"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %q", want)
@@ -1266,6 +1267,9 @@ func TestARCreditBalanceReturnsSelectedCustomerReceivable(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store so a new AR Credit reads the updated balance", got)
 	}
 	if store.lastBalanceCustomerID != 7 || store.lastBalanceDocumentID != 11 {
 		t.Fatalf("balance lookup = customer %d document %d, want customer 7 document 11", store.lastBalanceCustomerID, store.lastBalanceDocumentID)

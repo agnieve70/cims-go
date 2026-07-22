@@ -449,6 +449,7 @@ func (a *App) arCreditBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
 	if err := json.NewEncoder(w).Encode(map[string]string{"balance": balance}); err != nil {
 		a.serverError(w, r, err)
 	}

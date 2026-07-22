@@ -546,6 +546,94 @@ func TestPostgresStoreMasterAndPurchaseDocumentCRUD(t *testing.T) {
 	}
 }
 
+func TestPostgresStoreARLedgerRecoversUnpostedARCreditDocument(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed AR ledger recovery coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	migrationsDir := filepath.Join("..", "..", "db", "migrations")
+	if err := appdb.Migrate(databaseURL, migrationsDir); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := fmt.Sprintf("ARLEDGER%d", time.Now().UnixNano())
+	var userID, customerID, documentID int64
+	if err := pool.QueryRow(ctx, `
+		insert into users (username, password_hash, display_name, role)
+		values ($1, 'test-hash', 'AR Ledger Recovery Test', 'admin')
+		returning id`, "ar-ledger-"+suffix).Scan(&userID); err != nil {
+		t.Fatalf("insert test user: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `delete from users where id=$1`, userID)
+	})
+	if err := pool.QueryRow(ctx, `
+		insert into customers (code, company)
+		values ($1, $2)
+		returning id`, "CUS-"+suffix, "AR Ledger Recovery "+suffix).Scan(&customerID); err != nil {
+		t.Fatalf("insert test customer: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `delete from customers where id=$1`, customerID)
+	})
+	if err := pool.QueryRow(ctx, `
+		insert into documents
+			(kind, entry_date, document_date, party_type, party_id, reference, net, payload, encoder_user_id, last_update_by_user_id)
+		values
+			('ar-credit', '2099-12-15', '2099-12-15', 'customer', $1::bigint, $2, 0, jsonb_build_object('values', jsonb_build_object('party_id', ($1::bigint)::text, 'cash_amount', '200')), $3, $3)
+		returning id`, customerID, "ARC-"+suffix, userID).Scan(&documentID); err != nil {
+		t.Fatalf("insert unposted AR credit document: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `delete from documents where id=$1`, documentID)
+	})
+	if _, err := pool.Exec(ctx, `
+		insert into document_lines (document_id, group_key, line_no, amount, payload)
+		values ($1, 'checks', 1, 100, '{"amount":"100"}')`, documentID); err != nil {
+		t.Fatalf("insert unposted AR credit check: %v", err)
+	}
+
+	store := NewPostgresStore(pool)
+	to := time.Date(2099, time.December, 31, 0, 0, 0, 0, time.UTC)
+	assertRecoveredCredit := func(wantRows int) {
+		t.Helper()
+		rows, err := store.ARLedgerReportRows(ctx, time.Time{}, to)
+		if err != nil {
+			t.Fatalf("load AR ledger rows: %v", err)
+		}
+		matches := 0
+		for _, row := range rows {
+			if row.CustomerID != fmt.Sprint(customerID) {
+				continue
+			}
+			matches++
+			if row.Kind != "ar-credit" || row.Reference != "ARC-"+suffix || row.DeltaCents != -30_000 {
+				t.Fatalf("recovered AR credit = %#v, want a -300.00 credit", row)
+			}
+		}
+		if matches != wantRows {
+			t.Fatalf("recovered AR credit rows = %d, want %d", matches, wantRows)
+		}
+	}
+
+	assertRecoveredCredit(1)
+	if _, err := pool.Exec(ctx, `
+		insert into balance_ledger (document_id, party_type, party_id, amount_delta)
+		values ($1, 'customer', $2, -300)`, documentID, customerID); err != nil {
+		t.Fatalf("insert normal AR credit posting: %v", err)
+	}
+	assertRecoveredCredit(1)
+}
+
 func TestPostgresStoreIncomeStatementRowsQuery(t *testing.T) {
 	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
 	if databaseURL == "" {

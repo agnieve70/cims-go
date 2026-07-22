@@ -827,6 +827,59 @@ func (s *PostgresStore) APLedgerReportRows(ctx context.Context, _ time.Time, to 
 
 func (s *PostgresStore) ARLedgerReportRows(ctx context.Context, _ time.Time, to time.Time) ([]models.ARLedgerReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
+		with customer_ledger as (
+			select bl.document_id,
+			       bl.party_id,
+			       bl.amount_delta
+			from balance_ledger bl
+			where bl.party_type = 'customer'
+
+			union all
+
+			select d.id as document_id,
+			       recovered.party_id,
+			       -recovered.amount as amount_delta
+			from documents d
+			cross join lateral (
+				select coalesce(
+				         case when d.party_type = 'customer' then d.party_id end,
+				         case
+				           when coalesce(d.payload->'values'->>'party_id', '') ~ '^\d+$'
+				           then (d.payload->'values'->>'party_id')::bigint
+				         end
+				       ) as party_id,
+				       coalesce(
+				         nullif(abs(coalesce(d.net, 0)), 0),
+				         nullif(
+				           case
+				             when coalesce(d.payload->'values'->>'cash_amount', '') ~ '^-?\d+(\.\d+)?$'
+				             then abs((d.payload->'values'->>'cash_amount')::numeric)
+				             else 0
+				           end + coalesce((
+				             select sum(abs(case
+				               when coalesce(dl.payload->>'amount', '') ~ '^-?\d+(\.\d+)?$'
+				               then (dl.payload->>'amount')::numeric
+				               else coalesce(dl.amount, 0)
+				             end))
+				             from document_lines dl
+				             where dl.document_id = d.id
+				               and dl.group_key in ('checks', 'payments')
+				           ), 0),
+				           0
+				         ),
+				         0
+				       ) as amount
+			) recovered
+			where d.kind = 'ar-credit'
+			  and recovered.party_id is not null
+			  and recovered.amount <> 0
+			  and not exists (
+			    select 1
+			    from balance_ledger bl
+			    where bl.document_id = d.id
+			      and bl.party_type = 'customer'
+			  )
+		)
 		select c.id::text as customer_id,
 		       coalesce(c.code, '') as customer_code,
 		       coalesce(nullif(c.company, ''), nullif(c.code, ''), 'No Customer') as customer_name,
@@ -836,12 +889,11 @@ func (s *PostgresStore) ARLedgerReportRows(ctx context.Context, _ time.Time, to 
 		       to_char(d.entry_date, 'MM/DD/YYYY') as entry_date,
 		       coalesce(nullif(d.reference, ''), nullif(d.payload->'values'->>'or_ci_number', ''), d.entry_id, '') as reference,
 		       coalesce(d.kind, '') as kind,
-		       coalesce(round(bl.amount_delta * 100), 0)::bigint as delta_cents
-		from balance_ledger bl
-		join documents d on d.id = bl.document_id
-		join customers c on bl.party_type = 'customer' and c.id = bl.party_id
-		where bl.party_type = 'customer'
-		  and d.entry_date <= $1::date
+		       coalesce(round(cl.amount_delta * 100), 0)::bigint as delta_cents
+		from customer_ledger cl
+		join documents d on d.id = cl.document_id
+		join customers c on c.id = cl.party_id
+		where d.entry_date <= $1::date
 		  and d.kind in ('sales', 'ap-credit', 'ar-credit', 'ar-debit', 'stock-transactions')
 		order by customer_name, d.entry_date, d.entry_id`, to)
 	if err != nil {
