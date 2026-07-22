@@ -7415,10 +7415,14 @@ func moneyString(cents int64) string {
 }
 
 func paymentTypeLabel(value string) string {
-	if strings.EqualFold(strings.TrimSpace(value), "cash") {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "cash":
 		return "Cash"
+	case "stock-in", "stock in":
+		return "Stock In"
+	default:
+		return "Charge"
 	}
-	return "Charge"
 }
 
 func percentString(numerator, denominator int64) string {

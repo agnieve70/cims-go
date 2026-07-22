@@ -493,6 +493,175 @@ func TestPostgresStoreIncomeStatementRowsQuery(t *testing.T) {
 	}
 }
 
+func TestPostgresStoreStockInAppearsInAcquisitionReports(t *testing.T) {
+	databaseURL := os.Getenv("CIMS_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set CIMS_TEST_DATABASE_URL to run database-backed stock-in report coverage")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	migrationsDir := filepath.Join("..", "..", "db", "migrations")
+	if err := appdb.Migrate(databaseURL, migrationsDir); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open postgres pool: %v", err)
+	}
+	defer pool.Close()
+
+	store := NewPostgresStore(pool)
+	suffix := fmt.Sprintf("STOCKIN%d", time.Now().UnixNano())
+	reportDate := time.Date(2099, time.December, 31, 0, 0, 0, 0, time.UTC)
+	baselineIncome, err := store.IncomeStatementRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("load baseline income statement: %v", err)
+	}
+	baselineStockIn := incomeStatementAmount(baselineIncome, "purchases", "Stock In")
+
+	var userID int64
+	if err := pool.QueryRow(ctx, `
+		insert into users (username, password_hash, display_name, role)
+		values ($1, 'test-hash', 'Stock In Report Test', 'admin')
+		returning id`, "stock-in-report-"+suffix).Scan(&userID); err != nil {
+		t.Fatalf("insert test user: %v", err)
+	}
+	user := models.User{ID: userID, Username: "stock-in-report-" + suffix, DisplayName: "Stock In Report Test", Role: models.RoleAdmin}
+	defer func() {
+		_, _ = pool.Exec(context.Background(), `delete from users where id=$1`, userID)
+	}()
+
+	branchForm := masterFormByKind(t, "branches")
+	branchID, err := store.SaveMaster(ctx, branchForm, 0, map[string]string{
+		"code": "BR-" + suffix, "name": "Stock In Report Branch " + suffix, "incharge": "Tester",
+	}, user)
+	if err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+	user.ActiveBranchID = branchID
+	defer func() { _ = store.DeleteMaster(context.Background(), branchForm, branchID, user) }()
+
+	stockForm := masterFormByKind(t, "stocks")
+	stockID, err := store.SaveMaster(ctx, stockForm, 0, map[string]string{
+		"code": "STK-" + suffix, "name": "Stock In Report Item " + suffix, "unit": "BAG", "latest_cost": "0", "min_inventory": "0",
+	}, user)
+	if err != nil {
+		t.Fatalf("create stock: %v", err)
+	}
+	defer func() { _ = store.DeleteMaster(context.Background(), stockForm, stockID, user) }()
+
+	stockInForm := transactionFormByKind(t, "stock-in")
+	documentID, err := store.SaveDocument(ctx, stockInForm, 0, DocumentInput{
+		Kind: "stock-in",
+		User: user,
+		Values: map[string]string{
+			"entry_date": "2099-12-31", "branch_id": fmt.Sprint(branchID), "remarks": "stock-in report regression test",
+		},
+		LineInput: []LineInput{{Group: "details", Rows: []map[string]string{{
+			"stock_id": fmt.Sprint(stockID), "qty": "7", "unit_cost": "12.50", "amount": "87.50",
+		}}}},
+	})
+	if err != nil {
+		t.Fatalf("create stock-in document: %v", err)
+	}
+	defer func() { _ = store.DeleteDocument(context.Background(), stockInForm, documentID, user) }()
+
+	var entryID string
+	if err := pool.QueryRow(ctx, `select entry_id from documents where id=$1`, documentID).Scan(&entryID); err != nil {
+		t.Fatalf("load stock-in entry ID: %v", err)
+	}
+
+	summaryRows, err := store.PurchaseReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("purchase summary rows: %v", err)
+	}
+	foundSummary := false
+	for _, row := range summaryRows {
+		if row.EntryID == entryID {
+			foundSummary = row.Supplier == "Stock In" && row.Type == "Stock In" && row.NetCents == 8750
+		}
+	}
+	if !foundSummary {
+		t.Fatalf("stock-in entry %q missing or mislabeled in purchase summary: %#v", entryID, summaryRows)
+	}
+
+	byReference, err := store.PurchaseByDRNumberReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("purchase-by-reference rows: %v", err)
+	}
+	foundReference := false
+	for _, row := range byReference {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundReference = row.Supplier == "Stock In" && row.Type == "Stock In" && row.Quantity == 7
+		}
+	}
+	if !foundReference {
+		t.Fatalf("stock-in entry %q missing or mislabeled in purchase-by-reference report: %#v", entryID, byReference)
+	}
+
+	byStock, err := store.PurchaseByStockCodeReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("purchase-by-stock rows: %v", err)
+	}
+	foundStock := false
+	for _, row := range byStock {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundStock = row.Supplier == "Stock In" && row.Type == "Stock In" && row.Quantity == 7
+		}
+	}
+	if !foundStock {
+		t.Fatalf("stock-in entry %q missing or mislabeled in purchase-by-stock report: %#v", entryID, byStock)
+	}
+
+	bySupplier, err := store.PurchaseBySupplierReportRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("purchase-by-supplier rows: %v", err)
+	}
+	foundSupplier := false
+	for _, row := range bySupplier {
+		if row.Reference == entryID && row.StockCode == "STK-"+suffix {
+			foundSupplier = row.Supplier == "Stock In" && row.Type == "Stock In" && row.Quantity == 7
+		}
+	}
+	if !foundSupplier {
+		t.Fatalf("stock-in entry %q missing or mislabeled in purchase-by-supplier report: %#v", entryID, bySupplier)
+	}
+
+	ledgerRows, err := store.StockLedgerReportRows(ctx, reportDate)
+	if err != nil {
+		t.Fatalf("stock ledger rows: %v", err)
+	}
+	foundLedger := false
+	for _, row := range ledgerRows {
+		if row.StockID == fmt.Sprint(stockID) && row.Kind == "stock-in" && row.Reference == entryID && row.QtyDelta == 7 {
+			foundLedger = true
+		}
+	}
+	if !foundLedger {
+		t.Fatalf("stock-in entry %q missing from stock ledger", entryID)
+	}
+
+	incomeRows, err := store.IncomeStatementRows(ctx, reportDate, reportDate)
+	if err != nil {
+		t.Fatalf("income statement rows: %v", err)
+	}
+	if got := incomeStatementAmount(incomeRows, "purchases", "Stock In") - baselineStockIn; got != 8750 {
+		t.Fatalf("stock-in purchases amount delta = %d, want 8750", got)
+	}
+}
+
+func incomeStatementAmount(rows []models.IncomeStatementRow, section, label string) int64 {
+	var amount int64
+	for _, row := range rows {
+		if row.Section == section && row.Label == label {
+			amount += row.AmountCents
+		}
+	}
+	return amount
+}
+
 func masterFormByKind(t *testing.T, kind string) models.FormDefinition {
 	t.Helper()
 	for _, form := range models.MasterForms() {

@@ -375,16 +375,23 @@ func (s *PostgresStore) ListDocuments(ctx context.Context, kind string, search s
 
 func (s *PostgresStore) PurchaseReportRows(ctx context.Context, from, to time.Time) ([]models.PurchaseReportRow, error) {
 	rows, err := s.pool.Query(ctx, `
-		select coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
+		select case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
+		       end as supplier,
 		       coalesce(d.entry_id, '') as entry_id,
 		       to_char(d.entry_date, 'MM/DD/YYYY') as entry_date,
 		       coalesce(d.payload->'values'->>'or_ci_number', d.reference, '') as or_ci_number,
-		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         when coalesce(d.cash, false) then 'Cash'
+		         else 'Charge'
+		       end as payment_type,
 		       coalesce(round(coalesce(d.total, d.net, 0) * 100), 0)::bigint as gross_cents,
 		       coalesce(round(coalesce(d.net, d.total, 0) * 100), 0)::bigint as net_cents
 		from documents d
 		left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
-		where d.kind = 'purchases'
+		where d.kind in ('purchases', 'stock-in')
 		  and d.entry_date >= $1::date
 		  and d.entry_date <= $2::date
 		order by supplier, d.entry_date, d.entry_id`, from, to)
@@ -407,8 +414,15 @@ func (s *PostgresStore) PurchaseByDRNumberReportRows(ctx context.Context, from, 
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
-		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
-		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         when coalesce(d.cash, false) then 'Cash'
+		         else 'Charge'
+		       end as payment_type,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
+		       end as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(round(dl.qty), 0)::bigint as quantity,
@@ -418,7 +432,7 @@ func (s *PostgresStore) PurchaseByDRNumberReportRows(ctx context.Context, from, 
 		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
 		left join stocks st on st.id = dl.stock_id
 		left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
-		where d.kind = 'purchases'
+		where d.kind in ('purchases', 'stock-in')
 		  and d.document_date >= $1::date
 		  and d.document_date <= $2::date
 		order by reference, purchase_date, supplier, stock_code, stock_name`, from, to)
@@ -441,8 +455,15 @@ func (s *PostgresStore) PurchaseByStockCodeReportRows(ctx context.Context, from,
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
-		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
-		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         when coalesce(d.cash, false) then 'Cash'
+		         else 'Charge'
+		       end as payment_type,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
+		       end as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(round(dl.qty), 0)::bigint as quantity,
@@ -452,7 +473,7 @@ func (s *PostgresStore) PurchaseByStockCodeReportRows(ctx context.Context, from,
 		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
 		left join stocks st on st.id = dl.stock_id
 		left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
-		where d.kind = 'purchases'
+		where d.kind in ('purchases', 'stock-in')
 		  and d.document_date >= $1::date
 		  and d.document_date <= $2::date
 		order by stock_code, stock_name, purchase_date, reference, supplier`, from, to)
@@ -475,8 +496,15 @@ func (s *PostgresStore) PurchaseBySupplierReportRows(ctx context.Context, from, 
 	rows, err := s.pool.Query(ctx, `
 		select coalesce(nullif(d.payload->'values'->>'or_ci_number', ''), nullif(d.reference, ''), nullif(d.entry_id, ''), 'No Reference') as reference,
 		       to_char(d.document_date, 'MM/DD/YYYY') as purchase_date,
-		       case when coalesce(d.cash, false) then 'Cash' else 'Charge' end as payment_type,
-		       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as supplier,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         when coalesce(d.cash, false) then 'Cash'
+		         else 'Charge'
+		       end as payment_type,
+		       case
+		         when d.kind = 'stock-in' then 'Stock In'
+		         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
+		       end as supplier,
 		       coalesce(st.code, '') as stock_code,
 		       coalesce(nullif(st.name, ''), nullif(st.code, ''), 'No Stock') as stock_name,
 		       coalesce(round(dl.qty), 0)::bigint as quantity,
@@ -486,7 +514,7 @@ func (s *PostgresStore) PurchaseBySupplierReportRows(ctx context.Context, from, 
 		join document_lines dl on dl.document_id = d.id and dl.group_key = 'details'
 		left join stocks st on st.id = dl.stock_id
 		left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
-		where d.kind = 'purchases'
+		where d.kind in ('purchases', 'stock-in')
 		  and d.document_date >= $1::date
 		  and d.document_date <= $2::date
 		order by supplier, stock_code, stock_name, purchase_date, reference`, from, to)
@@ -997,11 +1025,14 @@ func (s *PostgresStore) IncomeStatementRows(ctx context.Context, from, to time.T
 		),
 		purchase_rows as (
 			select 'purchases' as section,
-			       coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier') as label,
+			       case
+			         when d.kind = 'stock-in' then 'Stock In'
+			         else coalesce(nullif(s.company, ''), nullif(s.code, ''), 'No Supplier')
+			       end as label,
 			       coalesce(sum(d.net), 0) as amount
 			from documents d
 			left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
-			where d.kind = 'purchases'
+			where d.kind in ('purchases', 'stock-in')
 			  and d.entry_date >= $1::date
 			  and d.entry_date <= $2::date
 			group by label
@@ -1887,7 +1918,7 @@ func (s *PostgresStore) StockLedgerReportRows(ctx context.Context, to time.Time)
 			left join suppliers s on d.party_type = 'supplier' and s.id = d.party_id
 			left join customers c on d.party_type = 'customer' and c.id = d.party_id
 			left join branches b on b.id = coalesce(sl.branch_id, d.branch_id)
-			where d.kind in ('purchases', 'sales', 'stock-transactions')
+			where d.kind in ('purchases', 'stock-in', 'sales', 'stock-transactions')
 			  and case
 			       	when d.kind = 'purchases' then d.document_date
 			       	when d.kind = 'sales' then d.document_date

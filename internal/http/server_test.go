@@ -447,6 +447,7 @@ func (s *fakeStore) StockLedgerReportRows(context.Context, time.Time) ([]models.
 		{StockID: "category:MASTER ONLY", Category: "MASTER ONLY"},
 		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314090000000000-00000000000000000010-00000000000000000020", Reference: "ZZ-PURCHASE", Company: "Supplier A", Kind: "purchases", QtyDelta: 10},
 		{StockID: "4", Category: "ORDER TEST", StockCode: "ORDER", StockName: "ORDER STOCK", EntryDate: "03/14/2026", SortKey: "20260314100000000000-00000000000000000011-00000000000000000021", Reference: "AA-SALE", Company: "Customer A", Kind: "sales", QtyDelta: -5},
+		{StockID: "5", Category: "STOCK IN TEST", StockCode: "STOCK-IN", StockName: "STOCK IN ITEM", EntryDate: "03/18/2026", Kind: "stock-in", QtyDelta: 12},
 	}, nil
 }
 
@@ -3724,9 +3725,53 @@ func TestStockLedgerReportRenders(t *testing.T) {
 	if !strings.Contains(body, "<td>TR-1</td><td>03/16/2026</td><td>Branch A</td><td class=\"num\"></td><td class=\"num\">15.00</td>") {
 		t.Fatalf("stock ledger stock transaction should render as credit")
 	}
+	if !strings.Contains(body, "<td>Stock In</td><td>03/18/2026</td><td>Stock In</td><td class=\"num\">12.00</td><td class=\"num\"></td><td class=\"num\">12.00</td>") {
+		t.Fatalf("stock ledger stock-in should render as a debit with a stock-in label")
+	}
 	purchaseIndex := strings.Index(body, "ZZ-PURCHASE")
 	saleIndex := strings.Index(body, "AA-SALE")
 	if purchaseIndex == -1 || saleIndex == -1 || purchaseIndex > saleIndex {
 		t.Fatalf("stock ledger did not preserve same-day entry timestamp order")
+	}
+}
+
+func TestPurchaseReportBuildersPreserveStockInLabel(t *testing.T) {
+	summary := purchaseReportData{ReportType: "detailed", TotalPages: 1}
+	summary.build([]models.PurchaseReportRow{{
+		Supplier: "Stock In", EntryID: "ENT-STOCK-IN", EntryDate: "07/18/2026",
+		Type: "Stock In", GrossCents: 12500, NetCents: 12500,
+	}})
+	if len(summary.Groups) != 1 || summary.Groups[0].Supplier != "Stock In" || summary.Groups[0].Rows[0].Type != "Stock In" {
+		t.Fatalf("purchase summary stock-in group = %#v", summary.Groups)
+	}
+
+	byDR := purchaseByDRNumberReportData{TotalPages: 1}
+	byDR.build([]models.PurchaseByDRNumberReportRow{{
+		Reference: "ENT-STOCK-IN", PurchaseDate: "07/18/2026", Type: "Stock In", Supplier: "Stock In",
+		StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, UnitCostCents: 2500, AmountCents: 12500,
+	}})
+	if len(byDR.Groups) != 1 || byDR.Groups[0].Rows[0].Supplier != "Stock In" || byDR.Groups[0].Rows[0].Type != "Stock In" {
+		t.Fatalf("purchase-by-reference stock-in group = %#v", byDR.Groups)
+	}
+
+	byStock := purchaseByStockCodeReportData{TotalPages: 1}
+	byStock.build([]models.PurchaseByStockCodeReportRow{{
+		Reference: "ENT-STOCK-IN", PurchaseDate: "07/18/2026", Type: "Stock In", Supplier: "Stock In",
+		StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, UnitCostCents: 2500, AmountCents: 12500,
+	}})
+	if len(byStock.Groups) != 1 || byStock.Groups[0].Rows[0].Supplier != "Stock In" || byStock.Groups[0].Rows[0].Type != "Stock In" {
+		t.Fatalf("purchase-by-stock stock-in group = %#v", byStock.Groups)
+	}
+	if len(byStock.PreviewSuppliers) != 1 || byStock.PreviewSuppliers[0].Supplier != "Stock In" {
+		t.Fatalf("purchase-by-stock stock-in preview = %#v", byStock.PreviewSuppliers)
+	}
+
+	bySupplier := purchaseBySupplierReportData{TotalPages: 1}
+	bySupplier.build([]models.PurchaseBySupplierReportRow{{
+		Reference: "ENT-STOCK-IN", PurchaseDate: "07/18/2026", Type: "Stock In", Supplier: "Stock In",
+		StockCode: "ITEM", StockName: "Stock Item", Quantity: 5, UnitCostCents: 2500, AmountCents: 12500,
+	}})
+	if len(bySupplier.Groups) != 1 || bySupplier.Groups[0].Supplier != "Stock In" || bySupplier.Groups[0].StockGroups[0].Rows[0].Type != "Stock In" {
+		t.Fatalf("purchase-by-supplier stock-in group = %#v", bySupplier.Groups)
 	}
 }
